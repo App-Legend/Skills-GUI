@@ -81,7 +81,7 @@ Skill-GUI는 이 흐름을 **카드·목록·상세 화면**으로 옮겨, 스�
 
 ## 기술 스택
 
-- **Flutter** (데스크톱: macOS / Windows / Linux)
+- **Flutter** (데스크톱: macOS / Windows)
 
 ## 라이선스
 
