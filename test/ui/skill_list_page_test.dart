@@ -7,32 +7,37 @@ import 'package:skill_gui/ui/skill_list_page.dart';
 const _skills = [
   Skill(name: 'a', description: 'da', source: SkillSource.global, path: '/a'),
   Skill(
-      name: 'b',
-      description: 'db',
-      source: SkillSource.plugin,
-      plugin: 'p@m',
-      pluginEnabled: true,
-      projectPath: '/w/app',
-      path: '/b'),
+    name: 'b',
+    description: 'db',
+    source: SkillSource.plugin,
+    plugin: 'p@m',
+    pluginEnabled: true,
+    projectPath: '/w/app',
+    path: '/b',
+  ),
   Skill(
-      name: 'c',
-      source: SkillSource.global,
-      path: '/c',
-      problem: SkillProblem(ProblemKind.noPermission, '읽을 수 없음, 폴더 권한 필요')),
+    name: 'c',
+    source: SkillSource.global,
+    path: '/c',
+    problem: SkillProblem(ProblemKind.noPermission, '읽을 수 없음, 폴더 권한 필요'),
+  ),
   Skill(
-      name: 'd',
-      description: 'dd',
-      source: SkillSource.plugin,
-      plugin: 'q@m',
-      pluginEnabled: false,
-      path: '/d'),
+    name: 'd',
+    description: 'dd',
+    source: SkillSource.plugin,
+    plugin: 'q@m',
+    pluginEnabled: false,
+    path: '/d',
+  ),
   Skill(name: 'e', source: SkillSource.synced, path: '/e'),
 ];
 
-Future<void> _pump(WidgetTester t,
-    {List<String> notices = const [],
-    Future<void> Function()? onRescan,
-    bool reduce = false}) async {
+Future<void> _pump(
+  WidgetTester t, {
+  List<String> notices = const [],
+  Future<void> Function()? onRescan,
+  bool reduce = false,
+}) async {
   t.view.physicalSize = const Size(1280, 820);
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
@@ -89,5 +94,45 @@ void main() {
     expect(find.byType(BackdropFilter), findsWidgets);
     await _pump(t, reduce: true);
     expect(find.byType(BackdropFilter), findsNothing);
+  });
+
+  testWidgets('긴 이름과 긴 플러그인 id는 넘치지 않는다', (t) async {
+    t.view.physicalSize = const Size(1280, 820);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      MaterialApp(
+        home: SkillListPage(
+          result: ScanResult(
+            skills: [
+              Skill(
+                name: 'n' * 80,
+                description: 'd',
+                source: SkillSource.plugin,
+                plugin: '${'p' * 30}@${'m' * 29}',
+                pluginEnabled: false,
+                path: '/x',
+              ),
+            ],
+          ),
+          onRescan: () async {},
+          onOpen: (_) {},
+        ),
+      ),
+    );
+    expect(t.takeException(), isNull);
+    expect(find.text('꺼짐'), findsNWidgets(2));
+  });
+
+  testWidgets('선택된 필터가 접근성에 알려진다', (t) async {
+    await _pump(t);
+    final h = t.ensureSemantics();
+    final d = t.getSemantics(find.bySemanticsLabel('전체'));
+    expect(d.getSemanticsData().flagsCollection.isButton, isTrue);
+    expect(
+      d.getSemanticsData().flagsCollection.isSelected.toString(),
+      'Tristate.isTrue',
+    );
+    h.dispose();
   });
 }
