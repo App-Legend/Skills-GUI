@@ -153,8 +153,6 @@ class _Sidebar extends StatelessWidget {
             Semantics(
               selected: f == filter,
               button: true,
-              excludeSemantics: true,
-              label: f.label,
               child: _Tap(
                 onTap: () => onFilter(f),
                 color: f == filter ? const Color(0xB3FFFFFF) : null,

@@ -127,11 +127,29 @@ void main() {
   testWidgets('선택된 필터가 접근성에 알려진다', (t) async {
     await _pump(t);
     final h = t.ensureSemantics();
-    final d = t.getSemantics(find.bySemanticsLabel('전체'));
-    expect(d.getSemanticsData().flagsCollection.isButton, isTrue);
     expect(
-      d.getSemanticsData().flagsCollection.isSelected.toString(),
-      'Tristate.isTrue',
+      t.getSemantics(find.bySemanticsLabel('전체')),
+      matchesSemantics(
+        label: '전체',
+        isButton: true,
+        isSelected: true,
+        hasSelectedState: true,
+        hasTapAction: true,
+        hasFocusAction: true,
+        isFocusable: true,
+      ),
+    );
+    expect(
+      t.getSemantics(find.bySemanticsLabel('플러그인')),
+      matchesSemantics(
+        label: '플러그인',
+        isButton: true,
+        isSelected: false,
+        hasSelectedState: true,
+        hasTapAction: true,
+        hasFocusAction: true,
+        isFocusable: true,
+      ),
     );
     h.dispose();
   });
