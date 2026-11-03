@@ -31,8 +31,8 @@ export async function GET(request: Request): Promise<Response> {
   const page = params.get("page");
   if (page !== null) {
     const n = parseInteger(page);
-    if (n === null || n < 1) {
-      return json({ error: "page는 1 이상의 정수여야 합니다." }, 400);
+    if (n === null || n < 0) {
+      return json({ error: "page는 0 이상의 정수여야 합니다." }, 400);
     }
     upstream.searchParams.set("page", String(n));
   }

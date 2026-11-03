@@ -10,7 +10,7 @@ skills.sh v1 API(`https://skills.sh/api/v1/skills`)는 Vercel OIDC 토큰을 요
 | 파라미터 | 규칙 |
 |---|---|
 | `view` | `all-time`, `trending`, `hot` 중 하나. 아니면 400 |
-| `page` | 1 이상 정수. 아니면 400 |
+| `page` | 0 이상 정수 (0부터 시작). 아니면 400 |
 | `per_page` | 1~500 정수. 아니면 400 |
 
 - 값이 없는 파라미터는 업스트림에 보내지 않는다.

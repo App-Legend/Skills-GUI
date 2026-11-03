@@ -18,7 +18,8 @@ const _tabs = <(RankingView, String)>[
 /// 탭 하나(보기 하나)의 불러오기 상태.
 class _ViewState {
   final List<SkillRankItem> items = [];
-  int page = 0;
+  /// 마지막으로 불러온 페이지. skills.sh 페이지는 0부터 시작하므로 처음엔 -1.
+  int page = -1;
   bool hasMore = false;
   bool loading = false;
   bool loaded = false;
@@ -71,7 +72,7 @@ class _RankingScreenState extends State<RankingScreen>
     if (!state.loaded && !state.loading) _load(_current);
   }
 
-  /// 다음 페이지(처음이면 1페이지)를 불러와 목록에 이어 붙인다.
+  /// 다음 페이지(처음이면 0페이지)를 불러와 목록에 이어 붙인다.
   Future<void> _load(RankingView view) async {
     final client = _client;
     final state = _states[view]!;

@@ -48,15 +48,15 @@ Future<void> _pump(WidgetTester tester, RankingApiClient? client) async {
 }
 
 void main() {
-  testWidgets('처음에 전체 보기 1페이지를 불러온다', (tester) async {
+  testWidgets('처음에 전체 보기 0페이지를 불러온다', (tester) async {
     final log = <Uri>[];
     await _pump(
       tester,
       _client((_) => RankingHttpResponse(
-          200, _body(['가짜A', '가짜B'], page: 1, hasMore: false)), log),
+          200, _body(['가짜A', '가짜B'], page: 0, hasMore: false)), log),
     );
     expect(log.single.queryParameters['view'], 'all-time');
-    expect(log.single.queryParameters['page'], '1');
+    expect(log.single.queryParameters['page'], '0');
     expect(find.text('가짜A'), findsOneWidget);
     expect(find.text('가짜B'), findsOneWidget);
     expect(find.byKey(const Key('ranking-tile-change')), findsNothing);
@@ -92,17 +92,17 @@ void main() {
         final page = int.parse(uri.queryParameters['page']!);
         return RankingHttpResponse(
           200,
-          _body(['가짜$page'], page: page, hasMore: page < 2),
+          _body(['가짜$page'], page: page, hasMore: page < 1),
         );
       }, log),
     );
-    expect(find.text('가짜1'), findsOneWidget);
+    expect(find.text('가짜0'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('ranking-next-page')));
     await tester.pumpAndSettle();
-    expect(log.last.queryParameters['page'], '2');
+    expect(log.last.queryParameters['page'], '1');
+    expect(find.text('가짜0'), findsOneWidget);
     expect(find.text('가짜1'), findsOneWidget);
-    expect(find.text('가짜2'), findsOneWidget);
     expect(find.byKey(const Key('ranking-next-page')), findsNothing);
   });
 
@@ -146,9 +146,9 @@ void main() {
     await _pump(
       tester,
       _client((uri) {
-        if (uri.queryParameters['page'] == '1') {
+        if (uri.queryParameters['page'] == '0') {
           return RankingHttpResponse(
-              200, _body(['가짜A'], page: 1, hasMore: true));
+              200, _body(['가짜A'], page: 0, hasMore: true));
         }
         return RankingHttpResponse(500, jsonEncode({'error': '가짜 오류'}));
       }, <Uri>[]),
