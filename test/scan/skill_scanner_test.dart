@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -119,5 +120,142 @@ void main() {
     expect(classifyFsError(e(1)), ProblemKind.noPermission);
     expect(classifyFsError(e(13)), ProblemKind.noPermission);
     expect(classifyFsError(e(2)), ProblemKind.unreadable);
+  });
+
+  group('plugins', () {
+    const md = '---\nname: x\ndescription: d\n---\n';
+    String inst(String v) => '${claude.path}/plugins/cache/m/p/$v';
+    Future<void> install(
+      List<Map<String, Object?>> entries, {
+      String id = 'p@m',
+    }) => file(
+      'plugins/installed_plugins.json',
+      jsonEncode({
+        'version': 2,
+        'plugins': {id: entries},
+      }),
+    );
+    Future<void> user({String v = '1.0.0', Map<String, Object?>? extra}) =>
+        install([
+          {'scope': 'user', 'installPath': inst(v), 'version': v, ...?extra},
+        ]);
+    Skill plug(ScanResult r) =>
+        r.skills.firstWhere((s) => s.source == SkillSource.plugin);
+
+    test('enabledPlugin', () async {
+      await file('plugins/cache/m/p/1.0.0/skills/x/SKILL.md', md);
+      await user();
+      await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
+      final s = plug(await scanClaude(claude));
+      expect(s.plugin, 'p@m');
+      expect(s.pluginVersion, '1.0.0');
+      expect(s.pluginEnabled, true);
+    });
+
+    test('disabledPlugin', () async {
+      await file('plugins/cache/m/p/1.0.0/skills/x/SKILL.md', md);
+      await user();
+      await file('settings.json', '{"enabledPlugins":{"p@m":false}}');
+      expect(plug(await scanClaude(claude)).pluginEnabled, false);
+      await file('settings.json', '{"enabledPlugins":{}}');
+      expect(plug(await scanClaude(claude)).pluginEnabled, false);
+    });
+
+    test('projectScope', () async {
+      await file('plugins/cache/m/p/1.0.0/skills/x/SKILL.md', md);
+      await install([
+        {
+          'scope': 'project',
+          'projectPath': '/w/app',
+          'installPath': inst('1.0.0'),
+          'version': '1.0.0',
+        },
+      ]);
+      await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
+      final s = plug(await scanClaude(claude));
+      expect(s.projectPath, '/w/app');
+      expect(s.pluginEnabled, isNull);
+    });
+
+    test('projectScopeNoPath', () async {
+      await file('plugins/cache/m/p/1.0.0/skills/x/SKILL.md', md);
+      await install([
+        {'scope': 'project', 'installPath': inst('1.0.0'), 'version': '1.0.0'},
+      ]);
+      final s = plug(await scanClaude(claude));
+      expect(s.projectPath, isNull);
+      expect(s.pluginEnabled, isNull);
+    });
+
+    test('noSettings', () async {
+      await file('plugins/cache/m/p/1.0.0/skills/x/SKILL.md', md);
+      await user();
+      final r = await scanClaude(claude);
+      expect(plug(r).pluginEnabled, isNull);
+      expect(r.notices, ['settings.json을 읽지 못해 플러그인 켜짐 여부를 알 수 없습니다']);
+    });
+
+    test('oldVersions', () async {
+      await file('plugins/cache/m/p/0.9.0/skills/old/SKILL.md', md);
+      await file('plugins/cache/m/p/1.0.0/skills/x/SKILL.md', md);
+      await user();
+      await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
+      final r = await scanClaude(claude);
+      expect(r.skills.where((s) => s.name == 'old'), isEmpty);
+      expect(r.notices, ['플러그인 옛 버전 폴더 1개가 남아 있습니다']);
+    });
+
+    test('noOldVersionsNoNotice', () async {
+      await file('plugins/cache/m/p/1.0.0/skills/x/SKILL.md', md);
+      await user();
+      await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
+      expect((await scanClaude(claude)).notices, isEmpty);
+    });
+
+    test('noInstalledJson', () async {
+      await file('skills/a/SKILL.md', md);
+      final r = await scanClaude(claude);
+      expect(r.skills.length, 1);
+      expect(r.notices, isEmpty);
+    });
+
+    test('badInstalledJson', () async {
+      await file('skills/a/SKILL.md', md);
+      await file('plugins/installed_plugins.json', '{oops');
+      var r = await scanClaude(claude);
+      expect(r.skills.length, 1);
+      expect(r.notices, ['installed_plugins.json을 읽지 못했습니다']);
+      await file('plugins/installed_plugins.json', '{"plugins":[1]}');
+      r = await scanClaude(claude);
+      expect(r.notices, ['installed_plugins.json을 읽지 못했습니다']);
+    });
+
+    test('missingInstallPath', () async {
+      await user();
+      await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
+      final r = await scanClaude(claude);
+      expect(r.notices, ['p@m 플러그인 폴더가 없습니다']);
+    });
+
+    test('pluginWithoutSkills', () async {
+      await Directory(inst('1.0.0')).create(recursive: true);
+      await user();
+      await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
+      final r = await scanClaude(claude);
+      expect(r.skills, isEmpty);
+      expect(r.notices, isEmpty);
+    });
+
+    test('sameNameGlobalAndPlugin', () async {
+      await file('skills/a/SKILL.md', md);
+      await file('plugins/cache/m/p/1.0.0/skills/a/SKILL.md', md);
+      await user();
+      await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
+      final r = await scanClaude(claude);
+      expect(r.skills.map((s) => s.source), [
+        SkillSource.global,
+        SkillSource.plugin,
+      ]);
+    });
   });
 }

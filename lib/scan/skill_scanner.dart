@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'frontmatter.dart';
@@ -44,6 +45,8 @@ Future<Skill> readSkillDir(
   required SkillSource source,
   String? plugin,
   String? pluginVersion,
+  bool? pluginEnabled,
+  String? projectPath,
 }) async {
   final name = _baseName(path);
   Skill make({
@@ -59,6 +62,8 @@ Future<Skill> readSkillDir(
     source: source,
     plugin: plugin,
     pluginVersion: pluginVersion,
+    pluginEnabled: pluginEnabled,
+    projectPath: projectPath,
     path: path,
     linkTarget: linkTarget,
     skillMd: skillMd,
@@ -123,7 +128,7 @@ Future<Skill> readSkillDir(
   }
 }
 
-/// `<claude>/skills/`의 전역 스킬과 synced 폴더를 읽는다.
+/// 전역 스킬, synced 폴더, 플러그인 스킬을 읽는다.
 Future<ScanResult> scanClaude(Directory claudeDir) async {
   final skills = <Skill>[];
   final notices = <String>[];
@@ -149,6 +154,7 @@ Future<ScanResult> scanClaude(Directory claudeDir) async {
     }
   }
   skills.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  skills.addAll(await _scanPlugins(claudeDir, notices));
   return ScanResult(skills: skills, notices: notices);
 }
 
@@ -168,4 +174,93 @@ Future<Skill> _readSynced(String path) async {
     files: files,
     problem: problem,
   );
+}
+
+/// `installed_plugins.json`의 모든 항목을 읽는다. 예외를 밖으로 던지지 않는다.
+Future<List<Skill>> _scanPlugins(
+  Directory claudeDir,
+  List<String> notices,
+) async {
+  const badJson = 'installed_plugins.json을 읽지 못했습니다';
+  final out = <Skill>[];
+  final installed = File('${claudeDir.path}/plugins/installed_plugins.json');
+  if (!installed.existsSync()) return out;
+  try {
+    final plugins =
+        (jsonDecode(await installed.readAsString())
+                as Map<String, dynamic>)['plugins']
+            as Map<String, dynamic>;
+
+    // null이면 settings.json을 못 읽은 것.
+    Map<String, dynamic>? enabled;
+    try {
+      final j = jsonDecode(
+        await File('${claudeDir.path}/settings.json').readAsString(),
+      ) as Map<String, dynamic>;
+      enabled = (j['enabledPlugins'] as Map<String, dynamic>?) ?? {};
+    } on Object {
+      enabled = null;
+    }
+
+    final oldDirs = <String>{};
+    var settingsNotice = false;
+    for (final id in plugins.keys.toList()..sort()) {
+      for (final raw in plugins[id] as List<dynamic>) {
+        final entry = raw as Map<String, dynamic>;
+        final installPath = entry['installPath'] as String;
+        final isProject = entry['scope'] == 'project';
+        final bool? on = isProject || enabled == null
+            ? null
+            : enabled[id] == true;
+        if (!isProject && enabled == null) settingsNotice = true;
+
+        final dir = Directory(installPath);
+        if (!dir.existsSync()) {
+          notices.add('$id 플러그인 폴더가 없습니다');
+          continue;
+        }
+        // 같은 플러그인 폴더를 쓰는 항목이 여럿이어도 한 번만 센다.
+        final base = _baseName(installPath);
+        try {
+          await for (final sib in dir.parent.list(followLinks: false)) {
+            if (sib is Directory && _baseName(sib.path) != base) {
+              oldDirs.add(sib.path);
+            }
+          }
+          final skillsDir = Directory('$installPath/skills');
+          if (!skillsDir.existsSync()) continue;
+          await for (final e in skillsDir.list(followLinks: false)) {
+            if (e is! Directory && e is! Link) continue;
+            out.add(
+              await readSkillDir(
+                e.path,
+                source: SkillSource.plugin,
+                plugin: id,
+                pluginVersion: entry['version'] as String?,
+                pluginEnabled: on,
+                projectPath: entry['projectPath'] as String?,
+              ),
+            );
+          }
+        } on FileSystemException catch (e) {
+          notices.add('$id: ${_fsProblem(e).message}');
+        }
+      }
+    }
+    if (settingsNotice) {
+      notices.add('settings.json을 읽지 못해 플러그인 켜짐 여부를 알 수 없습니다');
+    }
+    if (oldDirs.isNotEmpty) {
+      notices.add('플러그인 옛 버전 폴더 ${oldDirs.length}개가 남아 있습니다');
+    }
+  } on Object {
+    // 형식 불일치·읽기 실패 모두 같은 안내. 이미 읽은 플러그인 스킬은 버린다.
+    notices.add(badJson);
+    return [];
+  }
+  out.sort((a, b) {
+    final c = a.plugin!.compareTo(b.plugin!);
+    return c != 0 ? c : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+  });
+  return out;
 }
