@@ -8,11 +8,15 @@ void main() {
     expect(r.description, 'b');
   });
   test('foldedDescription', () {
-    final r = parseFrontmatter('---\nname: a\ndescription: >\n  one\n  two\n---\n');
+    final r = parseFrontmatter(
+      '---\nname: a\ndescription: >\n  one\n  two\n---\n',
+    );
     expect(r.description, 'one two');
   });
   test('literalDescription', () {
-    final r = parseFrontmatter('---\nname: a\ndescription: |\n  one\n  two\n---\n');
+    final r = parseFrontmatter(
+      '---\nname: a\ndescription: |\n  one\n  two\n---\n',
+    );
     expect(r.description, 'one\ntwo');
   });
   test('quoted', () {

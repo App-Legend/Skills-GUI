@@ -24,6 +24,20 @@ ProblemKind classifyFsError(FileSystemException e) {
 SkillProblem _fsProblem(FileSystemException e) =>
     _problem(classifyFsError(e), e.osError?.message ?? e.message);
 
+String _baseName(String path) =>
+    path.split(RegExp(r'[/\\]')).where((p) => p.isNotEmpty).last;
+
+/// 폴더 아래 파일의 상대 경로(`/` 구분, 정렬).
+Future<List<String>> _listFiles(Directory dir) async {
+  final files = <String>[];
+  await for (final e in dir.list(recursive: true, followLinks: false)) {
+    if (e is File) {
+      files.add(e.path.substring(dir.path.length + 1).replaceAll('\\', '/'));
+    }
+  }
+  return files..sort();
+}
+
 /// 폴더 하나를 Skill로 읽는다. 예외를 밖으로 던지지 않는다.
 Future<Skill> readSkillDir(
   String path, {
@@ -31,7 +45,7 @@ Future<Skill> readSkillDir(
   String? plugin,
   String? pluginVersion,
 }) async {
-  final name = path.split(RegExp(r'[/\\]')).where((p) => p.isNotEmpty).last;
+  final name = _baseName(path);
   Skill make({
     String? description,
     String? linkTarget,
@@ -68,13 +82,7 @@ Future<Skill> readSkillDir(
       }
     }
     final dir = Directory(linkTarget ?? path);
-    final files = <String>[];
-    await for (final e in dir.list(recursive: true, followLinks: false)) {
-      if (e is File) {
-        files.add(e.path.substring(dir.path.length + 1).replaceAll('\\', '/'));
-      }
-    }
-    files.sort();
+    final files = await _listFiles(dir);
     final md = File('${dir.path}/SKILL.md');
     if (!md.existsSync()) {
       return make(
@@ -83,7 +91,16 @@ Future<Skill> readSkillDir(
         problem: _problem(ProblemKind.noSkillMd),
       );
     }
-    final text = await md.readAsString();
+    final String text;
+    try {
+      text = await md.readAsString();
+    } on FormatException catch (e) {
+      return make(
+        linkTarget: linkTarget,
+        files: files,
+        problem: _problem(ProblemKind.unreadable, e.message),
+      );
+    }
     try {
       final fm = parseFrontmatter(text.replaceFirst('﻿', ''));
       return make(
@@ -115,7 +132,7 @@ Future<ScanResult> scanClaude(Directory claudeDir) async {
   if (skillsDir.existsSync()) {
     try {
       await for (final e in skillsDir.list(followLinks: false)) {
-        final name = e.path.split('/').last;
+        final name = _baseName(e.path);
         final isDir =
             e is Directory ||
             (e is Link && FileSystemEntity.isDirectorySync(e.path)) ||
@@ -136,15 +153,10 @@ Future<ScanResult> scanClaude(Directory claudeDir) async {
 }
 
 Future<Skill> _readSynced(String path) async {
-  final files = <String>[];
+  var files = <String>[];
   SkillProblem? problem;
   try {
-    await for (final e in Directory(
-      path,
-    ).list(recursive: true, followLinks: false)) {
-      if (e is File) files.add(e.path.substring(path.length + 1));
-    }
-    files.sort();
+    files = await _listFiles(Directory(path));
   } on FileSystemException catch (e) {
     problem = _fsProblem(e);
   }

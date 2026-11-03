@@ -1,6 +1,12 @@
 enum SkillSource { global, synced, plugin }
 
-enum ProblemKind { noSkillMd, badFrontmatter, noPermission, brokenLink, unreadable }
+enum ProblemKind {
+  noSkillMd,
+  badFrontmatter,
+  noPermission,
+  brokenLink,
+  unreadable,
+}
 
 class SkillProblem {
   final ProblemKind kind;

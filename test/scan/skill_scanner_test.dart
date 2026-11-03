@@ -104,6 +104,15 @@ void main() {
     expect((await scanClaude(claude)).skills, isEmpty);
   });
 
+  test('nonUtf8SkillMd', () async {
+    await Directory('${claude.path}/skills/u').create(recursive: true);
+    await File('${claude.path}/skills/u/SKILL.md')
+        .writeAsBytes([0xff, 0xfe, 0x41]);
+    final s = byName(await scanClaude(claude), 'u');
+    expect(s.problem!.kind, ProblemKind.unreadable);
+    expect(s.skillMd, isNull);
+  });
+
   test('classifyFsError', () {
     FileSystemException e(int c) =>
         FileSystemException('x', 'p', OSError('', c));
