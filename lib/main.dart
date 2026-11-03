@@ -1,122 +1,148 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MyApp());
+import 'access/folder_access.dart';
+import 'scan/skill.dart';
+import 'scan/skill_scanner.dart';
+import 'ui/access_page.dart';
+import 'ui/glass.dart';
+import 'ui/skill_detail_page.dart';
+import 'ui/skill_list_page.dart';
+
+void main() => runApp(
+  SkillGuiApp(access: createFolderAccess(), scan: scanClaude),
+);
+
+class SkillGuiApp extends StatefulWidget {
+  final FolderAccess access;
+  final Future<ScanResult> Function(Directory) scan;
+
+  /// 폴더 추가 허락 버튼 표시. 샌드박스가 있는 macOS만 켠다.
+  final bool showGrant;
+
+  SkillGuiApp({
+    super.key,
+    required this.access,
+    required this.scan,
+    bool? showGrant,
+  }) : showGrant = showGrant ?? Platform.isMacOS;
+
+  @override
+  State<SkillGuiApp> createState() => _SkillGuiAppState();
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class _SkillGuiAppState extends State<SkillGuiApp> {
+  final _nav = GlobalKey<NavigatorState>();
+  Directory? _dir;
+  ScanResult? _result;
+  bool _loading = true;
+  bool _failed = false;
+  bool _reduce = false;
 
-  // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+  void initState() {
+    super.initState();
+    _start();
   }
-}
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  Future<void> _start() async {
+    try {
+      _reduce = await widget.access.reduceTransparency();
+      _dir = await widget.access.restore();
+    } catch (_) {
+      _dir = null;
+    }
+    if (_dir == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    await _rescan();
+  }
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
+  Future<void> _rescan() async {
+    final dir = _dir;
+    if (dir == null) return;
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _loading = true;
+      _failed = false;
+    });
+    ScanResult? r;
+    try {
+      r = await widget.scan(dir);
+    } catch (_) {
+      r = null;
+    }
+    if (!mounted) return;
+    setState(() {
+      _result = r;
+      _failed = r == null;
+      _loading = false;
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+  void _open(Skill s) => _nav.currentState!.push(
+    MaterialPageRoute<void>(
+      builder: (_) => SkillDetailPage(
+        skill: s,
+        onGrantFolder: widget.showGrant
+            ? (path) async {
+                if (!await widget.access.grantFolder(path)) {
+                  throw Exception('not granted');
+                }
+                await _rescan();
+                _nav.currentState?.pop();
+              }
+            : null,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+    ),
+  );
+
+  Widget _body() {
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: GlassBackground(child: Center(child: CircularProgressIndicator())),
+      );
+    }
+    if (_dir == null) {
+      return AccessPage(
+        onPick: widget.access.pickClaudeDir,
+        onGranted: (d) {
+          _dir = d;
+          _rescan();
+        },
+      );
+    }
+    final r = _result;
+    if (_failed || r == null) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: GlassBackground(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('스캔하지 못했습니다'),
+                const SizedBox(height: 12),
+                FilledButton(onPressed: _rescan, child: const Text('다시 스캔')),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
-    );
+      );
+    }
+    return SkillListPage(result: r, onRescan: _rescan, onOpen: _open);
   }
+
+  @override
+  Widget build(BuildContext context) => ReduceTransparency(
+    value: _reduce,
+    child: MaterialApp(
+      title: 'Skill-GUI',
+      debugShowCheckedModeBanner: false,
+      navigatorKey: _nav,
+      home: _body(),
+    ),
+  );
 }

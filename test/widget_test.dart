@@ -1,30 +1,64 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:skill_gui/access/folder_access.dart';
 import 'package:skill_gui/main.dart';
+import 'package:skill_gui/scan/skill.dart';
+
+class _FakeAccess implements FolderAccess {
+  final Directory? dir;
+  _FakeAccess(this.dir);
+  @override
+  Future<Directory?> restore() async => dir;
+  @override
+  Future<Directory?> pickClaudeDir() async => dir;
+  @override
+  Future<bool> grantFolder(String suggestedPath) async => true;
+  @override
+  Future<bool> reduceTransparency() async => false;
+}
+
+const _skill = Skill(
+  name: 'hello-skill',
+  description: '인사',
+  source: SkillSource.global,
+  path: '/x/hello-skill',
+);
+
+Future<ScanResult> _scan(Directory d) async =>
+    const ScanResult(skills: [_skill]);
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('복원되면 스캔해서 목록을 보여준다', (tester) async {
+    await tester.pumpWidget(
+      SkillGuiApp(
+        access: _FakeAccess(Directory.systemTemp),
+        scan: _scan,
+        showGrant: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('hello-skill'), findsOneWidget);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('권한이 없으면 폴더 고르기 버튼이 보인다', (tester) async {
+    await tester.pumpWidget(
+      SkillGuiApp(access: _FakeAccess(null), scan: _scan, showGrant: false),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('폴더 고르기'), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('스캔이 던지면 다시 스캔 버튼이 보인다', (tester) async {
+    await tester.pumpWidget(
+      SkillGuiApp(
+        access: _FakeAccess(Directory.systemTemp),
+        scan: (_) async => throw Exception('x'),
+        showGrant: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('스캔하지 못했습니다'), findsOneWidget);
+    expect(find.text('다시 스캔'), findsOneWidget);
   });
 }
