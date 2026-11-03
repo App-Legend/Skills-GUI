@@ -182,6 +182,7 @@ Future<List<Skill>> _scanPlugins(
   List<String> notices,
 ) async {
   const badJson = 'installed_plugins.json을 읽지 못했습니다';
+  const badEntry = 'installed_plugins.json 항목을 읽지 못했습니다';
   final out = <Skill>[];
   final installed = File('${claudeDir.path}/plugins/installed_plugins.json');
   if (!installed.existsSync()) return out;
@@ -205,45 +206,57 @@ Future<List<Skill>> _scanPlugins(
     final oldDirs = <String>{};
     var settingsNotice = false;
     for (final id in plugins.keys.toList()..sort()) {
-      for (final raw in plugins[id] as List<dynamic>) {
-        final entry = raw as Map<String, dynamic>;
-        final installPath = entry['installPath'] as String;
-        final isProject = entry['scope'] == 'project';
-        final bool? on = isProject || enabled == null
-            ? null
-            : enabled[id] == true;
-        if (!isProject && enabled == null) settingsNotice = true;
-
-        final dir = Directory(installPath);
-        if (!dir.existsSync()) {
-          notices.add('$id 플러그인 폴더가 없습니다');
-          continue;
-        }
-        // 같은 플러그인 폴더를 쓰는 항목이 여럿이어도 한 번만 센다.
-        final base = _baseName(installPath);
+      final List<dynamic> list;
+      try {
+        list = plugins[id] as List<dynamic>;
+      } on Object {
+        notices.add('$id: $badEntry');
+        continue;
+      }
+      for (final raw in list) {
         try {
-          await for (final sib in dir.parent.list(followLinks: false)) {
-            if (sib is Directory && _baseName(sib.path) != base) {
-              oldDirs.add(sib.path);
+          final entry = raw as Map<String, dynamic>;
+          final installPath = entry['installPath'] as String;
+          final isProject = entry['scope'] == 'project';
+          final bool? on = isProject || enabled == null
+              ? null
+              : enabled[id] == true;
+          if (!isProject && enabled == null) settingsNotice = true;
+
+          final dir = Directory(installPath);
+          if (!dir.existsSync()) {
+            notices.add('$id 플러그인 폴더가 없습니다');
+            continue;
+          }
+          // 같은 플러그인 폴더를 쓰는 항목이 여럿이어도 한 번만 센다.
+          final base = _baseName(installPath);
+          try {
+            await for (final sib in dir.parent.list(followLinks: false)) {
+              if (sib is Directory && _baseName(sib.path) != base) {
+                oldDirs.add(sib.path);
+              }
             }
+            final skillsDir = Directory('$installPath/skills');
+            if (!skillsDir.existsSync()) continue;
+            await for (final e in skillsDir.list(followLinks: false)) {
+              if (e is! Directory && e is! Link) continue;
+              out.add(
+                await readSkillDir(
+                  e.path,
+                  source: SkillSource.plugin,
+                  plugin: id,
+                  pluginVersion: entry['version'] as String?,
+                  pluginEnabled: on,
+                  projectPath: entry['projectPath'] as String?,
+                ),
+              );
+            }
+          } on FileSystemException catch (e) {
+            notices.add('$id: ${_fsProblem(e).message}');
           }
-          final skillsDir = Directory('$installPath/skills');
-          if (!skillsDir.existsSync()) continue;
-          await for (final e in skillsDir.list(followLinks: false)) {
-            if (e is! Directory && e is! Link) continue;
-            out.add(
-              await readSkillDir(
-                e.path,
-                source: SkillSource.plugin,
-                plugin: id,
-                pluginVersion: entry['version'] as String?,
-                pluginEnabled: on,
-                projectPath: entry['projectPath'] as String?,
-              ),
-            );
-          }
-        } on FileSystemException catch (e) {
-          notices.add('$id: ${_fsProblem(e).message}');
+        } on Object {
+          // 항목 하나가 깨져도 나머지는 계속 읽는다.
+          notices.add('$id: $badEntry');
         }
       }
     }
@@ -254,9 +267,8 @@ Future<List<Skill>> _scanPlugins(
       notices.add('플러그인 옛 버전 폴더 ${oldDirs.length}개가 남아 있습니다');
     }
   } on Object {
-    // 형식 불일치·읽기 실패 모두 같은 안내. 이미 읽은 플러그인 스킬은 버린다.
+    // 최상위 형식 불일치·읽기 실패.
     notices.add(badJson);
-    return [];
   }
   out.sort((a, b) {
     final c = a.plugin!.compareTo(b.plugin!);

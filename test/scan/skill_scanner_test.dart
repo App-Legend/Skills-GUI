@@ -230,6 +230,37 @@ void main() {
       expect(r.notices, ['installed_plugins.json을 읽지 못했습니다']);
     });
 
+    test('badEntryKeepsOthers', () async {
+      await file('plugins/cache/m/p/1.0.0/skills/x/SKILL.md', md);
+      await file(
+        'plugins/installed_plugins.json',
+        jsonEncode({
+          'plugins': {
+            'p@m': [
+              {
+                'scope': 'user',
+                'installPath': inst('1.0.0'),
+                'version': '1.0.0',
+              },
+            ],
+            'q@m': [
+              {'scope': 'user', 'installPath': 123},
+            ],
+            'r@m': 'oops',
+            's@m': [5],
+          },
+        }),
+      );
+      await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
+      final r = await scanClaude(claude);
+      expect(plug(r).plugin, 'p@m');
+      expect(r.notices, [
+        'q@m: installed_plugins.json 항목을 읽지 못했습니다',
+        'r@m: installed_plugins.json 항목을 읽지 못했습니다',
+        's@m: installed_plugins.json 항목을 읽지 못했습니다',
+      ]);
+    });
+
     test('missingInstallPath', () async {
       await user();
       await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
