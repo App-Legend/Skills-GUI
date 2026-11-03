@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../scan/skill.dart';
 import 'glass.dart';
+import 'skill_badges.dart';
 
 enum SourceFilter {
   all('전체'),
@@ -234,44 +235,11 @@ class _Main extends StatelessWidget {
   );
 }
 
-class _Badge extends StatelessWidget {
-  final String text;
-  final Color bg;
-  final Color fg;
-
-  const _Badge(
-    this.text, {
-    this.bg = const Color(0x1F0064D1),
-    this.fg = const Color(0xFF004A9C),
-  });
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-    decoration: BoxDecoration(
-      color: bg,
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyle(fontSize: 12, color: fg),
-    ),
-  );
-}
-
 class _SkillCard extends StatelessWidget {
   final Skill skill;
   final void Function(Skill) onOpen;
 
   const _SkillCard({required this.skill, required this.onOpen});
-
-  String get _tag => switch (skill.source) {
-    SkillSource.global => '전역',
-    SkillSource.synced => '동기화',
-    SkillSource.plugin => skill.plugin ?? '플러그인',
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -300,10 +268,10 @@ class _SkillCard extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Flexible(child: _Badge(_tag)),
+                  Flexible(child: SkillBadge(sourceTag(skill))),
                   if (s.pluginEnabled == false) ...[
                     const SizedBox(width: 6),
-                    const _Badge(
+                    const SkillBadge(
                       '꺼짐',
                       bg: Color(0x1FB42318),
                       fg: Color(0xFFB42318),
