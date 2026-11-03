@@ -83,7 +83,11 @@ class SkillDetailPage extends StatelessWidget {
                         ),
                         if (s.projectPath != null)
                           Text(s.projectPath!, style: const TextStyle(color: _sub)),
+                        if (s.pluginVersion != null)
+                          _section('버전', SelectableText(s.pluginVersion!)),
                         _section('경로', SelectableText(s.path)),
+                        if (link != null)
+                          _section('실제 경로', SelectableText(link)),
                         if (s.description != null)
                           _section('설명', Text(s.description!)),
                         if (s.problem != null)

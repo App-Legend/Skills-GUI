@@ -52,7 +52,7 @@ enum FolderAccessChannel {
 
   private static func saveBookmark(path: String, isClaudeDir: Bool) -> Bool {
     let url = URL(fileURLWithPath: path, isDirectory: true)
-    guard let data = try? url.bookmarkData(options: .withSecurityScope) else { return false }
+    guard let data = try? url.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess]) else { return false }
     let defaults = UserDefaults.standard
     var bookmarks = defaults.dictionary(forKey: bookmarksKey) as? [String: Data] ?? [:]
     if isClaudeDir {
@@ -87,7 +87,7 @@ enum FolderAccessChannel {
         bookmarks.removeValue(forKey: path)
         continue
       }
-      if stale, let fresh = try? url.bookmarkData(options: .withSecurityScope) {
+      if stale, let fresh = try? url.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess]) {
         bookmarks[path] = fresh
       }
       restored.append(path)

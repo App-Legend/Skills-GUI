@@ -116,4 +116,21 @@ void main() {
     await t.pump();
     expect(t.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNotNull);
   });
+
+  testWidgets('버전과 실제 경로 행', (t) async {
+    await _pump(
+      t,
+      const Skill(
+        name: 'v',
+        source: SkillSource.plugin,
+        plugin: 'p@m',
+        pluginVersion: '1.2.3',
+        path: '/a/v',
+        linkTarget: '/real/v',
+      ),
+    );
+    for (final x in ['버전', '1.2.3', '실제 경로', '/real/v']) {
+      expect(find.text(x), findsOneWidget, reason: x);
+    }
+  });
 }

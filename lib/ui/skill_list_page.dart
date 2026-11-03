@@ -219,17 +219,26 @@ class _Main extends StatelessWidget {
         ),
       const SizedBox(height: 20),
       Expanded(
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 320,
-            mainAxisExtent: 168,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-          ),
-          itemCount: shown.length,
-          itemBuilder: (_, i) =>
-              _SkillCard(skill: shown[i], onOpen: widget.onOpen),
-        ),
+        child: shown.isEmpty
+            ? Center(
+                child: Text(
+                  widget.result.skills.isEmpty
+                      ? '스킬을 찾지 못했습니다'
+                      : '해당하는 스킬이 없습니다',
+                  style: const TextStyle(color: _sub),
+                ),
+              )
+            : GridView.builder(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 320,
+                  mainAxisExtent: 168,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                ),
+                itemCount: shown.length,
+                itemBuilder: (_, i) =>
+                    _SkillCard(skill: shown[i], onOpen: widget.onOpen),
+              ),
       ),
     ],
   );
@@ -268,7 +277,7 @@ class _SkillCard extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Flexible(child: SkillBadge(sourceTag(skill))),
+                  Flexible(child: SkillBadge(cardTag(skill))),
                   if (s.pluginEnabled == false) ...[
                     const SizedBox(width: 6),
                     const SkillBadge(

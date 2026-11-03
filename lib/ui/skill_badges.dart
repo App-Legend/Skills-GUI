@@ -8,6 +8,11 @@ String sourceTag(Skill s) => switch (s.source) {
   SkillSource.plugin => s.plugin ?? '플러그인',
 };
 
+/// 카드용: 플러그인은 버전까지.
+String cardTag(Skill s) => s.pluginVersion == null
+    ? sourceTag(s)
+    : '${sourceTag(s)} ${s.pluginVersion}';
+
 class SkillBadge extends StatelessWidget {
   final String text;
   final Color bg;

@@ -37,13 +37,14 @@ Future<void> _pump(
   List<String> notices = const [],
   Future<void> Function()? onRescan,
   bool reduce = false,
+  List<Skill> skills = _skills,
 }) async {
   t.view.physicalSize = const Size(1280, 820);
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
   Widget page = MaterialApp(
     home: SkillListPage(
-      result: ScanResult(skills: _skills, notices: notices),
+      result: ScanResult(skills: skills, notices: notices),
       onRescan: onRescan ?? () async {},
       onOpen: (_) {},
     ),
@@ -152,5 +153,30 @@ void main() {
       ),
     );
     h.dispose();
+  });
+
+  testWidgets('플러그인 카드 태그에 버전', (t) async {
+    await _pump(t, skills: const [
+      Skill(
+        name: 'v',
+        source: SkillSource.plugin,
+        plugin: 'p@m',
+        pluginVersion: '1.0.0',
+        path: '/v',
+      ),
+    ]);
+    expect(find.text('p@m 1.0.0'), findsOneWidget);
+  });
+
+  testWidgets('빈 상태 문구', (t) async {
+    await _pump(t, skills: const [
+      Skill(name: 'a', source: SkillSource.global, path: '/a'),
+    ]);
+    await t.tap(find.text('꺼짐'));
+    await t.pump();
+    expect(find.text('해당하는 스킬이 없습니다'), findsOneWidget);
+    await _pump(t, skills: const []);
+    await t.pump();
+    expect(find.text('스킬을 찾지 못했습니다'), findsOneWidget);
   });
 }

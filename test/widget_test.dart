@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/access/folder_access.dart';
 import 'package:skill_gui/main.dart';
@@ -60,5 +61,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('스캔하지 못했습니다'), findsOneWidget);
     expect(find.text('다시 스캔'), findsOneWidget);
+  });
+
+  testWidgets('허락 후 다시 스캔하고 목록으로 돌아온다', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var n = 0;
+    Future<ScanResult> scan(Directory d) async => ScanResult(
+      skills: [
+        n++ == 0
+            ? const Skill(
+                name: 'linked',
+                source: SkillSource.global,
+                path: '/x/linked',
+                linkTarget: '/y/agents/linked',
+                problem: SkillProblem(ProblemKind.noPermission, '읽을 수 없음, 폴더 권한 필요'),
+              )
+            : const Skill(
+                name: 'linked',
+                description: '고쳐짐',
+                source: SkillSource.global,
+                path: '/x/linked',
+                linkTarget: '/y/agents/linked',
+              ),
+      ],
+    );
+    await tester.pumpWidget(
+      SkillGuiApp(
+        access: _FakeAccess(Directory.systemTemp),
+        scan: scan,
+        showGrant: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('linked'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('폴더 추가 허락'));
+    await tester.pumpAndSettle();
+    expect(n, 2);
+    expect(find.text('폴더 추가 허락'), findsNothing);
+    expect(find.text('다시 스캔'), findsOneWidget); // 목록
+    expect(find.text('읽을 수 없음, 폴더 권한 필요'), findsNothing);
+    expect(find.text('고쳐짐'), findsOneWidget);
   });
 }

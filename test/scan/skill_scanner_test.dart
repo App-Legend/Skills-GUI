@@ -122,6 +122,58 @@ void main() {
     expect(classifyFsError(e(2)), ProblemKind.unreadable);
   });
 
+  test('resolveLinkTarget: 절대·Windows 경로는 그대로, 상대는 링크 폴더 기준', () {
+    expect(resolveLinkTarget('/a/skills/x', '/abs/t'), '/abs/t');
+    expect(
+      () => resolveLinkTarget('/a/skills/x', r'C:\Users\me\t'),
+      returnsNormally,
+    );
+    expect(
+      resolveLinkTarget('/a/skills/x', '../t'),
+      '/a/skills${Platform.pathSeparator}../t',
+    );
+  });
+
+  test('classifyLinkError', () {
+    FileSystemException e(int c) =>
+        FileSystemException('x', 'p', OSError('', c));
+    expect(classifyLinkError(e(2)), ProblemKind.brokenLink);
+    expect(classifyLinkError(e(3)), ProblemKind.brokenLink);
+    expect(classifyLinkError(e(1)), ProblemKind.noPermission);
+    expect(classifyLinkError(e(13)), ProblemKind.noPermission);
+    expect(classifyLinkError(e(5)), ProblemKind.unreadable);
+  });
+
+  group('링크 대상 오류 분류', () {
+    Future<Skill> read(Object err) async {
+      final target = await Directory('${root.path}/t').create();
+      await Link('${root.path}/l').create(target.path);
+      return readSkillDir(
+        '${root.path}/l',
+        source: SkillSource.global,
+        listFiles: (_) async => throw err,
+      );
+    }
+
+    test('EACCES는 noPermission, linkTarget 유지', () async {
+      final s = await read(FileSystemException('x', 'p', OSError('', 13)));
+      expect(s.problem!.kind, ProblemKind.noPermission);
+      expect(s.linkTarget, '${root.path}/t');
+    });
+
+    test('ENOENT는 brokenLink, linkTarget 유지', () async {
+      final s = await read(FileSystemException('x', 'p', OSError('', 2)));
+      expect(s.problem!.kind, ProblemKind.brokenLink);
+      expect(s.linkTarget, '${root.path}/t');
+    });
+
+    test('FileSystemException이 아닌 예외도 unreadable로 남는다', () async {
+      final s = await read(UnsupportedError('x'));
+      expect(s.problem!.kind, ProblemKind.unreadable);
+      expect(s.name, 'l');
+    });
+  });
+
   group('plugins', () {
     const md = '---\nname: x\ndescription: d\n---\n';
     String inst(String v) => '${claude.path}/plugins/cache/m/p/$v';
@@ -205,6 +257,29 @@ void main() {
       expect(r.notices, ['플러그인 옛 버전 폴더 1개가 남아 있습니다']);
     });
 
+    test('여러 설치 항목의 버전은 서로 옛 버전이 아니다', () async {
+      await file('plugins/cache/m/p/1.0.0/skills/x/SKILL.md', md);
+      await file('plugins/cache/m/p/1.1.0/skills/y/SKILL.md', md);
+      await file(
+        'plugins/installed_plugins.json',
+        jsonEncode({
+          'plugins': {
+            'p@m': [
+              {'scope': 'user', 'installPath': inst('1.0.0'), 'version': '1.0.0'},
+              {
+                'scope': 'project',
+                'installPath': inst('1.1.0'),
+                'version': '1.1.0',
+                'projectPath': '/w',
+              },
+            ],
+          },
+        }),
+      );
+      await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
+      expect((await scanClaude(claude)).notices, isEmpty);
+    });
+
     test('noOldVersionsNoNotice', () async {
       await file('plugins/cache/m/p/1.0.0/skills/x/SKILL.md', md);
       await user();
@@ -265,7 +340,7 @@ void main() {
       await user();
       await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
       final r = await scanClaude(claude);
-      expect(r.notices, ['p@m 플러그인 폴더가 없습니다']);
+      expect(r.notices, ['p@m: 플러그인 폴더가 없습니다']);
     });
 
     test('pluginWithoutSkills', () async {

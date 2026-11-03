@@ -25,6 +25,20 @@ ProblemKind classifyFsError(FileSystemException e) {
 SkillProblem _fsProblem(FileSystemException e) =>
     _problem(classifyFsError(e), e.osError?.message ?? e.message);
 
+/// 링크 대상 경로. 상대 경로면 링크가 있는 폴더 기준. Uri를 쓰지 않아 Windows 경로도 안전하다.
+/// shortcut: `..`는 정리하지 않는다. 파일 시스템이 처리하므로 표시만 길어진다.
+String resolveLinkTarget(String linkPath, String raw) => File(raw).isAbsolute
+    ? raw
+    : '${File(linkPath).parent.path}${Platform.pathSeparator}$raw';
+
+/// 링크 대상을 읽다 난 오류: 없음(ENOENT 2, Windows 3)은 끊긴 링크, 나머지는 일반 분류.
+ProblemKind classifyLinkError(FileSystemException e) {
+  final code = e.osError?.errorCode;
+  return code == 2 || code == 3
+      ? ProblemKind.brokenLink
+      : classifyFsError(e);
+}
+
 String _baseName(String path) =>
     path.split(RegExp(r'[/\\]')).where((p) => p.isNotEmpty).last;
 
@@ -47,7 +61,9 @@ Future<Skill> readSkillDir(
   String? pluginVersion,
   bool? pluginEnabled,
   String? projectPath,
+  Future<List<String>> Function(Directory)? listFiles,
 }) async {
+  listFiles ??= _listFiles;
   final name = _baseName(path);
   Skill make({
     String? description,
@@ -76,18 +92,10 @@ Future<Skill> readSkillDir(
     if (FileSystemEntity.typeSync(path, followLinks: false) ==
         FileSystemEntityType.link) {
       final raw = await Link(path).target();
-      linkTarget = raw.startsWith('/')
-          ? raw
-          : File(path).parent.uri.resolve(raw).toFilePath();
-      if (!Directory(linkTarget).existsSync()) {
-        return make(
-          linkTarget: linkTarget,
-          problem: _problem(ProblemKind.brokenLink),
-        );
-      }
+      linkTarget = resolveLinkTarget(path, raw);
     }
     final dir = Directory(linkTarget ?? path);
-    final files = await _listFiles(dir);
+    final files = await listFiles(dir);
     final md = File('${dir.path}/SKILL.md');
     if (!md.existsSync()) {
       return make(
@@ -124,7 +132,14 @@ Future<Skill> readSkillDir(
       );
     }
   } on FileSystemException catch (e) {
-    return make(linkTarget: linkTarget, problem: _fsProblem(e));
+    // 샌드박스 밖 대상은 existsSync가 false라서, 실제 오류로 구분한다.
+    final kind = linkTarget == null ? classifyFsError(e) : classifyLinkError(e);
+    return make(
+      linkTarget: linkTarget,
+      problem: _problem(kind, e.osError?.message ?? e.message),
+    );
+  } on Object catch (e) {
+    return make(linkTarget: linkTarget, problem: _problem(ProblemKind.unreadable, '$e'));
   }
 }
 
@@ -204,6 +219,19 @@ Future<List<Skill>> _scanPlugins(
     }
 
     final oldDirs = <String>{};
+    // 설치된 모든 항목의 폴더명(부모 폴더별). 이들은 옛 버전이 아니다.
+    final installedBases = <String, Set<String>>{};
+    for (final list in plugins.values) {
+      if (list is! List) continue;
+      for (final raw in list) {
+        final p = raw is Map ? raw['installPath'] : null;
+        if (p is String) {
+          installedBases
+              .putIfAbsent(Directory(p).parent.path, () => {})
+              .add(_baseName(p));
+        }
+      }
+    }
     var settingsNotice = false;
     for (final id in plugins.keys.toList()..sort()) {
       final List<dynamic> list;
@@ -225,14 +253,14 @@ Future<List<Skill>> _scanPlugins(
 
           final dir = Directory(installPath);
           if (!dir.existsSync()) {
-            notices.add('$id 플러그인 폴더가 없습니다');
+            notices.add('$id: 플러그인 폴더가 없습니다');
             continue;
           }
           // 같은 플러그인 폴더를 쓰는 항목이 여럿이어도 한 번만 센다.
-          final base = _baseName(installPath);
+          final keep = installedBases[dir.parent.path] ?? {_baseName(installPath)};
           try {
             await for (final sib in dir.parent.list(followLinks: false)) {
-              if (sib is Directory && _baseName(sib.path) != base) {
+              if (sib is Directory && !keep.contains(_baseName(sib.path))) {
                 oldDirs.add(sib.path);
               }
             }
