@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/scan/skill.dart';
@@ -26,7 +28,7 @@ void main() {
   testWidgets('기본 정보 표시', (t) async {
     await _pump(t, full);
     for (final x in [
-      'alpha', '전역', '/home/.claude/skills/alpha', '알파 설명',
+      'alpha', '전역', '경로', '/home/.claude/skills/alpha', '알파 설명',
       'SKILL.md 원문', '# 원문 본문', '포함된 파일', 'a.txt',
     ]) {
       expect(find.text(x), findsWidgets, reason: x);
@@ -88,5 +90,30 @@ void main() {
     await t.tap(find.text('Claude Code 스킬'));
     await t.pumpAndSettle();
     expect(find.text('go'), findsOneWidget);
+  });
+
+  testWidgets('onGrantFolder가 던지면 안내 문구', (t) async {
+    await _pump(t, denied, onGrant: (_) async => throw Exception('x'));
+    await t.tap(find.text('폴더 추가 허락'));
+    await t.pump();
+    expect(find.text('폴더를 허락하지 못했습니다'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('실행 중에는 버튼 비활성', (t) async {
+    final c = Completer<void>();
+    var n = 0;
+    await _pump(t, denied, onGrant: (_) {
+      n++;
+      return c.future;
+    });
+    await t.tap(find.text('폴더 추가 허락'));
+    await t.pump();
+    expect(t.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);
+    await t.tap(find.text('폴더 추가 허락'), warnIfMissed: false);
+    expect(n, 1);
+    c.complete();
+    await t.pump();
+    expect(t.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNotNull);
   });
 }

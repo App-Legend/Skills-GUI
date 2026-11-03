@@ -23,6 +23,8 @@ class _AccessPageState extends State<AccessPage> {
     Directory? dir;
     try {
       dir = await widget.onPick();
+    } catch (_) {
+      dir = null;
     } finally {
       if (mounted) setState(() => _busy = false);
     }

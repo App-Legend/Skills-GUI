@@ -27,4 +27,16 @@ void main() {
     await t.pump();
     expect(got?.path, '/x/.claude');
   });
+
+  testWidgets('onPick이 던지면 안내', (t) async {
+    var n = 0;
+    await t.pumpWidget(MaterialApp(
+      home: AccessPage(onPick: () async => throw Exception('x'), onGranted: (_) => n++),
+    ));
+    await t.tap(find.text('폴더 고르기'));
+    await t.pump();
+    expect(find.text('Claude Code 설정 폴더(.claude)를 골라 주세요'), findsOneWidget);
+    expect(n, 0);
+    expect(t.takeException(), isNull);
+  });
 }

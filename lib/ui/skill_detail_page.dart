@@ -83,7 +83,7 @@ class SkillDetailPage extends StatelessWidget {
                         ),
                         if (s.projectPath != null)
                           Text(s.projectPath!, style: const TextStyle(color: _sub)),
-                        _section('path', SelectableText(s.path)),
+                        _section('경로', SelectableText(s.path)),
                         if (s.description != null)
                           _section('설명', Text(s.description!)),
                         if (s.problem != null)
@@ -94,9 +94,8 @@ class SkillDetailPage extends StatelessWidget {
                         if (canGrant)
                           Padding(
                             padding: const EdgeInsets.only(top: 12),
-                            child: FilledButton(
-                              onPressed: () => onGrantFolder!(File(link).parent.path),
-                              child: const Text('폴더 추가 허락'),
+                            child: _GrantButton(
+                              onGrant: () => onGrantFolder!(File(link).parent.path),
                             ),
                           ),
                         if (s.skillMd != null)
@@ -129,4 +128,47 @@ class SkillDetailPage extends StatelessWidget {
       ),
     );
   }
+}
+
+class _GrantButton extends StatefulWidget {
+  final Future<void> Function() onGrant;
+
+  const _GrantButton({required this.onGrant});
+
+  @override
+  State<_GrantButton> createState() => _GrantButtonState();
+}
+
+class _GrantButtonState extends State<_GrantButton> {
+  bool _busy = false;
+  bool _failed = false;
+
+  Future<void> _run() async {
+    setState(() {
+      _busy = true;
+      _failed = false;
+    });
+    try {
+      await widget.onGrant();
+    } catch (_) {
+      _failed = true;
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      FilledButton(
+        onPressed: _busy ? null : _run,
+        child: const Text('폴더 추가 허락'),
+      ),
+      if (_failed)
+        const Padding(
+          padding: EdgeInsets.only(top: 8),
+          child: Text('폴더를 허락하지 못했습니다', style: TextStyle(color: _red)),
+        ),
+    ],
+  );
 }
