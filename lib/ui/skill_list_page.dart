@@ -45,137 +45,31 @@ class _SkillListPageState extends State<SkillListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final all = widget.result.skills;
-    final shown = all.where(_filter.matches).toList();
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: GlassBackground(
-        child: DefaultTextStyle(
-          style: const TextStyle(color: _ink, fontSize: 14, height: 1.5),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: 240,
-                  child: _Sidebar(
-                    total: all.length,
-                    filter: _filter,
-                    onFilter: (f) => setState(() => _filter = f),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _Main(shown: shown, widget: widget),
-                ),
-              ],
-            ),
-          ),
-        ),
+    final shown = widget.result.skills.where(_filter.matches).toList();
+    return DefaultTextStyle(
+      style: const TextStyle(color: _ink, fontSize: 14, height: 1.5),
+      child: _Main(
+        shown: shown,
+        widget: widget,
+        filter: _filter,
+        onFilter: (f) => setState(() => _filter = f),
       ),
     );
   }
 }
 
-class _Tap extends StatelessWidget {
-  final VoidCallback onTap;
-  final Widget child;
-  final Color? color;
-  final EdgeInsets padding;
-
-  const _Tap({
-    required this.onTap,
-    required this.child,
-    this.color,
-    this.padding = const EdgeInsets.symmetric(horizontal: 14),
-  });
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: color ?? Colors.transparent,
-    borderRadius: BorderRadius.circular(22),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(22),
-      onTap: onTap,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 44),
-        child: Padding(
-          padding: padding,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            widthFactor: 1,
-            child: child,
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-class _Sidebar extends StatelessWidget {
-  final int total;
-  final SourceFilter filter;
-  final ValueChanged<SourceFilter> onFilter;
-
-  const _Sidebar({
-    required this.total,
-    required this.filter,
-    required this.onFilter,
-  });
-
-  @override
-  Widget build(BuildContext context) => GlassPanel(
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            constraints: const BoxConstraints(minHeight: 44),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Claude Code',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                Text(
-                  '$total',
-                  style: const TextStyle(fontSize: 12, color: _sub),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          for (final f in SourceFilter.values)
-            Semantics(
-              selected: f == filter,
-              button: true,
-              child: _Tap(
-                onTap: () => onFilter(f),
-                color: f == filter ? const Color(0xB3FFFFFF) : null,
-                child: Text(
-                  f.label,
-                  style: TextStyle(
-                    fontWeight: f == filter ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    ),
-  );
-}
-
 class _Main extends StatelessWidget {
   final List<Skill> shown;
   final SkillListPage widget;
+  final SourceFilter filter;
+  final ValueChanged<SourceFilter> onFilter;
 
-  const _Main({required this.shown, required this.widget});
+  const _Main({
+    required this.shown,
+    required this.widget,
+    required this.filter,
+    required this.onFilter,
+  });
 
   @override
   Widget build(BuildContext context) => Column(
@@ -196,7 +90,7 @@ class _Main extends StatelessWidget {
                   ),
                 ),
               ),
-              _Tap(
+              GlassTap(
                 onTap: widget.onRescan,
                 color: const Color(0xFF0064D1),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -210,6 +104,29 @@ class _Main extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Wrap(
+          spacing: 6,
+          children: [
+            for (final f in SourceFilter.values)
+              Semantics(
+                selected: f == filter,
+                button: true,
+                child: GlassTap(
+                  onTap: () => onFilter(f),
+                  color: f == filter ? const Color(0xB3FFFFFF) : null,
+                  child: Text(
+                    f.label,
+                    style: TextStyle(
+                      fontWeight: f == filter ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
       for (final n in widget.result.notices)

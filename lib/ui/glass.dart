@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 /// macOS "투명도 줄이기"가 켜졌는지 알리는 값. 조상이 없으면 false.
 class ReduceTransparency extends InheritedWidget {
@@ -82,4 +82,41 @@ class GlassPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 높이 44 이상의 둥근 누름 영역. 사이드바 탭·버튼에 쓴다.
+class GlassTap extends StatelessWidget {
+  final VoidCallback onTap;
+  final Widget child;
+  final Color? color;
+  final EdgeInsets padding;
+
+  const GlassTap({
+    super.key,
+    required this.onTap,
+    required this.child,
+    this.color,
+    this.padding = const EdgeInsets.symmetric(horizontal: 14),
+  });
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: color ?? Colors.transparent,
+    borderRadius: BorderRadius.circular(22),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Padding(
+          padding: padding,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            widthFactor: 1,
+            child: child,
+          ),
+        ),
+      ),
+    ),
+  );
 }

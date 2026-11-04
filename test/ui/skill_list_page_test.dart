@@ -54,13 +54,12 @@ Future<void> _pump(
 }
 
 void main() {
-  testWidgets('카드, 사이드바, 태그', (t) async {
+  testWidgets('카드와 태그', (t) async {
     await _pump(t);
     for (final n in ['a', 'b', 'c', 'd', 'e']) {
       expect(find.text(n), findsOneWidget);
     }
-    expect(find.text('Claude Code'), findsOneWidget);
-    expect(find.text('5'), findsOneWidget);
+    expect(find.text('Claude Code 스킬'), findsOneWidget);
     expect(find.text('/w/app'), findsOneWidget);
     expect(find.text('읽을 수 없음, 권한 없음'), findsOneWidget);
     expect(find.text('전역'), findsNWidgets(3)); // 필터 + 카드 a, c

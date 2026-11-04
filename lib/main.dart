@@ -7,7 +7,7 @@ import 'scan/skill.dart';
 import 'scan/skill_scanner.dart';
 import 'ui/glass.dart';
 import 'ui/skill_detail_page.dart';
-import 'ui/skill_list_page.dart';
+import 'ui/app_shell.dart';
 
 void main() => runApp(
   SkillGuiApp(
@@ -102,7 +102,7 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
         ),
       );
     }
-    return SkillListPage(result: r, onRescan: _rescan, onOpen: _open);
+    return AppShell(result: r, onRescan: _rescan, onOpen: _open);
   }
 
   @override
