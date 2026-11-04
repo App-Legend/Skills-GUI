@@ -33,7 +33,7 @@ void main() {
 
   testWidgets('준비 중 탭', (t) async {
     await _pump(t);
-    for (final tab in ['업데이트 있음', '검색']) {
+    for (final tab in ['업데이트 필요', '검색']) {
       await t.tap(find.text(tab));
       await t.pump();
       expect(find.text('아직 준비 중입니다'), findsOneWidget, reason: tab);

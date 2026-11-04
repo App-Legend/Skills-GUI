@@ -9,7 +9,7 @@ const _sub = Color(0xFF3A4658);
 
 enum AppTab {
   mine('내 스킬'),
-  updates('업데이트 있음'),
+  updates('업데이트 필요'),
   search('검색');
 
   final String label;
