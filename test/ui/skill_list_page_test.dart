@@ -59,7 +59,7 @@ void main() {
     for (final n in ['a', 'b', 'c', 'd', 'e']) {
       expect(find.text(n), findsOneWidget);
     }
-    expect(find.text('Claude Code 스킬'), findsOneWidget);
+    expect(find.text('내 스킬'), findsOneWidget);
     expect(find.text('/w/app'), findsOneWidget);
     expect(find.text('읽을 수 없음, 권한 없음'), findsOneWidget);
     expect(find.text('전역'), findsNWidgets(3)); // 필터 + 카드 a, c
@@ -124,33 +124,34 @@ void main() {
     expect(find.text('꺼짐'), findsNWidgets(2));
   });
 
+  testWidgets('에이전트 필터: Codex는 준비 중, Claude Code는 목록', (t) async {
+    await _pump(t);
+    await t.tap(find.text('Codex'));
+    await t.pump();
+    expect(find.text('아직 준비 중입니다'), findsOneWidget);
+    expect(find.text('a'), findsNothing);
+    await t.tap(find.text('Claude Code'));
+    await t.pump();
+    expect(find.text('a'), findsOneWidget);
+  });
+
   testWidgets('선택된 필터가 접근성에 알려진다', (t) async {
     await _pump(t);
     final h = t.ensureSemantics();
-    expect(
-      t.getSemantics(find.bySemanticsLabel('전체')),
-      matchesSemantics(
-        label: '전체',
-        isButton: true,
-        isSelected: true,
-        hasSelectedState: true,
-        hasTapAction: true,
-        hasFocusAction: true,
-        isFocusable: true,
-      ),
+    Matcher node(String label, bool selected) => matchesSemantics(
+      label: label,
+      isButton: true,
+      isSelected: selected,
+      hasSelectedState: true,
+      hasTapAction: true,
+      hasFocusAction: true,
+      isFocusable: true,
     );
-    expect(
-      t.getSemantics(find.bySemanticsLabel('플러그인')),
-      matchesSemantics(
-        label: '플러그인',
-        isButton: true,
-        isSelected: false,
-        hasSelectedState: true,
-        hasTapAction: true,
-        hasFocusAction: true,
-        isFocusable: true,
-      ),
-    );
+    expect(t.getSemantics(find.bySemanticsLabel('플러그인')), node('플러그인', false));
+    expect(t.getSemantics(find.bySemanticsLabel('Codex')), node('Codex', false));
+    await t.tap(find.text('플러그인'));
+    await t.pump();
+    expect(t.getSemantics(find.bySemanticsLabel('플러그인')), node('플러그인', true));
     h.dispose();
   });
 

@@ -8,11 +8,9 @@ const _ink = Color(0xFF101828);
 const _sub = Color(0xFF3A4658);
 
 enum AppTab {
-  claude('Claude Code'),
-  codex('Codex'),
+  mine('내 스킬'),
   updates('업데이트 있음'),
-  unused('미사용 후보'),
-  discover('찾기·랭킹');
+  search('검색');
 
   final String label;
   const AppTab(this.label);
@@ -36,7 +34,7 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  AppTab _tab = AppTab.claude;
+  AppTab _tab = AppTab.mine;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -59,7 +57,7 @@ class _AppShellState extends State<AppShell> {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _tab == AppTab.claude
+                child: _tab == AppTab.mine
                     ? SkillListPage(
                         result: widget.result,
                         onRescan: widget.onRescan,
@@ -87,14 +85,6 @@ class _Sidebar extends StatelessWidget {
 
   const _Sidebar({required this.tab, required this.count, required this.onTab});
 
-  Widget _group(String title) => Padding(
-    padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
-    child: Text(
-      title,
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _sub),
-    ),
-  );
-
   Widget _item(AppTab t) => Semantics(
     selected: t == tab,
     button: true,
@@ -111,7 +101,7 @@ class _Sidebar extends StatelessWidget {
               style: TextStyle(fontWeight: t == tab ? FontWeight.w600 : FontWeight.w400),
             ),
           ),
-          if (t == AppTab.claude)
+          if (t == AppTab.mine)
             Text('$count', style: const TextStyle(fontSize: 12, color: _sub)),
         ],
       ),
@@ -123,16 +113,7 @@ class _Sidebar extends StatelessWidget {
     child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
       child: ListView(
-        children: [
-          _group('에이전트'),
-          _item(AppTab.claude),
-          _item(AppTab.codex),
-          const SizedBox(height: 18),
-          _group('정리'),
-          _item(AppTab.updates),
-          _item(AppTab.unused),
-          _item(AppTab.discover),
-        ],
+        children: [for (final t in AppTab.values) _item(t)],
       ),
     ),
   );

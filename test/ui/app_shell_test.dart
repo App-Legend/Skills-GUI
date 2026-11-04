@@ -21,18 +21,19 @@ Future<void> _pump(WidgetTester t, {Size size = const Size(1280, 820)}) async {
 }
 
 void main() {
-  testWidgets('처음엔 Claude Code 목록', (t) async {
+  testWidgets('처음엔 내 스킬 목록, 탭은 세 개', (t) async {
     await _pump(t);
     expect(find.text('alpha'), findsOneWidget);
-    expect(find.text('Claude Code'), findsOneWidget);
+    expect(find.text('내 스킬'), findsWidgets);
     expect(find.text('1'), findsOneWidget);
-    expect(find.text('에이전트'), findsOneWidget);
-    expect(find.text('정리'), findsOneWidget);
+    for (final gone in ['에이전트', '정리', '미사용 후보', '찾기·랭킹']) {
+      expect(find.text(gone), findsNothing, reason: gone);
+    }
   });
 
   testWidgets('준비 중 탭', (t) async {
     await _pump(t);
-    for (final tab in ['Codex', '업데이트 있음', '미사용 후보', '찾기·랭킹']) {
+    for (final tab in ['업데이트 있음', '검색']) {
       await t.tap(find.text(tab));
       await t.pump();
       expect(find.text('아직 준비 중입니다'), findsOneWidget, reason: tab);
@@ -42,9 +43,9 @@ void main() {
 
   testWidgets('탭 왕복', (t) async {
     await _pump(t);
-    await t.tap(find.text('Codex'));
+    await t.tap(find.text('검색'));
     await t.pump();
-    await t.tap(find.text('Claude Code'));
+    await t.tap(find.text('내 스킬'));
     await t.pump();
     expect(find.text('alpha'), findsOneWidget);
     expect(t.takeException(), isNull);
@@ -54,9 +55,9 @@ void main() {
     await _pump(t);
     final h = t.ensureSemantics();
     expect(
-      t.getSemantics(find.bySemanticsLabel('Claude Code\n1')),
+      t.getSemantics(find.bySemanticsLabel('내 스킬\n1')),
       matchesSemantics(
-        label: 'Claude Code\n1',
+        label: '내 스킬\n1',
         isButton: true,
         isSelected: true,
         hasSelectedState: true,
@@ -66,9 +67,9 @@ void main() {
       ),
     );
     expect(
-      t.getSemantics(find.bySemanticsLabel('Codex')),
+      t.getSemantics(find.bySemanticsLabel('검색')),
       matchesSemantics(
-        label: 'Codex',
+        label: '검색',
         isButton: true,
         isSelected: false,
         hasSelectedState: true,

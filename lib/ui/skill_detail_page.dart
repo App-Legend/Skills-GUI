@@ -61,7 +61,7 @@ class SkillDetailPage extends StatelessWidget {
                       child: TextButton.icon(
                         onPressed: () => Navigator.maybePop(context),
                         icon: const Icon(Icons.chevron_left),
-                        label: const Text('Claude Code 스킬'),
+                        label: const Text('내 스킬'),
                       ),
                     ),
                   ),

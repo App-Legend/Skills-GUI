@@ -76,7 +76,7 @@ void main() {
     ));
     await t.tap(find.text('go'));
     await t.pumpAndSettle();
-    await t.tap(find.text('Claude Code 스킬'));
+    await t.tap(find.text('내 스킬'));
     await t.pumpAndSettle();
     expect(find.text('go'), findsOneWidget);
   });

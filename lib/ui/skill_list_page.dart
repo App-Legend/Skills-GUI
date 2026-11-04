@@ -21,6 +21,16 @@ enum SourceFilter {
   };
 }
 
+/// 에이전트 필터. 지금은 Claude Code 스킬만 스캔한다.
+enum AgentFilter {
+  all('전체'),
+  claude('Claude Code'),
+  codex('Codex');
+
+  final String label;
+  const AgentFilter(this.label);
+}
+
 const _ink = Color(0xFF101828);
 const _sub = Color(0xFF3A4658);
 
@@ -42,10 +52,14 @@ class SkillListPage extends StatefulWidget {
 
 class _SkillListPageState extends State<SkillListPage> {
   SourceFilter _filter = SourceFilter.all;
+  AgentFilter _agent = AgentFilter.all;
 
   @override
   Widget build(BuildContext context) {
-    final shown = widget.result.skills.where(_filter.matches).toList();
+    // shortcut: Codex 스캔 전이라 Codex 필터는 빈 목록, Codex 스캔을 만들면 Skill에 에이전트 구분 추가.
+    final shown = _agent == AgentFilter.codex
+        ? <Skill>[]
+        : widget.result.skills.where(_filter.matches).toList();
     return DefaultTextStyle(
       style: const TextStyle(color: _ink, fontSize: 14, height: 1.5),
       child: _Main(
@@ -53,6 +67,8 @@ class _SkillListPageState extends State<SkillListPage> {
         widget: widget,
         filter: _filter,
         onFilter: (f) => setState(() => _filter = f),
+        agent: _agent,
+        onAgent: (a) => setState(() => _agent = a),
       ),
     );
   }
@@ -63,13 +79,30 @@ class _Main extends StatelessWidget {
   final SkillListPage widget;
   final SourceFilter filter;
   final ValueChanged<SourceFilter> onFilter;
+  final AgentFilter agent;
+  final ValueChanged<AgentFilter> onAgent;
 
   const _Main({
     required this.shown,
     required this.widget,
     required this.filter,
     required this.onFilter,
+    required this.agent,
+    required this.onAgent,
   });
+
+  static Widget _chip(String label, bool selected, VoidCallback onTap) => Semantics(
+    selected: selected,
+    button: true,
+    child: GlassTap(
+      onTap: onTap,
+      color: selected ? const Color(0xB3FFFFFF) : null,
+      child: Text(
+        label,
+        style: TextStyle(fontWeight: selected ? FontWeight.w600 : FontWeight.w400),
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => Column(
@@ -85,7 +118,7 @@ class _Main extends StatelessWidget {
                 child: Padding(
                   padding: EdgeInsets.only(left: 12),
                   child: Text(
-                    'Claude Code 스킬',
+                    '내 스킬',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -111,21 +144,18 @@ class _Main extends StatelessWidget {
         child: Wrap(
           spacing: 6,
           children: [
+            for (final a in AgentFilter.values)
+              _chip(a.label, a == agent, () => onAgent(a)),
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Wrap(
+          spacing: 6,
+          children: [
             for (final f in SourceFilter.values)
-              Semantics(
-                selected: f == filter,
-                button: true,
-                child: GlassTap(
-                  onTap: () => onFilter(f),
-                  color: f == filter ? const Color(0xB3FFFFFF) : null,
-                  child: Text(
-                    f.label,
-                    style: TextStyle(
-                      fontWeight: f == filter ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                  ),
-                ),
-              ),
+              _chip(f.label, f == filter, () => onFilter(f)),
           ],
         ),
       ),
@@ -139,7 +169,9 @@ class _Main extends StatelessWidget {
         child: shown.isEmpty
             ? Center(
                 child: Text(
-                  widget.result.skills.isEmpty
+                  agent == AgentFilter.codex
+                      ? '아직 준비 중입니다'
+                      : widget.result.skills.isEmpty
                       ? '스킬을 찾지 못했습니다'
                       : '해당하는 스킬이 없습니다',
                   style: const TextStyle(color: _sub),
