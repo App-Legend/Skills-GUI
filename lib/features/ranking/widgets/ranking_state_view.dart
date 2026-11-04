@@ -1,21 +1,23 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
+
+import '../../../ui/glass.dart';
+
+const _sub = Color(0xFF3A4658);
+const _red = Color(0xFFB42318);
 
 enum _RankingStateKind { loading, error, empty }
 
 /// 로딩·오류·빈 상태를 그리는 뷰. 값만 받아 그린다.
-/// 반투명 유리 느낌은 BackdropFilter 로 표현한다.
 class RankingStateView extends StatelessWidget {
   const RankingStateView.loading({super.key})
       : _kind = _RankingStateKind.loading,
-        message = '불러오는 중이에요.',
+        message = '불러오는 중입니다',
         onRetry = null;
 
   const RankingStateView.error({super.key, required this.message, this.onRetry})
       : _kind = _RankingStateKind.error;
 
-  const RankingStateView.empty({super.key, this.message = '표시할 스킬이 없어요.'})
+  const RankingStateView.empty({super.key, this.message = '표시할 스킬이 없습니다'})
       : _kind = _RankingStateKind.empty,
         onRetry = null;
 
@@ -27,74 +29,39 @@ class RankingStateView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final isError = _kind == _RankingStateKind.error;
-
-    final Widget icon = switch (_kind) {
-      _RankingStateKind.loading => const SizedBox(
-          width: 28,
-          height: 28,
-          child: CircularProgressIndicator(
-            key: Key('ranking-state-loading'),
-            strokeWidth: 3,
-          ),
-        ),
-      _RankingStateKind.error => Icon(
-          Icons.error_outline,
-          key: const Key('ranking-state-error'),
-          color: scheme.error,
-          size: 32,
-        ),
-      _RankingStateKind.empty => Icon(
-          Icons.inbox_outlined,
-          key: const Key('ranking-state-empty'),
-          color: scheme.onSurfaceVariant,
-          size: 32,
-        ),
-    };
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 360),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: scheme.surface.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.6),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_kind == _RankingStateKind.loading)
+                const CircularProgressIndicator(key: Key('ranking-state-loading'))
+              else
+                SizedBox.shrink(
+                  key: Key(isError ? 'ranking-state-error' : 'ranking-state-empty'),
                 ),
+              if (_kind == _RankingStateKind.loading) const SizedBox(height: 12),
+              Text(
+                message,
+                key: const Key('ranking-state-message'),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: isError ? _red : _sub),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  icon,
-                  const SizedBox(height: 12),
-                  Text(
-                    message,
-                    key: const Key('ranking-state-message'),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: isError ? scheme.error : null,
-                    ),
-                  ),
-                  if (isError && onRetry != null) ...[
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      key: const Key('ranking-state-retry'),
-                      onPressed: onRetry,
-                      child: const Text('다시 시도'),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+              if (isError && onRetry != null) ...[
+                const SizedBox(height: 12),
+                GlassTap(
+                  key: const Key('ranking-state-retry'),
+                  onTap: onRetry!,
+                  color: const Color(0xB3FFFFFF),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: const Text('다시 시도', style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ],
           ),
         ),
       ),

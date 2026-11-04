@@ -1,0 +1,107 @@
+import 'dart:convert';
+import 'dart:io';
+
+enum UpdateState { needed, unknown }
+
+class PluginUpdate {
+  final String id;
+  final String scope;
+  final String current;
+  final String? latest;
+  final int skillCount;
+  final UpdateState state;
+
+  const PluginUpdate({
+    required this.id,
+    required this.scope,
+    required this.current,
+    required this.latest,
+    required this.skillCount,
+    required this.state,
+  });
+}
+
+String _sep(String p) => p.replaceAll('/', Platform.pathSeparator);
+
+Future<Map<String, dynamic>?> _json(String path) async {
+  try {
+    final v = jsonDecode(await File(_sep(path)).readAsString());
+    return v is Map<String, dynamic> ? v : null;
+  } on Object {
+    return null;
+  }
+}
+
+String _short(String sha) => sha.length > 7 ? sha.substring(0, 7) : sha;
+
+/// 마켓 복사본과 설치 기록을 비교해 업데이트가 필요하거나 확인할 수 없는 플러그인만 id 순으로 돌려준다.
+/// 마켓 복사본은 `claude plugin marketplace update`로 미리 새로 받아 둔다.
+Future<List<PluginUpdate>> checkUpdates(Directory claudeDir) async {
+  final root = '${claudeDir.path}/plugins';
+  final installed = (await _json('$root/installed_plugins.json'))?['plugins'];
+  if (installed is! Map) return [];
+  final out = <PluginUpdate>[];
+  for (final MapEntry(:key, :value) in installed.entries) {
+    if (key is! String || value is! List) continue;
+    for (final e in value) {
+      if (e is! Map) continue;
+      final r = await _checkOne(root, key, e);
+      if (r != null) out.add(r);
+    }
+  }
+  out.sort((a, b) => a.id.compareTo(b.id));
+  return out;
+}
+
+Future<PluginUpdate?> _checkOne(String root, String id, Map e) async {
+  final at = id.lastIndexOf('@');
+  final name = at < 0 ? id : id.substring(0, at);
+  final market = at < 0 ? '' : id.substring(at + 1);
+  final version = e['version'] is String ? e['version'] as String : '';
+  final sha = e['gitCommitSha'] is String ? e['gitCommitSha'] as String : null;
+  final installPath = e['installPath'] is String ? e['installPath'] as String : '';
+  var skillCount = 0;
+  try {
+    skillCount = await Directory(_sep('$installPath/skills'))
+        .list()
+        .where((x) => x is Directory)
+        .length;
+  } on FileSystemException {
+    // skills/ 없는 플러그인은 0개
+  }
+
+  PluginUpdate result(String current, String? latest, UpdateState state) =>
+      PluginUpdate(
+        id: id,
+        scope: e['scope'] is String ? e['scope'] as String : 'user',
+        current: current,
+        latest: latest,
+        skillCount: skillCount,
+        state: state,
+      );
+
+  final marketDir = '$root/marketplaces/$market';
+  final plugins = (await _json('$marketDir/.claude-plugin/marketplace.json'))?['plugins'];
+  final entry = plugins is List
+      ? plugins.whereType<Map>().where((p) => p['name'] == name).firstOrNull
+      : null;
+  if (entry == null) return result(version, null, UpdateState.unknown);
+
+  final source = entry['source'];
+  var latest = entry['version'] is String ? entry['version'] as String : null;
+  if (latest == null && source is String) {
+    final pj = await _json('$marketDir/$source/.claude-plugin/plugin.json');
+    latest = pj?['version'] is String ? pj!['version'] as String : null;
+  }
+  if (latest != null) {
+    return latest == version ? null : result(version, latest, UpdateState.needed);
+  }
+  // 버전이 없으면 커밋으로 비교한다.
+  final latestSha = source is Map && source['sha'] is String ? source['sha'] as String : null;
+  if (latestSha != null && sha != null) {
+    return latestSha == sha
+        ? null
+        : result(_short(sha), _short(latestSha), UpdateState.needed);
+  }
+  return result(version, null, UpdateState.unknown);
+}

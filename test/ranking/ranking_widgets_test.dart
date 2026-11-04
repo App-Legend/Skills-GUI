@@ -24,6 +24,18 @@ void main() {
       expect(find.text('fake/source'), findsOneWidget);
       expect(find.text('설치 1,234'), findsOneWidget);
       expect(find.byKey(const Key('ranking-tile-change')), findsNothing);
+      expect(find.byKey(const Key('ranking-tile-installed')), findsNothing);
+    });
+
+    testWidgets('installed 면 설치됨 배지를 붙인다', (tester) async {
+      await tester.pumpWidget(_wrap(const RankingListTile(
+        rank: 1,
+        name: 'fake-skill',
+        source: 'fake/source',
+        installs: 1,
+        installed: true,
+      )));
+      expect(find.text('설치됨'), findsOneWidget);
     });
 
     testWidgets('showChange 가 false 면 change 가 있어도 숨긴다', (tester) async {
@@ -104,7 +116,7 @@ void main() {
     testWidgets('빈 상태', (tester) async {
       await tester.pumpWidget(_wrap(const RankingStateView.empty()));
       expect(find.byKey(const Key('ranking-state-empty')), findsOneWidget);
-      expect(find.text('표시할 스킬이 없어요.'), findsOneWidget);
+      expect(find.text('표시할 스킬이 없습니다'), findsOneWidget);
       expect(find.byKey(const Key('ranking-state-loading')), findsNothing);
     });
   });

@@ -82,6 +82,7 @@ Skill-GUI는 이 흐름을 **카드·목록·상세 화면**으로 옮겨, 스�
 ## 기술 스택
 
 - **Flutter** (데스크톱: macOS / Windows)
+- **macOS 샌드박스 끔**: 앱을 켜자마자 `~/.claude` 등 여러 스킬 폴더를 읽고, 이후 배포·삭제로 파일도 다뤄야 해서 끈다(`macos/Runner/*.entitlements`). 그래서 **Mac App Store에는 올릴 수 없다.** 배포 방식은 미정.
 
 ## 디자인
 

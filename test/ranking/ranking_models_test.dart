@@ -11,7 +11,7 @@ Map<String, Object?> fakeItem({Object? installs = 1, Object? change}) => {
       'sourceType': 'github',
       'installUrl': 'https://example.test/install',
       'url': 'https://example.test/skill',
-      if (change != null) 'change': change,
+      'change': ?change,
     };
 
 Map<String, Object?> fakePagination() => {
