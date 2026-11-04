@@ -254,7 +254,7 @@ void main() {
       await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
       final r = await scanClaude(claude);
       expect(r.skills.where((s) => s.name == 'old'), isEmpty);
-      expect(r.notices, ['플러그인 옛 버전 폴더 1개가 남아 있습니다']);
+      expect(r.notices, isEmpty); // 업데이트 후 남은 폴더는 알리지 않는다
     });
 
     test('여러 설치 항목의 버전은 서로 옛 버전이 아니다', () async {

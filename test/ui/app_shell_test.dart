@@ -14,7 +14,6 @@ Future<void> _pump(WidgetTester t, {Size size = const Size(1280, 820)}) async {
       home: AppShell(
         result: const ScanResult(skills: [_skill]),
         onRescan: () async {},
-        onOpen: (_) {},
       ),
     ),
   );
@@ -107,13 +106,54 @@ void main() {
         home: AppShell(
           result: const ScanResult(skills: [_skill]),
           onRescan: () async {},
-          onOpen: (_) {},
-          updates: const Text('업데이트 화면'),
+            updates: const Text('업데이트 화면'),
         ),
       ),
     );
     await t.tap(find.text('업데이트 필요'));
     await t.pump();
     expect(find.text('업데이트 화면'), findsOneWidget);
+  });
+
+  testWidgets('스킬을 누르면 사이드바는 두고 오른쪽에 상세', (t) async {
+    await _pump(t);
+    await t.tap(find.text('alpha'));
+    await t.pumpAndSettle();
+    expect(find.text('경로'), findsOneWidget); // 상세
+    expect(find.text('업데이트 필요'), findsOneWidget); // 사이드바 그대로
+    final h = t.ensureSemantics();
+    expect(find.bySemanticsLabel('업데이트 필요'), findsOneWidget); // 화면 낭독에도 남는다
+    h.dispose();
+    await t.tap(find.byIcon(Icons.chevron_left));
+    await t.pumpAndSettle();
+    expect(find.text('경로'), findsNothing);
+    expect(find.text('alpha'), findsOneWidget);
+  });
+
+  testWidgets('상세에서 내 스킬 탭을 누르면 목록으로', (t) async {
+    await _pump(t);
+    await t.tap(find.text('alpha'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('내 스킬').first);
+    await t.pumpAndSettle();
+    expect(find.text('경로'), findsNothing);
+    expect(find.text('alpha'), findsOneWidget);
+  });
+
+  testWidgets('업데이트 필요 탭에 개수, 0이면 숨김', (t) async {
+    t.view.physicalSize = const Size(1280, 820);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    Widget shell(int n) => MaterialApp(
+      home: AppShell(
+        result: const ScanResult(skills: [_skill]),
+        onRescan: () async {},
+        updateCount: n,
+      ),
+    );
+    await t.pumpWidget(shell(2));
+    expect(find.text('2'), findsOneWidget);
+    await t.pumpWidget(shell(0));
+    expect(find.text('0'), findsNothing);
   });
 }

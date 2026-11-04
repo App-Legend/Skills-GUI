@@ -47,6 +47,7 @@ Future<void> _pump(
   _FakeCli cli, {
   List<PluginUpdate> found = const [_needed],
   Future<void> Function()? onUpdated,
+  void Function(List<PluginUpdate>)? onChecked,
 }) async {
   t.view.physicalSize = const Size(1280, 820);
   t.view.devicePixelRatio = 1;
@@ -59,6 +60,7 @@ Future<void> _pump(
           cli: cli,
           check: (_) async => found,
           onUpdated: onUpdated ?? () async {},
+          onChecked: onChecked ?? (_) {},
         ),
       ),
     ),
@@ -166,5 +168,17 @@ void main() {
     await t.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('업데이트')));
     await t.pumpAndSettle();
     expect(find.text('Claude Code에서 직접 업데이트해 주세요'), findsOneWidget);
+  });
+
+  testWidgets('확인·업데이트 결과를 알린다', (t) async {
+    final seen = <int>[];
+    await _pump(t, _FakeCli(), onChecked: (l) => seen.add(l.length));
+    await t.tap(find.text('업데이트 확인'));
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(FilledButton, '업데이트'));
+    await t.pumpAndSettle();
+    await t.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('업데이트')));
+    await t.pumpAndSettle();
+    expect(seen, [1, 0]);
   });
 }

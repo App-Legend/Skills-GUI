@@ -16,12 +16,16 @@ class UpdatePage extends StatefulWidget {
   final Future<List<PluginUpdate>> Function(Directory) check;
   final Future<void> Function() onUpdated;
 
+  /// 확인하거나 업데이트해서 목록이 바뀔 때마다 알린다(사이드바 개수용).
+  final void Function(List<PluginUpdate>) onChecked;
+
   const UpdatePage({
     super.key,
     required this.claudeDir,
     required this.cli,
     required this.check,
     required this.onUpdated,
+    required this.onChecked,
   });
 
   @override
@@ -72,6 +76,7 @@ class _UpdatePageState extends State<UpdatePage> {
         _checkedAt = DateTime.now();
       }
     });
+    if (found != null) widget.onChecked(found);
   }
 
   Future<void> _update(PluginUpdate p) async {
@@ -107,6 +112,7 @@ class _UpdatePageState extends State<UpdatePage> {
       _busy = false;
       _found = _found?.where((x) => x.id != p.id).toList();
     });
+    widget.onChecked(_found ?? []);
     await widget.onUpdated();
   }
 
