@@ -15,7 +15,8 @@ const _notReady = Center(
 enum AppTab {
   mine('내 스킬'),
   updates('업데이트 필요'),
-  search('검색');
+  search('검색'),
+  ranking('랭킹');
 
   final String label;
   const AppTab(this.label);
@@ -28,6 +29,9 @@ class AppShell extends StatefulWidget {
 
   /// "업데이트 필요" 탭 내용. null이면 준비 중.
   final Widget? updates;
+
+  /// "랭킹" 탭 내용. null이면 준비 중.
+  final Widget? ranking;
   final bool scanning;
 
   /// 업데이트가 필요한 플러그인 수. 0이면 숫자를 숨긴다.
@@ -38,6 +42,7 @@ class AppShell extends StatefulWidget {
     required this.result,
     required this.onRescan,
     this.updates,
+    this.ranking,
     this.scanning = false,
     this.updateCount = 0,
   });
@@ -105,6 +110,7 @@ class _AppShellState extends State<AppShell> {
                     ),
                     widget.updates ?? _notReady,
                     _notReady,
+                    widget.ranking ?? _notReady,
                   ],
                 ),
               ),
