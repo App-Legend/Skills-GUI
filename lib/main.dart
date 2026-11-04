@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'access/folder_access.dart';
+import 'features/ranking/ranking_screen.dart';
 import 'scan/skill.dart';
 import 'scan/skill_scanner.dart';
 import 'ui/glass.dart';
@@ -119,6 +120,7 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
         check: checkUpdates,
         onUpdated: _rescan,
       ),
+      ranking: RankingScreen(installed: {for (final s in r.skills) s.name}),
     );
   }
 
