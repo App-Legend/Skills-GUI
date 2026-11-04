@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/main.dart';
 import 'package:skill_gui/scan/skill.dart';
@@ -77,5 +77,33 @@ void main() {
     await tester.tap(find.text('다시 스캔'));
     await tester.pumpAndSettle();
     expect(find.text('skill-1'), findsOneWidget);
+  });
+
+  testWidgets('다시 스캔해도 고른 필터가 남는다', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    // 실제 스캔처럼 시간이 걸려야 로딩 화면이 끼어든다.
+    Future<ScanResult> slow(Directory d) =>
+        Future.delayed(const Duration(milliseconds: 50), () => _scan(d));
+    await tester.pumpWidget(
+      SkillGuiApp(
+        claudeDir: Directory.systemTemp,
+        scan: slow,
+        reduceTransparency: _noReduce,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Codex'));
+    await tester.pump();
+    await tester.tap(find.text('다시 스캔'));
+    await tester.pump(const Duration(milliseconds: 10));
+    expect(find.text('Codex'), findsOneWidget); // 화면을 갈아엎지 않는다
+    expect(find.byType(CircularProgressIndicator), findsOneWidget); // 다시 스캔 버튼의 링
+    await tester.pumpAndSettle();
+    expect(find.text('hello-skill'), findsNothing); // Codex 필터 유지
+    await tester.tap(find.text('Claude Code'));
+    await tester.pump();
+    expect(find.text('hello-skill'), findsOneWidget);
   });
 }

@@ -8,6 +8,9 @@ import 'scan/skill_scanner.dart';
 import 'ui/glass.dart';
 import 'ui/skill_detail_page.dart';
 import 'ui/app_shell.dart';
+import 'ui/update_page.dart';
+import 'update/claude_cli.dart';
+import 'update/update_check.dart';
 
 void main() => runApp(
   SkillGuiApp(
@@ -21,13 +24,15 @@ class SkillGuiApp extends StatefulWidget {
   final Directory? claudeDir;
   final Future<ScanResult> Function(Directory) scan;
   final Future<bool> Function() reduceTransparency;
+  final ClaudeCli cli;
 
-  const SkillGuiApp({
+  SkillGuiApp({
     super.key,
     required this.claudeDir,
     required this.scan,
     required this.reduceTransparency,
-  });
+    ClaudeCli? cli,
+  }) : cli = cli ?? ProcessClaudeCli();
 
   @override
   State<SkillGuiApp> createState() => _SkillGuiAppState();
@@ -78,7 +83,8 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
   );
 
   Widget _body() {
-    if (_loading) {
+    // 처음 스캔할 때만 로딩 화면. 다시 스캔할 때는 탭·필터가 남도록 지금 화면을 둔다.
+    if (_loading && _result == null) {
       return const Scaffold(
         backgroundColor: Colors.transparent,
         body: GlassBackground(child: Center(child: CircularProgressIndicator())),
@@ -102,7 +108,18 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
         ),
       );
     }
-    return AppShell(result: r, onRescan: _rescan, onOpen: _open);
+    return AppShell(
+      result: r,
+      onRescan: _rescan,
+      onOpen: _open,
+      scanning: _loading,
+      updates: UpdatePage(
+        claudeDir: widget.claudeDir,
+        cli: widget.cli,
+        check: checkUpdates,
+        onUpdated: _rescan,
+      ),
+    );
   }
 
   @override

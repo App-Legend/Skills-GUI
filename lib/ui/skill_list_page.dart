@@ -39,11 +39,15 @@ class SkillListPage extends StatefulWidget {
   final Future<void> Function() onRescan;
   final void Function(Skill) onOpen;
 
+  /// 다시 스캔 중이면 버튼에 링을 보여준다.
+  final bool scanning;
+
   const SkillListPage({
     super.key,
     required this.result,
     required this.onRescan,
     required this.onOpen,
+    this.scanning = false,
   });
 
   @override
@@ -124,16 +128,22 @@ class _Main extends StatelessWidget {
                 ),
               ),
               GlassTap(
-                onTap: widget.onRescan,
+                onTap: widget.scanning ? () {} : widget.onRescan,
                 color: const Color(0xFF0064D1),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: const Text(
-                  '다시 스캔',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: widget.scanning
+                    ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                    : const Text(
+                        '다시 스캔',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ],
           ),

@@ -85,4 +85,35 @@ void main() {
     await _pump(t, size: const Size(900, 600));
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('탭을 옮겼다 와도 필터가 남는다', (t) async {
+    await _pump(t);
+    await t.tap(find.text('Codex'));
+    await t.pump();
+    expect(find.text('alpha'), findsNothing);
+    await t.tap(find.text('검색'));
+    await t.pump();
+    await t.tap(find.text('내 스킬').first);
+    await t.pump();
+    expect(find.text('alpha'), findsNothing); // Codex 필터 유지
+  });
+
+  testWidgets('업데이트 탭에 넘겨준 화면', (t) async {
+    t.view.physicalSize = const Size(1280, 820);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      MaterialApp(
+        home: AppShell(
+          result: const ScanResult(skills: [_skill]),
+          onRescan: () async {},
+          onOpen: (_) {},
+          updates: const Text('업데이트 화면'),
+        ),
+      ),
+    );
+    await t.tap(find.text('업데이트 필요'));
+    await t.pump();
+    expect(find.text('업데이트 화면'), findsOneWidget);
+  });
 }

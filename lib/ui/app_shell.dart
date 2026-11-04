@@ -7,6 +7,10 @@ import 'skill_list_page.dart';
 const _ink = Color(0xFF101828);
 const _sub = Color(0xFF3A4658);
 
+const _notReady = Center(
+  child: Text('아직 준비 중입니다', style: TextStyle(color: _sub)),
+);
+
 enum AppTab {
   mine('내 스킬'),
   updates('업데이트 필요'),
@@ -22,11 +26,17 @@ class AppShell extends StatefulWidget {
   final Future<void> Function() onRescan;
   final void Function(Skill) onOpen;
 
+  /// "업데이트 필요" 탭 내용. null이면 준비 중.
+  final Widget? updates;
+  final bool scanning;
+
   const AppShell({
     super.key,
     required this.result,
     required this.onRescan,
     required this.onOpen,
+    this.updates,
+    this.scanning = false,
   });
 
   @override
@@ -57,18 +67,20 @@ class _AppShellState extends State<AppShell> {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _tab == AppTab.mine
-                    ? SkillListPage(
-                        result: widget.result,
-                        onRescan: widget.onRescan,
-                        onOpen: widget.onOpen,
-                      )
-                    : const Center(
-                        child: Text(
-                          '아직 준비 중입니다',
-                          style: TextStyle(color: _sub),
-                        ),
-                      ),
+                // 탭을 옮겨도 각 화면의 필터·확인 결과가 남도록 모두 유지한다.
+                child: IndexedStack(
+                  index: _tab.index,
+                  children: [
+                    SkillListPage(
+                      result: widget.result,
+                      onRescan: widget.onRescan,
+                      onOpen: widget.onOpen,
+                      scanning: widget.scanning,
+                    ),
+                    widget.updates ?? _notReady,
+                    _notReady,
+                  ],
+                ),
               ),
             ],
           ),
