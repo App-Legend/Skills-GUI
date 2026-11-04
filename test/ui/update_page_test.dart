@@ -116,7 +116,7 @@ void main() {
     await t.tap(find.widgetWithText(FilledButton, '업데이트'));
     await t.pumpAndSettle();
     expect(
-      find.text('p@m을(를) 1.0 → 1.1으로 업데이트합니다. Claude Code를 다시 시작해야 적용됩니다.'),
+      find.text('p@m을(를) 1.0 → 1.1(으)로 업데이트합니다. Claude Code를 다시 시작해야 적용됩니다.'),
       findsOneWidget,
     );
     await t.tap(find.text('취소'));
@@ -150,5 +150,21 @@ void main() {
     await t.tap(find.text('업데이트 확인'));
     await t.pumpAndSettle();
     expect(find.text('Claude Code 명령(claude)을 찾지 못했습니다'), findsOneWidget);
+  });
+
+  testWidgets('추가 확인이 필요한 플러그인은 직접 업데이트 안내', (t) async {
+    final cli = _FakeCli(
+      answer: (a) => a[1] == 'update'
+          ? const CmdResult(2, '{"shownCommand":{"sha256":"x"}}', '')
+          : const CmdResult(0, '', ''),
+    );
+    await _pump(t, cli);
+    await t.tap(find.text('업데이트 확인'));
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(FilledButton, '업데이트'));
+    await t.pumpAndSettle();
+    await t.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('업데이트')));
+    await t.pumpAndSettle();
+    expect(find.text('Claude Code에서 직접 업데이트해 주세요'), findsOneWidget);
   });
 }

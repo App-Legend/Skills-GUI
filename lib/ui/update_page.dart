@@ -79,7 +79,7 @@ class _UpdatePageState extends State<UpdatePage> {
       context: context,
       builder: (c) => AlertDialog(
         content: Text(
-          '${p.id}을(를) ${p.current} → ${p.latest}으로 업데이트합니다. Claude Code를 다시 시작해야 적용됩니다.',
+          '${p.id}을(를) ${p.current} → ${p.latest}(으)로 업데이트합니다. Claude Code를 다시 시작해야 적용됩니다.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('취소')),
@@ -94,7 +94,12 @@ class _UpdatePageState extends State<UpdatePage> {
     if (r == null || r.exitCode != 0) {
       setState(() {
         _busy = false;
-        _failed[p.id] = r == null ? _noCli : '업데이트하지 못했습니다: ${_why(r)}';
+        _failed[p.id] = r == null
+            ? _noCli
+            // 명령형 설치는 사람이 명령을 확인해야 해서 앱에서 대신 승인하지 않는다.
+            : '${r.stdout}${r.stderr}'.contains('shownCommand')
+            ? 'Claude Code에서 직접 업데이트해 주세요'
+            : '업데이트하지 못했습니다: ${_why(r)}';
       });
       return;
     }
