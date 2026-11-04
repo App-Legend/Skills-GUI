@@ -30,12 +30,16 @@ class AppShell extends StatefulWidget {
   final Widget? updates;
   final bool scanning;
 
+  /// 업데이트가 필요한 플러그인 수. 0이면 숫자를 숨긴다.
+  final int updateCount;
+
   const AppShell({
     super.key,
     required this.result,
     required this.onRescan,
     this.updates,
     this.scanning = false,
+    this.updateCount = 0,
   });
 
   @override
@@ -67,7 +71,10 @@ class _AppShellState extends State<AppShell> {
                 width: 240,
                 child: _Sidebar(
                   tab: _tab,
-                  count: widget.result.skills.length,
+                  counts: {
+                    AppTab.mine: widget.result.skills.length,
+                    AppTab.updates: widget.updateCount,
+                  },
                   onTab: _onTab,
                 ),
               ),
@@ -111,10 +118,14 @@ class _AppShellState extends State<AppShell> {
 
 class _Sidebar extends StatelessWidget {
   final AppTab tab;
-  final int count;
+  final Map<AppTab, int> counts;
   final ValueChanged<AppTab> onTab;
 
-  const _Sidebar({required this.tab, required this.count, required this.onTab});
+  const _Sidebar({
+    required this.tab,
+    required this.counts,
+    required this.onTab,
+  });
 
   Widget _item(AppTab t) => Semantics(
     selected: t == tab,
@@ -134,8 +145,11 @@ class _Sidebar extends StatelessWidget {
               ),
             ),
           ),
-          if (t == AppTab.mine)
-            Text('$count', style: const TextStyle(fontSize: 12, color: _sub)),
+          if ((counts[t] ?? 0) > 0)
+            Text(
+              '${counts[t]}',
+              style: const TextStyle(fontSize: 12, color: _sub),
+            ),
         ],
       ),
     ),

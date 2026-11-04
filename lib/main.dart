@@ -24,6 +24,7 @@ class SkillGuiApp extends StatefulWidget {
   final Future<ScanResult> Function(Directory) scan;
   final Future<bool> Function() reduceTransparency;
   final ClaudeCli cli;
+  final Future<List<PluginUpdate>> Function(Directory) findUpdates;
 
   SkillGuiApp({
     super.key,
@@ -31,6 +32,7 @@ class SkillGuiApp extends StatefulWidget {
     required this.scan,
     required this.reduceTransparency,
     ClaudeCli? cli,
+    this.findUpdates = checkUpdates,
   }) : cli = cli ?? ProcessClaudeCli();
 
   @override
@@ -42,6 +44,10 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
   bool _loading = true;
   bool _failed = false;
   bool _reduce = false;
+  int _updateCount = 0;
+
+  static int _needed(List<PluginUpdate> l) =>
+      l.where((p) => p.state == UpdateState.needed).length;
 
   @override
   void initState() {
@@ -72,6 +78,11 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
       _failed = r == null;
       _loading = false;
     });
+    // 인터넷 없이 컴퓨터 안 마켓 복사본과 비교해 사이드바 개수만 먼저 채운다.
+    if (dir != null) {
+      final n = _needed(await widget.findUpdates(dir));
+      if (mounted) setState(() => _updateCount = n);
+    }
   }
 
   Widget _body() {
@@ -104,11 +115,13 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
       result: r,
       onRescan: _rescan,
       scanning: _loading,
+      updateCount: _updateCount,
       updates: UpdatePage(
         claudeDir: widget.claudeDir,
         cli: widget.cli,
-        check: checkUpdates,
+        check: widget.findUpdates,
         onUpdated: _rescan,
+        onChecked: (l) => setState(() => _updateCount = _needed(l)),
       ),
     );
   }

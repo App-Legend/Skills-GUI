@@ -139,4 +139,21 @@ void main() {
     expect(find.text('경로'), findsNothing);
     expect(find.text('alpha'), findsOneWidget);
   });
+
+  testWidgets('업데이트 필요 탭에 개수, 0이면 숨김', (t) async {
+    t.view.physicalSize = const Size(1280, 820);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    Widget shell(int n) => MaterialApp(
+      home: AppShell(
+        result: const ScanResult(skills: [_skill]),
+        onRescan: () async {},
+        updateCount: n,
+      ),
+    );
+    await t.pumpWidget(shell(2));
+    expect(find.text('2'), findsOneWidget);
+    await t.pumpWidget(shell(0));
+    expect(find.text('0'), findsNothing);
+  });
 }
