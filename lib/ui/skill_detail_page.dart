@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../scan/skill.dart';
 import 'glass.dart';
@@ -28,6 +29,19 @@ class SkillDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = skill;
     final link = s.linkTarget;
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () =>
+            Navigator.maybePop(context),
+      },
+      child: Focus(
+        autofocus: true,
+        child: _page(context, s, link),
+      ),
+    );
+  }
+
+  Widget _page(BuildContext context, Skill s, String? link) {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlassBackground(
@@ -44,9 +58,10 @@ class SkillDetailPage extends StatelessWidget {
                     padding: const EdgeInsets.all(8),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: TextButton(
+                      child: TextButton.icon(
                         onPressed: () => Navigator.maybePop(context),
-                        child: const Text('Claude Code 스킬'),
+                        icon: const Icon(Icons.chevron_left),
+                        label: const Text('Claude Code 스킬'),
                       ),
                     ),
                   ),

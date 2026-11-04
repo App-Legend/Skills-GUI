@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/scan/skill.dart';
 import 'package:skill_gui/ui/skill_detail_page.dart';
@@ -76,6 +77,24 @@ void main() {
     await t.tap(find.text('go'));
     await t.pumpAndSettle();
     await t.tap(find.text('Claude Code 스킬'));
+    await t.pumpAndSettle();
+    expect(find.text('go'), findsOneWidget);
+  });
+
+  testWidgets('뒤로 버튼에 화살표, Esc로도 뒤로', (t) async {
+    await t.pumpWidget(MaterialApp(
+      home: Builder(
+        builder: (c) => TextButton(
+          onPressed: () => Navigator.push(
+              c, MaterialPageRoute(builder: (_) => SkillDetailPage(skill: full))),
+          child: const Text('go'),
+        ),
+      ),
+    ));
+    await t.tap(find.text('go'));
+    await t.pumpAndSettle();
+    expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+    await t.sendKeyEvent(LogicalKeyboardKey.escape);
     await t.pumpAndSettle();
     expect(find.text('go'), findsOneWidget);
   });
