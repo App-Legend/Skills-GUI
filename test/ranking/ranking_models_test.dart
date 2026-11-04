@@ -42,6 +42,11 @@ void main() {
     expect(page.pagination.hasMore, isTrue);
   });
 
+  test('installUrl 이 null 인 항목도 파싱한다 (well-known 출처)', () {
+    final item = SkillRankItem.fromJson({...fakeItem(), 'installUrl': null});
+    expect(item.installUrl, isNull);
+  });
+
   test('형식이 틀리면 FormatException', () {
     expect(() => RankingPage.fromJson('문자열'), throwsFormatException);
     expect(

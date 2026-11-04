@@ -31,7 +31,8 @@ class SkillRankItem {
   final String source;
   final int installs;
   final String sourceType;
-  final String installUrl;
+  /// well-known 출처 스킬은 null 로 온다.
+  final String? installUrl;
   final String url;
   final int? installsYesterday;
   final int? change;
@@ -45,7 +46,7 @@ class SkillRankItem {
       source: _string(map, 'source'),
       installs: _int(map, 'installs'),
       sourceType: _string(map, 'sourceType'),
-      installUrl: _string(map, 'installUrl'),
+      installUrl: _optString(map, 'installUrl'),
       url: _string(map, 'url'),
       installsYesterday: _optInt(map, 'installsYesterday'),
       change: _optInt(map, 'change'),
@@ -121,6 +122,15 @@ int _int(Map<String, Object?> map, String key) {
   final value = map[key];
   if (value is! int) {
     throw FormatException('$key 는 정수여야 해요.');
+  }
+  return value;
+}
+
+String? _optString(Map<String, Object?> map, String key) {
+  final value = map[key];
+  if (value == null) return null;
+  if (value is! String) {
+    throw FormatException('$key 는 문자열이어야 해요.');
   }
   return value;
 }
