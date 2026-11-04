@@ -4,8 +4,11 @@ import FlutterMacOS
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
-    // 켤 때 메뉴 막대·Dock을 뺀 화면 영역을 채운다. 화면 정보가 없으면 기본 크기(1600×1000).
-    let windowFrame = NSScreen.main?.visibleFrame ?? self.frame
+    // 켤 때 메뉴 막대·Dock을 뺀 화면 영역의 85% 크기로 가운데에 둔다. 화면 정보가 없으면 기본 크기(1600×1000).
+    var windowFrame = self.frame
+    if let area = NSScreen.main?.visibleFrame {
+      windowFrame = area.insetBy(dx: area.width * 0.075, dy: area.height * 0.075)
+    }
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
 
