@@ -6,7 +6,6 @@ import 'access/folder_access.dart';
 import 'scan/skill.dart';
 import 'scan/skill_scanner.dart';
 import 'ui/glass.dart';
-import 'ui/skill_detail_page.dart';
 import 'ui/app_shell.dart';
 import 'ui/update_page.dart';
 import 'update/claude_cli.dart';
@@ -39,7 +38,6 @@ class SkillGuiApp extends StatefulWidget {
 }
 
 class _SkillGuiAppState extends State<SkillGuiApp> {
-  final _nav = GlobalKey<NavigatorState>();
   ScanResult? _result;
   bool _loading = true;
   bool _failed = false;
@@ -76,12 +74,6 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
     });
   }
 
-  void _open(Skill s) => _nav.currentState!.push(
-    MaterialPageRoute<void>(
-      builder: (_) => SkillDetailPage(skill: s),
-    ),
-  );
-
   Widget _body() {
     // 처음 스캔할 때만 로딩 화면. 다시 스캔할 때는 탭·필터가 남도록 지금 화면을 둔다.
     if (_loading && _result == null) {
@@ -111,7 +103,6 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
     return AppShell(
       result: r,
       onRescan: _rescan,
-      onOpen: _open,
       scanning: _loading,
       updates: UpdatePage(
         claudeDir: widget.claudeDir,
@@ -128,7 +119,6 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
     child: MaterialApp(
       title: 'Skill-GUI',
       debugShowCheckedModeBanner: false,
-      navigatorKey: _nav,
       home: _body(),
     ),
   );
