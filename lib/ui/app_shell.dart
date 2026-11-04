@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../scan/skill.dart';
 import 'glass.dart';
+import 'skill_detail_page.dart';
 import 'skill_list_page.dart';
 
 const _ink = Color(0xFF101828);
@@ -25,7 +26,6 @@ enum AppTab {
 class AppShell extends StatefulWidget {
   final ScanResult result;
   final Future<void> Function() onRescan;
-  final void Function(Skill) onOpen;
 
   /// "업데이트 필요" 탭 내용. null이면 준비 중.
   final Widget? updates;
@@ -34,14 +34,17 @@ class AppShell extends StatefulWidget {
   final Widget? ranking;
   final bool scanning;
 
+  /// 업데이트가 필요한 플러그인 수. 0이면 숫자를 숨긴다.
+  final int updateCount;
+
   const AppShell({
     super.key,
     required this.result,
     required this.onRescan,
-    required this.onOpen,
     this.updates,
     this.ranking,
     this.scanning = false,
+    this.updateCount = 0,
   });
 
   @override
@@ -50,6 +53,13 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   AppTab _tab = AppTab.mine;
+  Skill? _detail; // 내 스킬 탭에서 연 상세. 사이드바 오른쪽에만 뜬다.
+
+  void _onTab(AppTab t) => setState(() {
+    // 내 스킬 탭을 다시 누르면 목록으로 돌아간다.
+    if (t == AppTab.mine && _tab == AppTab.mine) _detail = null;
+    _tab = t;
+  });
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -66,8 +76,11 @@ class _AppShellState extends State<AppShell> {
                 width: 240,
                 child: _Sidebar(
                   tab: _tab,
-                  count: widget.result.skills.length,
-                  onTab: (t) => setState(() => _tab = t),
+                  counts: {
+                    AppTab.mine: widget.result.skills.length,
+                    AppTab.updates: widget.updateCount,
+                  },
+                  onTab: _onTab,
                 ),
               ),
               const SizedBox(width: 16),
@@ -76,11 +89,24 @@ class _AppShellState extends State<AppShell> {
                 child: IndexedStack(
                   index: _tab.index,
                   children: [
-                    SkillListPage(
-                      result: widget.result,
-                      onRescan: widget.onRescan,
-                      onOpen: widget.onOpen,
-                      scanning: widget.scanning,
+                    // 상세 페이지가 사이드바의 화면 낭독 정보를 가리지 않도록 영역을 나눈다.
+                    Semantics(
+                      container: true,
+                      child: Navigator(
+                        pages: [
+                          MaterialPage(
+                            child: SkillListPage(
+                              result: widget.result,
+                              onRescan: widget.onRescan,
+                              onOpen: (s) => setState(() => _detail = s),
+                              scanning: widget.scanning,
+                            ),
+                          ),
+                          if (_detail case final s?)
+                            MaterialPage(child: SkillDetailPage(skill: s)),
+                        ],
+                        onDidRemovePage: (_) => setState(() => _detail = null),
+                      ),
                     ),
                     widget.updates ?? _notReady,
                     _notReady,
@@ -98,10 +124,14 @@ class _AppShellState extends State<AppShell> {
 
 class _Sidebar extends StatelessWidget {
   final AppTab tab;
-  final int count;
+  final Map<AppTab, int> counts;
   final ValueChanged<AppTab> onTab;
 
-  const _Sidebar({required this.tab, required this.count, required this.onTab});
+  const _Sidebar({
+    required this.tab,
+    required this.counts,
+    required this.onTab,
+  });
 
   Widget _item(AppTab t) => Semantics(
     selected: t == tab,
@@ -116,11 +146,16 @@ class _Sidebar extends StatelessWidget {
               t.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontWeight: t == tab ? FontWeight.w600 : FontWeight.w400),
+              style: TextStyle(
+                fontWeight: t == tab ? FontWeight.w600 : FontWeight.w400,
+              ),
             ),
           ),
-          if (t == AppTab.mine)
-            Text('$count', style: const TextStyle(fontSize: 12, color: _sub)),
+          if ((counts[t] ?? 0) > 0)
+            Text(
+              '${counts[t]}',
+              style: const TextStyle(fontSize: 12, color: _sub),
+            ),
         ],
       ),
     ),
@@ -130,9 +165,7 @@ class _Sidebar extends StatelessWidget {
   Widget build(BuildContext context) => GlassPanel(
     child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
-      child: ListView(
-        children: [for (final t in AppTab.values) _item(t)],
-      ),
+      child: ListView(children: [for (final t in AppTab.values) _item(t)]),
     ),
   );
 }

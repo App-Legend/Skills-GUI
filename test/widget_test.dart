@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/main.dart';
 import 'package:skill_gui/scan/skill.dart';
+import 'package:skill_gui/update/update_check.dart';
 
 const _skill = Skill(
   name: 'hello-skill',
@@ -105,5 +106,29 @@ void main() {
     await tester.tap(find.text('Claude Code'));
     await tester.pump();
     expect(find.text('hello-skill'), findsOneWidget);
+  });
+
+  testWidgets('켤 때 업데이트 필요 개수를 보여준다', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    PluginUpdate up(String id) => PluginUpdate(
+      id: id,
+      scope: 'user',
+      current: '1',
+      latest: '2',
+      skillCount: 0,
+      state: UpdateState.needed,
+    );
+    await tester.pumpWidget(
+      SkillGuiApp(
+        claudeDir: Directory.systemTemp,
+        scan: _scan,
+        reduceTransparency: _noReduce,
+        findUpdates: (_) async => [up('a@m'), up('b@m')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('2'), findsOneWidget);
   });
 }

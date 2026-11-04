@@ -218,20 +218,6 @@ Future<List<Skill>> _scanPlugins(
       enabled = null;
     }
 
-    final oldDirs = <String>{};
-    // 설치된 모든 항목의 폴더명(부모 폴더별). 이들은 옛 버전이 아니다.
-    final installedBases = <String, Set<String>>{};
-    for (final list in plugins.values) {
-      if (list is! List) continue;
-      for (final raw in list) {
-        final p = raw is Map ? raw['installPath'] : null;
-        if (p is String) {
-          installedBases
-              .putIfAbsent(Directory(p).parent.path, () => {})
-              .add(_baseName(p));
-        }
-      }
-    }
     var settingsNotice = false;
     for (final id in plugins.keys.toList()..sort()) {
       final List<dynamic> list;
@@ -256,14 +242,7 @@ Future<List<Skill>> _scanPlugins(
             notices.add('$id: 플러그인 폴더가 없습니다');
             continue;
           }
-          // 같은 플러그인 폴더를 쓰는 항목이 여럿이어도 한 번만 센다.
-          final keep = installedBases[dir.parent.path] ?? {_baseName(installPath)};
           try {
-            await for (final sib in dir.parent.list(followLinks: false)) {
-              if (sib is Directory && !keep.contains(_baseName(sib.path))) {
-                oldDirs.add(sib.path);
-              }
-            }
             final skillsDir = Directory('$installPath/skills');
             if (!skillsDir.existsSync()) continue;
             await for (final e in skillsDir.list(followLinks: false)) {
@@ -290,9 +269,6 @@ Future<List<Skill>> _scanPlugins(
     }
     if (settingsNotice) {
       notices.add('settings.json을 읽지 못해 플러그인 켜짐 여부를 알 수 없습니다');
-    }
-    if (oldDirs.isNotEmpty) {
-      notices.add('플러그인 옛 버전 폴더 ${oldDirs.length}개가 남아 있습니다');
     }
   } on Object {
     // 최상위 형식 불일치·읽기 실패.
