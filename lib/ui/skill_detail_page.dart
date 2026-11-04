@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../scan/skill.dart';
@@ -12,10 +10,7 @@ const _red = Color(0xFFB42318);
 class SkillDetailPage extends StatelessWidget {
   final Skill skill;
 
-  /// null이면 허락 버튼을 숨긴다 (Windows).
-  final Future<void> Function(String path)? onGrantFolder;
-
-  const SkillDetailPage({super.key, required this.skill, this.onGrantFolder});
+  const SkillDetailPage({super.key, required this.skill});
 
   Widget _section(String title, Widget body) => Padding(
     padding: const EdgeInsets.only(top: 20),
@@ -33,10 +28,6 @@ class SkillDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = skill;
     final link = s.linkTarget;
-    final canGrant =
-        s.problem?.kind == ProblemKind.noPermission &&
-        link != null &&
-        onGrantFolder != null;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlassBackground(
@@ -95,13 +86,6 @@ class SkillDetailPage extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 20),
                             child: Text(s.problem!.message, style: const TextStyle(color: _red)),
                           ),
-                        if (canGrant)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: _GrantButton(
-                              onGrant: () => onGrantFolder!(File(link).parent.path),
-                            ),
-                          ),
                         if (s.skillMd != null)
                           _section(
                             'SKILL.md 원문',
@@ -132,47 +116,4 @@ class SkillDetailPage extends StatelessWidget {
       ),
     );
   }
-}
-
-class _GrantButton extends StatefulWidget {
-  final Future<void> Function() onGrant;
-
-  const _GrantButton({required this.onGrant});
-
-  @override
-  State<_GrantButton> createState() => _GrantButtonState();
-}
-
-class _GrantButtonState extends State<_GrantButton> {
-  bool _busy = false;
-  bool _failed = false;
-
-  Future<void> _run() async {
-    setState(() {
-      _busy = true;
-      _failed = false;
-    });
-    try {
-      await widget.onGrant();
-    } catch (_) {
-      _failed = true;
-    }
-    if (mounted) setState(() => _busy = false);
-  }
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      FilledButton(
-        onPressed: _busy ? null : _run,
-        child: const Text('폴더 추가 허락'),
-      ),
-      if (_failed)
-        const Padding(
-          padding: EdgeInsets.only(top: 8),
-          child: Text('폴더를 허락하지 못했습니다', style: TextStyle(color: _red)),
-        ),
-    ],
-  );
 }

@@ -1,17 +1,14 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/scan/skill.dart';
 import 'package:skill_gui/ui/skill_detail_page.dart';
 
-Future<void> _pump(WidgetTester t, Skill s,
-    {Future<void> Function(String)? onGrant}) async {
+Future<void> _pump(WidgetTester t, Skill s) async {
   t.view.physicalSize = const Size(1200, 900);
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
   await t.pumpWidget(MaterialApp(
-    home: SkillDetailPage(skill: s, onGrantFolder: onGrant),
+    home: SkillDetailPage(skill: s),
   ));
 }
 
@@ -33,7 +30,6 @@ void main() {
     ]) {
       expect(find.text(x), findsWidgets, reason: x);
     }
-    expect(find.text('폴더 추가 허락'), findsNothing);
   });
 
   const denied = Skill(
@@ -41,21 +37,13 @@ void main() {
     source: SkillSource.global,
     path: '/home/.claude/skills/c',
     linkTarget: '/x/y/c',
-    problem: SkillProblem(ProblemKind.noPermission, '읽을 수 없음, 폴더 권한 필요'),
+    problem: SkillProblem(ProblemKind.noPermission, '읽을 수 없음, 권한 없음'),
   );
 
-  testWidgets('허락 버튼은 상위 폴더로 호출, 원문 대신 문제 메시지', (t) async {
-    String? got;
-    await _pump(t, denied, onGrant: (p) async => got = p);
-    expect(find.text('읽을 수 없음, 폴더 권한 필요'), findsOneWidget);
-    expect(find.text('SKILL.md 원문'), findsNothing);
-    await t.tap(find.text('폴더 추가 허락'));
-    expect(got, '/x/y');
-  });
-
-  testWidgets('onGrantFolder 없으면 버튼 없음', (t) async {
+  testWidgets('원문 대신 문제 메시지', (t) async {
     await _pump(t, denied);
-    expect(find.text('폴더 추가 허락'), findsNothing);
+    expect(find.text('읽을 수 없음, 권한 없음'), findsOneWidget);
+    expect(find.text('SKILL.md 원문'), findsNothing);
   });
 
   testWidgets('꺼진 프로젝트 플러그인 스킬', (t) async {
@@ -90,31 +78,6 @@ void main() {
     await t.tap(find.text('Claude Code 스킬'));
     await t.pumpAndSettle();
     expect(find.text('go'), findsOneWidget);
-  });
-
-  testWidgets('onGrantFolder가 던지면 안내 문구', (t) async {
-    await _pump(t, denied, onGrant: (_) async => throw Exception('x'));
-    await t.tap(find.text('폴더 추가 허락'));
-    await t.pump();
-    expect(find.text('폴더를 허락하지 못했습니다'), findsOneWidget);
-    expect(t.takeException(), isNull);
-  });
-
-  testWidgets('실행 중에는 버튼 비활성', (t) async {
-    final c = Completer<void>();
-    var n = 0;
-    await _pump(t, denied, onGrant: (_) {
-      n++;
-      return c.future;
-    });
-    await t.tap(find.text('폴더 추가 허락'));
-    await t.pump();
-    expect(t.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);
-    await t.tap(find.text('폴더 추가 허락'), warnIfMissed: false);
-    expect(n, 1);
-    c.complete();
-    await t.pump();
-    expect(t.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNotNull);
   });
 
   testWidgets('버전과 실제 경로 행', (t) async {

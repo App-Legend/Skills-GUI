@@ -19,7 +19,7 @@ const _skills = [
     name: 'c',
     source: SkillSource.global,
     path: '/c',
-    problem: SkillProblem(ProblemKind.noPermission, '읽을 수 없음, 폴더 권한 필요'),
+    problem: SkillProblem(ProblemKind.noPermission, '읽을 수 없음, 권한 없음'),
   ),
   Skill(
     name: 'd',
@@ -62,7 +62,7 @@ void main() {
     expect(find.text('Claude Code'), findsOneWidget);
     expect(find.text('5'), findsOneWidget);
     expect(find.text('/w/app'), findsOneWidget);
-    expect(find.text('읽을 수 없음, 폴더 권한 필요'), findsOneWidget);
+    expect(find.text('읽을 수 없음, 권한 없음'), findsOneWidget);
     expect(find.text('전역'), findsNWidgets(3)); // 필터 + 카드 a, c
     expect(find.text('p@m'), findsOneWidget);
     expect(find.text('동기화'), findsOneWidget);

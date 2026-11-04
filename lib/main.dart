@@ -5,28 +5,29 @@ import 'package:flutter/material.dart';
 import 'access/folder_access.dart';
 import 'scan/skill.dart';
 import 'scan/skill_scanner.dart';
-import 'ui/access_page.dart';
 import 'ui/glass.dart';
 import 'ui/skill_detail_page.dart';
 import 'ui/skill_list_page.dart';
 
 void main() => runApp(
-  SkillGuiApp(access: createFolderAccess(), scan: scanClaude),
+  SkillGuiApp(
+    claudeDir: claudeHomeDir(),
+    scan: scanClaude,
+    reduceTransparency: reduceTransparency,
+  ),
 );
 
 class SkillGuiApp extends StatefulWidget {
-  final FolderAccess access;
+  final Directory? claudeDir;
   final Future<ScanResult> Function(Directory) scan;
+  final Future<bool> Function() reduceTransparency;
 
-  /// 폴더 추가 허락 버튼 표시. 샌드박스가 있는 macOS만 켠다.
-  final bool showGrant;
-
-  SkillGuiApp({
+  const SkillGuiApp({
     super.key,
-    required this.access,
+    required this.claudeDir,
     required this.scan,
-    bool? showGrant,
-  }) : showGrant = showGrant ?? Platform.isMacOS;
+    required this.reduceTransparency,
+  });
 
   @override
   State<SkillGuiApp> createState() => _SkillGuiAppState();
@@ -34,7 +35,6 @@ class SkillGuiApp extends StatefulWidget {
 
 class _SkillGuiAppState extends State<SkillGuiApp> {
   final _nav = GlobalKey<NavigatorState>();
-  Directory? _dir;
   ScanResult? _result;
   bool _loading = true;
   bool _failed = false;
@@ -47,29 +47,19 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
   }
 
   Future<void> _start() async {
-    try {
-      _reduce = await widget.access.reduceTransparency();
-      _dir = await widget.access.restore();
-    } catch (_) {
-      _dir = null;
-    }
-    if (_dir == null) {
-      if (mounted) setState(() => _loading = false);
-      return;
-    }
+    _reduce = await widget.reduceTransparency();
     await _rescan();
   }
 
   Future<void> _rescan() async {
-    final dir = _dir;
-    if (dir == null) return;
+    final dir = widget.claudeDir;
     setState(() {
       _loading = true;
       _failed = false;
     });
     ScanResult? r;
     try {
-      r = await widget.scan(dir);
+      if (dir != null) r = await widget.scan(dir);
     } catch (_) {
       r = null;
     }
@@ -83,18 +73,7 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
 
   void _open(Skill s) => _nav.currentState!.push(
     MaterialPageRoute<void>(
-      builder: (_) => SkillDetailPage(
-        skill: s,
-        onGrantFolder: widget.showGrant
-            ? (path) async {
-                if (!await widget.access.grantFolder(path)) {
-                  throw Exception('not granted');
-                }
-                await _rescan();
-                _nav.currentState?.pop();
-              }
-            : null,
-      ),
+      builder: (_) => SkillDetailPage(skill: s),
     ),
   );
 
@@ -103,15 +82,6 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
       return const Scaffold(
         backgroundColor: Colors.transparent,
         body: GlassBackground(child: Center(child: CircularProgressIndicator())),
-      );
-    }
-    if (_dir == null) {
-      return AccessPage(
-        onPick: widget.access.pickClaudeDir,
-        onGranted: (d) {
-          _dir = d;
-          _rescan();
-        },
       );
     }
     final r = _result;

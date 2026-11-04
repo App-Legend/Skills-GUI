@@ -7,7 +7,7 @@ import 'skill.dart';
 const _messages = {
   ProblemKind.noSkillMd: 'SKILL.md가 없습니다',
   ProblemKind.badFrontmatter: 'SKILL.md 머리말을 읽을 수 없습니다',
-  ProblemKind.noPermission: '읽을 수 없음, 폴더 권한 필요',
+  ProblemKind.noPermission: '읽을 수 없음, 권한 없음',
   ProblemKind.brokenLink: '링크가 가리키는 폴더가 없습니다',
 };
 

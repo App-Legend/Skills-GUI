@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-03-skill-scan-design.md`
 
+> **2026-11-04 변경:** 구현 후 macOS 샌드박스를 끄기로 바꿨다. Task 4의 폴더 선택·북마크, Task 6의 폴더 허락 화면·허락 버튼은 지웠고 `file_selector`도 뺐다. 앱은 켜자마자 홈 폴더의 `.claude`를 스캔한다. 아래 Task 4·6·7의 해당 내용은 기록으로만 남긴다.
+
 ## Global Constraints
 
 - 추가 패키지는 `yaml`, `file_selector` 둘만. 그 외 추가 금지.
