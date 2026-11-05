@@ -119,16 +119,16 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _analysisItem('이 스킬은', [analysis.overview]),
-        _analysisItem('이럴 때 사용', analysis.whenToUse),
-        _analysisItem('처리 방식', analysis.workflow),
-        _analysisItem('필요한 입력·준비', analysis.requirements),
-        _analysisItem('결과', analysis.outputs),
+        _analysisItem('개요', [analysis.overview]),
+        _analysisItem('사용 상황', analysis.whenToUse),
+        _analysisItem('작동 방식', analysis.workflow),
+        _analysisItem('준비 사항', analysis.requirements),
+        _analysisItem('결과물', analysis.outputs),
         if (analysis.contents.isNotEmpty)
-          _analysisItem('포함된 구성', [
+          _analysisItem('구성 요소', [
             for (final item in analysis.contents) '${item.path}: ${item.role}',
           ]),
-        _analysisItem('주의할 점', analysis.cautions),
+        _analysisItem('주의 사항', analysis.cautions),
         for (final section in analysis.additionalSections)
           _analysisItem(section.title, [section.content]),
       ],
@@ -144,19 +144,23 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
         children: [
           Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
-          if (items.length == 1)
-            Text(items.single)
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final item in items)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text('• $item'),
-                  ),
-              ],
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final item
+                  in items
+                      .expand(
+                        (text) => text.split(
+                          RegExp(r'\n+|(?<=[.!?])\s+(?=[가-힣A-Z])'),
+                        ),
+                      )
+                      .where((text) => text.trim().isNotEmpty))
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(item.trim()),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -227,10 +231,11 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                         _section('버전', SelectableText(s.pluginVersion!)),
                       _section('경로', SelectableText(s.path)),
                       if (link != null) _section('실제 경로', SelectableText(link)),
-                      if (s.description != null)
-                        _section('설명', Text(s.description!)),
                       if (s.skillMd != null && s.problem == null)
-                        _section('한국어 분석', _analysisBody()),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 20),
+                          child: _analysisBody(),
+                        ),
                       if (s.problem != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 20),
@@ -239,15 +244,24 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                             style: const TextStyle(color: _red),
                           ),
                         ),
-                      if (s.skillMd != null)
-                        _section(
-                          'SKILL.md 원문',
-                          SelectableText(
-                            s.skillMd!,
-                            style: const TextStyle(
-                              fontFamily: 'Menlo',
-                              fontSize: 13,
-                            ),
+                      if (s.description != null || s.skillMd != null)
+                        Material(
+                          type: MaterialType.transparency,
+                          child: ExpansionTile(
+                            title: const Text('원문 설명'),
+                            tilePadding: EdgeInsets.zero,
+                            childrenPadding: const EdgeInsets.only(bottom: 16),
+                            expandedCrossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              if (s.description != null)
+                                _section('설명', SelectableText(s.description!)),
+                              if (s.skillMd != null)
+                                _section(
+                                  'SKILL.md 원문',
+                                  SelectableText(s.skillMd!),
+                                ),
+                            ],
                           ),
                         ),
                       if (s.files.isNotEmpty)

@@ -45,6 +45,11 @@ void main() {
 
   testWidgets('기본 정보 표시', (t) async {
     await _pump(t, full);
+    await t.pumpAndSettle();
+    expect(find.text('알파 설명'), findsNothing);
+    expect(find.text('# 원문 본문'), findsNothing);
+    await t.tap(find.text('원문 설명'));
+    await t.pumpAndSettle();
     for (final x in [
       'alpha',
       '전역',
@@ -176,11 +181,11 @@ void main() {
     );
     await t.pumpAndSettle();
 
-    expect(find.text('한국어 분석'), findsOneWidget);
-    expect(find.text('이 스킬은'), findsOneWidget);
+    expect(find.text('한국어 분석'), findsNothing);
+    expect(find.text('개요'), findsOneWidget);
     expect(find.text('풀 리퀘스트 검토를 돕는 스킬입니다.'), findsOneWidget);
-    expect(find.text('이럴 때 사용'), findsOneWidget);
-    expect(find.text('결과'), findsOneWidget);
-    expect(find.text('필요한 입력·준비'), findsNothing);
+    expect(find.text('사용 상황'), findsOneWidget);
+    expect(find.text('결과물'), findsOneWidget);
+    expect(find.text('준비 사항'), findsNothing);
   });
 }
