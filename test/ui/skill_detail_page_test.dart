@@ -1,17 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:skill_gui/features/skill_analysis/skill_analysis.dart';
+import 'package:skill_gui/features/skill_analysis/skill_analysis_cache.dart';
+import 'package:skill_gui/features/skill_analysis/skill_analysis_client.dart';
 import 'package:skill_gui/scan/skill.dart';
 import 'package:skill_gui/ui/skill_detail_page.dart';
+
+class _MemoryCache implements SkillAnalysisCache {
+  SkillAnalysis? value;
+
+  @override
+  Future<SkillAnalysis?> load(Skill skill) async => value;
+
+  @override
+  Future<void> save(Skill skill, SkillAnalysis analysis) async {
+    value = analysis;
+  }
+}
 
 Future<void> _pump(WidgetTester t, Skill s) async {
   t.view.physicalSize = const Size(1200, 900);
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
-  await t.pumpWidget(MaterialApp(
-    home: SkillDetailPage(skill: s),
-  ));
+  await t.pumpWidget(
+    MaterialApp(
+      home: SkillDetailPage(skill: s, analysisCache: _readyCache()),
+    ),
+  );
 }
+
+SkillAnalysisCache _readyCache() =>
+    _MemoryCache()..value = const SkillAnalysis(overview: '캐시된 분석입니다.');
 
 void main() {
   const full = Skill(
@@ -26,8 +46,15 @@ void main() {
   testWidgets('기본 정보 표시', (t) async {
     await _pump(t, full);
     for (final x in [
-      'alpha', '전역', '경로', '/home/.claude/skills/alpha', '알파 설명',
-      'SKILL.md 원문', '# 원문 본문', '포함된 파일', 'a.txt',
+      'alpha',
+      '전역',
+      '경로',
+      '/home/.claude/skills/alpha',
+      '알파 설명',
+      'SKILL.md 원문',
+      '# 원문 본문',
+      '포함된 파일',
+      'a.txt',
     ]) {
       expect(find.text(x), findsWidgets, reason: x);
     }
@@ -65,15 +92,22 @@ void main() {
   });
 
   testWidgets('뒤로 가기', (t) async {
-    await t.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (c) => TextButton(
-          onPressed: () => Navigator.push(
-              c, MaterialPageRoute(builder: (_) => SkillDetailPage(skill: full))),
-          child: const Text('go'),
+    await t.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (c) => TextButton(
+            onPressed: () => Navigator.push(
+              c,
+              MaterialPageRoute(
+                builder: (_) =>
+                    SkillDetailPage(skill: full, analysisCache: _readyCache()),
+              ),
+            ),
+            child: const Text('go'),
+          ),
         ),
       ),
-    ));
+    );
     await t.tap(find.text('go'));
     await t.pumpAndSettle();
     await t.tap(find.text('내 스킬'));
@@ -82,15 +116,22 @@ void main() {
   });
 
   testWidgets('뒤로 버튼에 화살표, Esc로도 뒤로', (t) async {
-    await t.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (c) => TextButton(
-          onPressed: () => Navigator.push(
-              c, MaterialPageRoute(builder: (_) => SkillDetailPage(skill: full))),
-          child: const Text('go'),
+    await t.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (c) => TextButton(
+            onPressed: () => Navigator.push(
+              c,
+              MaterialPageRoute(
+                builder: (_) =>
+                    SkillDetailPage(skill: full, analysisCache: _readyCache()),
+              ),
+            ),
+            child: const Text('go'),
+          ),
         ),
       ),
-    ));
+    );
     await t.tap(find.text('go'));
     await t.pumpAndSettle();
     expect(find.byIcon(Icons.chevron_left), findsOneWidget);
@@ -114,5 +155,32 @@ void main() {
     for (final x in ['버전', '1.2.3', '실제 경로', '/real/v']) {
       expect(find.text(x), findsOneWidget, reason: x);
     }
+  });
+
+  testWidgets('상세 진입 시 한국어 분석을 표시한다', (t) async {
+    final client = SkillAnalysisApiClient(
+      'https://relay.example.test',
+      httpPost: (_, _) async => const SkillAnalysisHttpResponse(
+        200,
+        '{"analysis":{"overview":"풀 리퀘스트 검토를 돕는 스킬입니다.","whenToUse":["변경 사항을 검토할 때"],"outputs":["검토 결과"]}}',
+      ),
+    );
+    await t.pumpWidget(
+      MaterialApp(
+        home: SkillDetailPage(
+          skill: full,
+          analysisClient: client,
+          analysisCache: _MemoryCache(),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+
+    expect(find.text('한국어 분석'), findsOneWidget);
+    expect(find.text('이 스킬은'), findsOneWidget);
+    expect(find.text('풀 리퀘스트 검토를 돕는 스킬입니다.'), findsOneWidget);
+    expect(find.text('이럴 때 사용'), findsOneWidget);
+    expect(find.text('결과'), findsOneWidget);
+    expect(find.text('필요한 입력·준비'), findsNothing);
   });
 }
