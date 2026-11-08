@@ -58,9 +58,7 @@ void main() {
     for (final x in [
       'alpha',
       '전역',
-      '경로',
       '/home/.claude/skills/alpha',
-      '알파 설명',
       '포함된 파일',
       'a.txt',
     ]) {
@@ -160,7 +158,7 @@ void main() {
         linkTarget: '/real/v',
       ),
     );
-    for (final x in ['버전', '1.2.3', '실제 경로', '/real/v']) {
+    for (final x in ['버전 1.2.3', '실제 경로: /real/v', '/a/v']) {
       expect(find.text(x), findsOneWidget, reason: x);
     }
   });
@@ -184,11 +182,12 @@ void main() {
     );
     await t.pumpAndSettle();
 
-    expect(find.text('한국어 분석'), findsOneWidget);
-    expect(find.text('이 스킬은'), findsOneWidget);
+    expect(find.text('한국어 분석'), findsNothing);
+    expect(find.text('알파 설명'), findsNothing);
+    expect(find.text('개요'), findsOneWidget);
     expect(find.text('풀 리퀘스트 검토를 돕는 스킬입니다.'), findsOneWidget);
     expect(find.text('이럴 때 사용'), findsOneWidget);
-    expect(find.text('결과'), findsOneWidget);
+    expect(find.text('결과물'), findsOneWidget);
     expect(find.text('필요한 입력·준비'), findsNothing);
   });
 
@@ -232,5 +231,41 @@ void main() {
     );
     expect(button.onPressed, isNull);
     expect(find.text('설치방법'), findsNothing);
+  });
+
+  testWidgets('포함된 구성·주의할 점은 접혀 있고 특이사항은 숨긴다', (t) async {
+    t.view.physicalSize = const Size(1200, 900);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      MaterialApp(
+        home: SkillDetailPage(
+          skill: full,
+          analysisCache: _MemoryCache()
+            ..value = const SkillAnalysis(
+              overview: '개요 본문',
+              categories: ['git'],
+              requirements: ['준비 본문'],
+              contents: [SkillAnalysisContent(path: 'a.txt', role: '구성 본문')],
+              cautions: ['주의 본문'],
+              additionalSections: [
+                SkillAnalysisSection(title: '특이사항', content: '특이 본문'),
+              ],
+            ),
+          resolveOrigin: _origin,
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('Git'), findsOneWidget);
+    expect(find.text('필요한 입력·준비'), findsNothing);
+    expect(find.text('특이사항'), findsNothing);
+    expect(find.text('a.txt: 구성 본문'), findsNothing);
+    expect(find.text('주의 본문'), findsNothing);
+    await t.tap(find.text('포함된 구성'));
+    await t.tap(find.text('주의할 점'));
+    await t.pump();
+    expect(find.text('a.txt: 구성 본문'), findsOneWidget);
+    expect(find.text('주의 본문'), findsOneWidget);
   });
 }

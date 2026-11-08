@@ -44,7 +44,7 @@ class _CommandRowState extends State<_CommandRow> {
   @override
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(top: 4),
-    padding: const EdgeInsets.only(left: 12),
+    padding: const EdgeInsets.fromLTRB(12, 6, 0, 6),
     decoration: BoxDecoration(
       color: const Color(0x0F101828),
       borderRadius: BorderRadius.circular(10),

@@ -33,7 +33,8 @@ Future<SkillAnalysisHttpResponse> defaultSkillAnalysisHttpPost(
     request.headers.contentType = ContentType.json;
     request.headers.set(HttpHeaders.acceptHeader, 'application/json');
     request.write(jsonEncode(body));
-    final response = await request.close().timeout(const Duration(seconds: 45));
+    // 큰 스킬은 분석에 40초 가까이 걸린다.
+    final response = await request.close().timeout(const Duration(seconds: 90));
     return SkillAnalysisHttpResponse(
       response.statusCode,
       await response.transform(utf8.decoder).join(),

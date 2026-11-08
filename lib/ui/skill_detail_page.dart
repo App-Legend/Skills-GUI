@@ -6,6 +6,8 @@ import '../features/skill_analysis/skill_analysis_cache.dart';
 import '../features/skill_analysis/skill_analysis_client.dart';
 import '../features/skill_analysis/skill_analysis_store.dart';
 import '../features/skill_analysis/skill_origin.dart';
+import '../features/skill_analysis/widgets/category_badges.dart';
+import '../features/skill_analysis/widgets/collapsible_item.dart';
 import '../features/skill_analysis/widgets/install_commands.dart';
 import '../access/folder_access.dart';
 import '../scan/skill.dart';
@@ -14,6 +16,7 @@ import 'skill_badges.dart';
 
 const _sub = Color(0xFF3A4658);
 const _red = Color(0xFFB42318);
+const _faint = Color(0xFF8A94A6);
 
 class SkillDetailPage extends StatefulWidget {
   final Skill skill;
@@ -167,48 +170,57 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _analysisItem('이 스킬은', [analysis.overview]),
+        _analysisItem('개요', [analysis.overview]),
         _analysisItem('이럴 때 사용', analysis.whenToUse),
         _analysisItem('처리 방식', analysis.workflow),
-        _analysisItem('필요한 입력·준비', analysis.requirements),
-        _analysisItem('결과', analysis.outputs),
-        if (analysis.contents.isNotEmpty)
-          _analysisItem('포함된 구성', [
-            for (final item in analysis.contents) '${item.path}: ${item.role}',
-          ]),
-        _analysisItem('주의할 점', analysis.cautions),
-        for (final section in analysis.additionalSections)
-          _analysisItem(section.title, [section.content]),
+        _analysisItem('결과물', analysis.outputs),
+        _analysisItem('포함된 구성', [
+          for (final item in analysis.contents) '${item.path}: ${item.role}',
+        ], collapsible: true),
+        _analysisItem('주의할 점', analysis.cautions, collapsible: true),
       ],
     );
   }
 
-  Widget _analysisItem(String title, List<String> items) {
+  Widget _analysisItem(
+    String title,
+    List<String> items, {
+    bool collapsible = false,
+  }) {
     if (items.isEmpty) return const SizedBox.shrink();
+    final body = items.length == 1
+        ? Text(items.single)
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final item in items)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text('• $item'),
+                ),
+            ],
+          );
     return Padding(
       padding: const EdgeInsets.only(top: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          if (items.length == 1)
-            Text(items.single)
-          else
-            Column(
+      child: collapsible
+          ? CollapsibleItem(title: title, child: body)
+          : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final item in items)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text('• $item'),
-                  ),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                body,
               ],
             ),
-        ],
-      ),
     );
   }
+
+  /// 이름 아래 작고 흐린 보조 정보.
+  Widget _meta(String text) =>
+      SelectableText(text, style: const TextStyle(fontSize: 12, color: _faint));
 
   Widget _page(BuildContext context, Skill s, String? link) {
     return Scaffold(
@@ -257,6 +269,11 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      _meta(s.path),
+                      if (link != null) _meta('실제 경로: $link'),
+                      if (s.pluginVersion != null)
+                        _meta('버전 ${s.pluginVersion}'),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -269,6 +286,11 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                               fg: _red,
                             ),
                           ],
+                          if (_analysis?.categories case final c?
+                              when c.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Flexible(flex: 2, child: CategoryBadges(c)),
+                          ],
                         ],
                       ),
                       if (s.projectPath != null)
@@ -279,14 +301,11 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                       if (_origin case final origin?
                           when origin.commands.isNotEmpty)
                         _section('설치방법', InstallCommands(origin)),
-                      if (s.pluginVersion != null)
-                        _section('버전', SelectableText(s.pluginVersion!)),
-                      _section('경로', SelectableText(s.path)),
-                      if (link != null) _section('실제 경로', SelectableText(link)),
-                      if (s.description != null)
-                        _section('설명', Text(s.description!)),
                       if (s.skillMd != null && s.problem == null)
-                        _section('한국어 분석', _analysisBody()),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: _analysisBody(),
+                        ),
                       if (s.problem != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 20),
