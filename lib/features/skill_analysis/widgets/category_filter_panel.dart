@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../skill_categories.dart';
 
-/// 카테고리 체크박스 목록. 분석이 끝난 스킬에 있는 카테고리만 보여 준다.
+/// 카테고리 체크박스 목록. 전체 카테고리를 사이트 순서로 보여 주고, 옆에 내 스킬 수를 붙인다.
 class CategoryFilterPanel extends StatelessWidget {
   const CategoryFilterPanel({
     super.key,
@@ -24,11 +24,6 @@ class CategoryFilterPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 사이트 목록 순서를 따른다. 선택했지만 지금 없는 카테고리도 남긴다.
-    final shown = [
-      for (final c in skillCategories)
-        if (counts.containsKey(c.slug) || selected.contains(c.slug)) c,
-    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -47,31 +42,20 @@ class CategoryFilterPanel extends StatelessWidget {
               ),
           ],
         ),
-        if (shown.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: Text(
-              '분석이 끝난 스킬의 카테고리가 여기에 표시됩니다.',
-              style: TextStyle(color: _sub),
-            ),
-          )
-        else
-          Wrap(
-            spacing: 4,
-            children: [
-              for (final c in shown)
-                _CategoryCheck(
-                  label: c.label,
-                  count: counts[c.slug] ?? 0,
-                  checked: selected.contains(c.slug),
-                  onChanged: (on) => onChanged(
-                    on
-                        ? {...selected, c.slug}
-                        : ({...selected}..remove(c.slug)),
-                  ),
+        Wrap(
+          spacing: 4,
+          children: [
+            for (final c in skillCategories)
+              _CategoryCheck(
+                label: c.label,
+                count: counts[c.slug] ?? 0,
+                checked: selected.contains(c.slug),
+                onChanged: (on) => onChanged(
+                  on ? {...selected, c.slug} : ({...selected}..remove(c.slug)),
                 ),
-            ],
-          ),
+              ),
+          ],
+        ),
         if (pendingCount > 0)
           Padding(
             padding: const EdgeInsets.only(top: 4),

@@ -246,7 +246,7 @@ void main() {
 
     await t.tap(find.byIcon(Icons.filter_list));
     await t.pump();
-    expect(find.byType(Checkbox), findsNWidgets(3));
+    expect(find.byType(Checkbox), findsNWidgets(61));
     await t.tap(find.bySemanticsLabel('테스트'));
     await t.pump();
     expect(find.text('x'), findsNothing);

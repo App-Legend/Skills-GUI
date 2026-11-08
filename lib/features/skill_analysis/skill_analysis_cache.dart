@@ -47,7 +47,10 @@ class FileSkillAnalysisCache implements SkillAnalysisCache {
       final analysis = SkillAnalysis.fromJson(
         Map<String, dynamic>.from(value['analysis'] as Map),
       );
-      return analysis.overview.isEmpty ? null : analysis;
+      // 카테고리가 비었으면 이전 서버가 만든 결과라 다시 분석한다.
+      return analysis.overview.isEmpty || analysis.categories.isEmpty
+          ? null
+          : analysis;
     } on Object {
       return null;
     }
