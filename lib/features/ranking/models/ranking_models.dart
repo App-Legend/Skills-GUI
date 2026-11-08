@@ -147,6 +147,97 @@ class StarsResult {
   }
 }
 
+/// 스킬에 든 파일 하나. [contents] 가 null 이면 skills.sh 가 내용을 주지 않은 파일(그림 등)이다.
+class SkillFile {
+  const SkillFile({required this.path, required this.contents});
+
+  final String path;
+  final String? contents;
+
+  factory SkillFile.fromJson(Object? json) {
+    final map = _asMap(json, '파일');
+    return SkillFile(
+      path: _string(map, 'path'),
+      contents: _optString(map, 'contents'),
+    );
+  }
+}
+
+/// 스킬 상세. skills.sh `/api/v1/skills/{source}/{slug}` 응답.
+class SkillDetail {
+  const SkillDetail({
+    required this.id,
+    required this.source,
+    required this.slug,
+    required this.installs,
+    required this.files,
+  });
+
+  final String id;
+  final String source;
+  final String slug;
+  final int installs;
+  final List<SkillFile> files;
+
+  /// SKILL.md 본문. 없으면 null.
+  String? get skillMd {
+    for (final file in files) {
+      if (file.path.toLowerCase() == 'skill.md') return file.contents;
+    }
+    return null;
+  }
+
+  factory SkillDetail.fromJson(Object? json) {
+    final map = _asMap(json, '상세 응답');
+    final files = map['files'];
+    return SkillDetail(
+      id: _string(map, 'id'),
+      source: _string(map, 'source'),
+      slug: _string(map, 'slug'),
+      installs: _int(map, 'installs'),
+      files: files is List
+          ? files.map(SkillFile.fromJson).toList(growable: false)
+          : const [],
+    );
+  }
+}
+
+/// 보안 점검 결과 하나.
+class SkillAudit {
+  const SkillAudit({
+    required this.provider,
+    required this.status,
+    required this.summary,
+    this.riskLevel,
+  });
+
+  final String provider;
+
+  /// pass / warn / fail 등. skills.sh 가 준 값을 그대로 쓴다.
+  final String status;
+  final String summary;
+  final String? riskLevel;
+
+  bool get passed => status.toLowerCase() == 'pass';
+
+  factory SkillAudit.fromJson(Object? json) {
+    final map = _asMap(json, '점검 결과');
+    final summary = map['summary'];
+    return SkillAudit(
+      provider: _string(map, 'provider'),
+      status: _string(map, 'status'),
+      summary: summary is String ? summary : '',
+      riskLevel: _optString(map, 'riskLevel'),
+    );
+  }
+
+  static List<SkillAudit> listFromJson(Object? json) {
+    final audits = _asMap(json, '점검 응답')['audits'];
+    if (audits is! List) throw const FormatException('audits 는 목록이어야 해요.');
+    return audits.map(SkillAudit.fromJson).toList(growable: false);
+  }
+}
+
 Map<String, Object?> _asMap(Object? json, String label) {
   if (json is! Map<String, Object?>) {
     throw FormatException('$label 형식이 올바르지 않아요.');
