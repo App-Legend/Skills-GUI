@@ -168,8 +168,19 @@ void main() {
     });
 
     test('GitHub 저장소 출처만 CLI 를 안내한다', () {
-      expect(InstallCommands.supports('anthropics/skills', 'github'), isTrue);
-      expect(InstallCommands.supports('open.feishu.cn', 'well-known'), isFalse);
+      expect(
+        InstallCommands.supports('anthropics/skills', 'github', 'pdf'),
+        isTrue,
+      );
+      expect(
+        InstallCommands.supports('open.feishu.cn', 'well-known', 'pdf'),
+        isFalse,
+      );
+    });
+
+    test('셸에 끼어들 수 있는 스킬 이름은 CLI 를 안내하지 않는다', () {
+      expect(InstallCommands.supports('a/b', 'github', 'x; echo hi'), isFalse);
+      expect(InstallCommands.supports('a/b', 'github', r'x$(id)'), isFalse);
     });
   });
 }

@@ -84,8 +84,11 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
   bool _installFailed = false;
   late bool _installed = widget.installed;
 
-  bool get _cliSupported =>
-      InstallCommands.supports(widget.item.source, widget.item.sourceType);
+  bool get _cliSupported => InstallCommands.supports(
+    widget.item.source,
+    widget.item.sourceType,
+    widget.item.slug,
+  );
 
   @override
   void initState() {

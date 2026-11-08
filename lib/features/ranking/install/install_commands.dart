@@ -18,8 +18,11 @@ class InstallCommands {
   const InstallCommands._();
 
   /// GitHub 저장소(owner/repo) 출처만 CLI 로 안내한다.
-  static bool supports(String source, String sourceType) =>
-      sourceType == 'github' && RegExp(r'^[\w.-]+/[\w.-]+$').hasMatch(source);
+  /// 둘 다 셸 명령에 그대로 들어가므로 안전한 글자만 허용한다.
+  static bool supports(String source, String sourceType, String slug) =>
+      sourceType == 'github' &&
+      RegExp(r'^[\w.-]+/[\w.-]+$').hasMatch(source) &&
+      RegExp(r'^[\w.-]+$').hasMatch(slug);
 
   /// 복사용 한 줄 명령.
   static String oneLine(
