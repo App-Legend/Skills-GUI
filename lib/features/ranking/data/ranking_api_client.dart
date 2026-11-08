@@ -79,6 +79,24 @@ class RankingApiClient {
   Future<StarsResult> fetchStars(Iterable<String> repos) =>
       _getJson(buildStarsUri(repos), StarsResult.fromJson);
 
+  Uri buildDetailUri(String id) => _endpoint('skill', {'id': id});
+
+  Uri buildAuditUri(String id) => _endpoint('audit', {'id': id});
+
+  /// 스킬 상세와 파일 내용. [id] 는 `source/slug`.
+  Future<SkillDetail> fetchDetail(String id) =>
+      _getJson(buildDetailUri(id), SkillDetail.fromJson);
+
+  /// 보안 점검 결과. 점검 기록이 없으면(404) 빈 목록.
+  Future<List<SkillAudit>> fetchAudits(String id) async {
+    try {
+      return await _getJson(buildAuditUri(id), SkillAudit.listFromJson);
+    } on RankingApiException catch (e) {
+      if (e.statusCode == 404) return const [];
+      rethrow;
+    }
+  }
+
   Future<T> _getJson<T>(Uri uri, T Function(Object?) parse) async {
     final RankingHttpResponse response;
     try {

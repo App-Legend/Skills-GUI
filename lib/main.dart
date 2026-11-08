@@ -124,7 +124,10 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
         onUpdated: _rescan,
         onChecked: (l) => setState(() => _updateCount = _needed(l)),
       ),
-      ranking: RankingScreen(installed: {for (final s in r.skills) s.name}),
+      ranking: RankingScreen(
+        installed: {for (final s in r.skills) s.name},
+        onInstalled: _rescan,
+      ),
     );
   }
 

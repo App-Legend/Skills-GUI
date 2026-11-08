@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import '../../ui/glass.dart';
 import 'category/skill_category.dart';
 import 'data/ranking_api_client.dart';
+import 'install/skill_installer.dart';
 import 'models/ranking_models.dart';
 import 'ranking_config.dart';
+import 'ranking_detail_page.dart';
 import 'widgets/category_list.dart';
 import 'widgets/ranking_list_tile.dart';
 import 'widgets/ranking_state_view.dart';
@@ -76,9 +78,21 @@ class _SearchState {
 /// [client] 가 없으면 `RANKING_API_BASE` 설정으로 만든다.
 /// 설정도 없으면 설정 누락 오류를 보인다.
 class RankingScreen extends StatefulWidget {
-  const RankingScreen({super.key, this.client, this.installed = const {}});
+  const RankingScreen({
+    super.key,
+    this.client,
+    this.installed = const {},
+    this.installer,
+    this.onInstalled,
+  });
 
   final RankingApiClient? client;
+
+  /// 상세 화면에서 쓰는 설치기. 없으면 기본 설치기(홈 폴더)를 쓴다.
+  final SkillInstaller? installer;
+
+  /// 상세 화면에서 설치를 마친 뒤 부른다.
+  final VoidCallback? onInstalled;
 
   /// 내 스킬 이름들. 랭킹 항목과 이름이 같으면 "설치됨"으로 표시한다.
   final Set<String> installed;
@@ -107,6 +121,9 @@ class _RankingScreenState extends State<RankingScreen> {
   bool _starsLimited = false;
 
   final Map<String, List<SkillCategory>> _categoryCache = {};
+
+  /// 열어 둔 상세. null 이면 목록을 보인다.
+  SkillRankItem? _detail;
 
   @override
   void initState() {
@@ -336,6 +353,21 @@ class _RankingScreenState extends State<RankingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final detail = _detail;
+    final client = _client;
+    if (detail != null && client != null) {
+      return RankingDetailPage(
+        key: ValueKey(detail.id),
+        item: detail,
+        client: client,
+        installer: widget.installer,
+        category: (_category ?? _categoriesOf(detail).first).label,
+        stars: _stars[detail.source],
+        installed: widget.installed.contains(detail.name),
+        onBack: () => setState(() => _detail = null),
+        onInstalled: widget.onInstalled,
+      );
+    }
     final loading = _searching ? _search.loading : _states[_view]!.loading;
     return DefaultTextStyle(
       style: const TextStyle(color: _ink, fontSize: 14, height: 1.5),
@@ -578,6 +610,7 @@ class _RankingScreenState extends State<RankingScreen> {
             installed: widget.installed.contains(items[i].name),
             stars: _stars[items[i].source],
             category: (category ?? _categoriesOf(items[i]).first).label,
+            onTap: () => setState(() => _detail = items[i]),
           ),
     ];
   }
