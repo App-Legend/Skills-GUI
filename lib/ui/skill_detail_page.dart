@@ -4,7 +4,10 @@ import 'package:flutter/services.dart';
 import '../features/skill_analysis/skill_analysis.dart';
 import '../features/skill_analysis/skill_analysis_cache.dart';
 import '../features/skill_analysis/skill_analysis_client.dart';
-import '../features/skill_analysis/skill_analysis_config.dart';
+import '../features/skill_analysis/skill_analysis_store.dart';
+import '../features/skill_analysis/skill_origin.dart';
+import '../features/skill_analysis/widgets/install_commands.dart';
+import '../access/folder_access.dart';
 import '../scan/skill.dart';
 import 'glass.dart';
 import 'skill_badges.dart';
@@ -14,14 +17,22 @@ const _red = Color(0xFFB42318);
 
 class SkillDetailPage extends StatefulWidget {
   final Skill skill;
+
+  /// 목록과 함께 쓰는 분석 저장소. null이면 이 화면에서 따로 만든다.
+  final SkillAnalysisStore? analysisStore;
   final SkillAnalysisApiClient? analysisClient;
   final SkillAnalysisCache? analysisCache;
+
+  /// 설치 명령과 GitHub 주소를 찾는다. null이면 홈의 `.claude`에서 찾는다.
+  final SkillOriginResolver? resolveOrigin;
 
   const SkillDetailPage({
     super.key,
     required this.skill,
+    this.analysisStore,
     this.analysisClient,
     this.analysisCache,
+    this.resolveOrigin,
   });
 
   @override
@@ -29,47 +40,74 @@ class SkillDetailPage extends StatefulWidget {
 }
 
 class _SkillDetailPageState extends State<SkillDetailPage> {
-  late final SkillAnalysisApiClient _analysisClient =
-      widget.analysisClient ?? SkillAnalysisConfig.createClient();
-  late final SkillAnalysisCache _analysisCache =
-      widget.analysisCache ?? SkillAnalysisConfig.createCache();
-  SkillAnalysis? _analysis;
-  String? _analysisError;
-  bool _analyzing = false;
+  SkillAnalysisStore? _ownStore;
+  late final SkillAnalysisStore _store =
+      widget.analysisStore ??
+      (_ownStore = SkillAnalysisStore(
+        client: widget.analysisClient,
+        cache: widget.analysisCache,
+      ));
+  SkillOrigin? _origin;
+
+  SkillAnalysis? get _analysis => _store.analysisOf(widget.skill);
+  String? get _analysisError => _store.errorOf(widget.skill);
+  bool get _analyzing => _store.isLoading(widget.skill);
 
   @override
   void initState() {
     super.initState();
-    _loadAnalysis();
+    _store.addListener(_changed);
+    _store.request([widget.skill], first: true);
+    _loadOrigin();
   }
 
-  Future<void> _loadAnalysis() async {
-    if (widget.skill.skillMd == null || widget.skill.problem != null) return;
-    setState(() => _analyzing = true);
-    try {
-      final cached = await _analysisCache.load(widget.skill);
-      final analysis = cached ?? await _analysisClient.analyze(widget.skill);
-      if (cached == null) await _analysisCache.save(widget.skill, analysis);
-      if (!mounted) return;
-      setState(() {
-        _analysis = analysis;
-        _analyzing = false;
-      });
-    } on SkillAnalysisApiException catch (e) {
-      if (mounted) {
-        setState(() {
-          _analysisError = e.message;
-          _analyzing = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _analysisError = '한국어 분석을 만들지 못했습니다.';
-          _analyzing = false;
-        });
-      }
-    }
+  @override
+  void dispose() {
+    _store.removeListener(_changed);
+    _ownStore?.dispose();
+    super.dispose();
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadOrigin() async {
+    final resolve =
+        widget.resolveOrigin ?? (s) => resolveSkillOrigin(s, claudeHomeDir());
+    final origin = await resolve(widget.skill);
+    if (mounted) setState(() => _origin = origin);
+  }
+
+  Future<void> _openGithub(String url) async {
+    if (await openExternalUrl(url) || !mounted) return;
+    ScaffoldMessenger.maybeOf(context)
+        ?.showSnackBar(SnackBar(content: Text('브라우저를 열지 못했습니다: $url')));
+  }
+
+  Widget _githubButton() {
+    final url = _origin?.githubUrl;
+    final button = OutlinedButton.icon(
+      onPressed: url == null ? null : () => _openGithub(url),
+      icon: const Icon(Icons.open_in_new, size: 18),
+      label: const Text('원문 보기'),
+    );
+    if (_origin == null || url != null) return button;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Flexible(
+          child: Text(
+            'GitHub 주소를 찾지 못했습니다',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, color: _sub),
+          ),
+        ),
+        const SizedBox(width: 8),
+        button,
+      ],
+    );
   }
 
   Widget _section(String title, Widget body) => Padding(
@@ -112,7 +150,17 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
       );
     }
     if (_analysisError case final error?) {
-      return Text(error, style: const TextStyle(color: _red));
+      return Row(
+        children: [
+          Flexible(
+            child: Text(error, style: const TextStyle(color: _red)),
+          ),
+          TextButton(
+            onPressed: () => _store.retry(widget.skill),
+            child: const Text('다시 시도'),
+          ),
+        ],
+      );
     }
     final analysis = _analysis;
     if (analysis == null) return const SizedBox.shrink();
@@ -180,13 +228,18 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                 radius: 30,
                 child: Padding(
                   padding: const EdgeInsets.all(8),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () => Navigator.maybePop(context),
-                      icon: const Icon(Icons.chevron_left),
-                      label: const Text('내 스킬'),
-                    ),
+                  child: Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => Navigator.maybePop(context),
+                        icon: const Icon(Icons.chevron_left),
+                        label: const Text('내 스킬'),
+                      ),
+                      const Spacer(),
+                      if (s.source != SkillSource.synced)
+                        Flexible(flex: 3, child: _githubButton()),
+                      const SizedBox(width: 8),
+                    ],
                   ),
                 ),
               ),
@@ -223,6 +276,9 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                           s.projectPath!,
                           style: const TextStyle(color: _sub),
                         ),
+                      if (_origin case final origin?
+                          when origin.commands.isNotEmpty)
+                        _section('설치방법', InstallCommands(origin)),
                       if (s.pluginVersion != null)
                         _section('버전', SelectableText(s.pluginVersion!)),
                       _section('경로', SelectableText(s.path)),
@@ -237,17 +293,6 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                           child: Text(
                             s.problem!.message,
                             style: const TextStyle(color: _red),
-                          ),
-                        ),
-                      if (s.skillMd != null)
-                        _section(
-                          'SKILL.md 원문',
-                          SelectableText(
-                            s.skillMd!,
-                            style: const TextStyle(
-                              fontFamily: 'Menlo',
-                              fontSize: 13,
-                            ),
                           ),
                         ),
                       if (s.files.isNotEmpty)

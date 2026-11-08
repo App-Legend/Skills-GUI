@@ -42,4 +42,20 @@ void main() {
 
     expect(await cache.load(changed), isNull);
   });
+
+  test('카테고리가 없던 이전 형식 캐시는 다시 분석한다', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'skill-analysis-test-',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final cache = FileSkillAnalysisCache(directory: directory);
+    await cache.save(
+      skill,
+      const SkillAnalysis(overview: '개요', categories: ['git']),
+    );
+    expect((await cache.load(skill))?.categories, ['git']);
+    final file = directory.listSync().whereType<File>().single;
+    file.writeAsStringSync('{"analysis":{"overview":"이전 형식"}}');
+    expect(await cache.load(skill), isNull);
+  });
 }

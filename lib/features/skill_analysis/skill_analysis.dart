@@ -1,6 +1,10 @@
+import 'skill_categories.dart';
+
 class SkillAnalysis {
   const SkillAnalysis({
     required this.overview,
+    this.summary = '',
+    this.categories = const [],
     this.whenToUse = const [],
     this.workflow = const [],
     this.requirements = const [],
@@ -11,6 +15,12 @@ class SkillAnalysis {
   });
 
   final String overview;
+
+  /// 카드에 쓰는 한 줄 요약. 비어 있으면 overview를 쓴다.
+  final String summary;
+
+  /// skillCategories의 slug. 1~3개.
+  final List<String> categories;
   final List<String> whenToUse;
   final List<String> workflow;
   final List<String> requirements;
@@ -21,6 +31,8 @@ class SkillAnalysis {
 
   factory SkillAnalysis.fromJson(Map<String, dynamic> json) => SkillAnalysis(
     overview: _text(json['overview']),
+    summary: _text(json['summary']),
+    categories: _categories(json['categories']),
     whenToUse: _texts(json['whenToUse']),
     workflow: _texts(json['workflow']),
     requirements: _texts(json['requirements']),
@@ -32,6 +44,8 @@ class SkillAnalysis {
 
   Map<String, dynamic> toJson() => {
     'overview': overview,
+    'summary': summary,
+    'categories': categories,
     'whenToUse': whenToUse,
     'workflow': workflow,
     'requirements': requirements,
@@ -77,6 +91,13 @@ List<String> _texts(Object? value) => value is List
           .where((item) => item.isNotEmpty)
           .toList()
     : const [];
+
+List<String> _categories(Object? value) =>
+    _texts(value)
+        .where((slug) => categoryOf(slug) != null)
+        .toSet()
+        .take(3)
+        .toList();
 
 List<SkillAnalysisContent> _contents(Object? value) {
   if (value is! List) return const [];

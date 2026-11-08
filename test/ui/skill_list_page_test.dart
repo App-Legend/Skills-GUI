@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:skill_gui/features/skill_analysis/skill_analysis.dart';
+import 'package:skill_gui/features/skill_analysis/skill_analysis_cache.dart';
+import 'package:skill_gui/features/skill_analysis/skill_analysis_client.dart';
+import 'package:skill_gui/features/skill_analysis/skill_analysis_store.dart';
 import 'package:skill_gui/scan/skill.dart';
 import 'package:skill_gui/ui/glass.dart';
 import 'package:skill_gui/ui/skill_list_page.dart';
@@ -148,7 +152,10 @@ void main() {
       isFocusable: true,
     );
     expect(t.getSemantics(find.bySemanticsLabel('플러그인')), node('플러그인', false));
-    expect(t.getSemantics(find.bySemanticsLabel('Codex')), node('Codex', false));
+    expect(
+      t.getSemantics(find.bySemanticsLabel('Codex')),
+      node('Codex', false),
+    );
     await t.tap(find.text('플러그인'));
     await t.pump();
     expect(t.getSemantics(find.bySemanticsLabel('플러그인')), node('플러그인', true));
@@ -156,22 +163,26 @@ void main() {
   });
 
   testWidgets('플러그인 카드 태그에 버전', (t) async {
-    await _pump(t, skills: const [
-      Skill(
-        name: 'v',
-        source: SkillSource.plugin,
-        plugin: 'p@m',
-        pluginVersion: '1.0.0',
-        path: '/v',
-      ),
-    ]);
+    await _pump(
+      t,
+      skills: const [
+        Skill(
+          name: 'v',
+          source: SkillSource.plugin,
+          plugin: 'p@m',
+          pluginVersion: '1.0.0',
+          path: '/v',
+        ),
+      ],
+    );
     expect(find.text('p@m 1.0.0'), findsOneWidget);
   });
 
   testWidgets('빈 상태 문구', (t) async {
-    await _pump(t, skills: const [
-      Skill(name: 'a', source: SkillSource.global, path: '/a'),
-    ]);
+    await _pump(
+      t,
+      skills: const [Skill(name: 'a', source: SkillSource.global, path: '/a')],
+    );
     await t.tap(find.text('꺼짐'));
     await t.pump();
     expect(find.text('해당하는 스킬이 없습니다'), findsOneWidget);
@@ -179,4 +190,80 @@ void main() {
     await t.pump();
     expect(find.text('스킬을 찾지 못했습니다'), findsOneWidget);
   });
+
+  testWidgets('한국어 요약과 카테고리, 카테고리 필터', (t) async {
+    final store = SkillAnalysisStore(
+      client: SkillAnalysisApiClient(
+        'https://relay.example.test',
+        httpPost: (_, _) async => throw StateError('캐시만 써야 한다'),
+      ),
+      cache: _MapCache({
+        '/x': const SkillAnalysis(
+          overview: '긴 개요',
+          summary: '배포를 돕는 스킬',
+          categories: ['devops', 'security'],
+        ),
+        '/y': const SkillAnalysis(overview: '테스트 개요', categories: ['testing']),
+      }),
+    );
+    addTearDown(store.dispose);
+    t.view.physicalSize = const Size(1280, 820);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      MaterialApp(
+        home: SkillListPage(
+          result: const ScanResult(
+            skills: [
+              Skill(
+                name: 'x',
+                description: 'en x',
+                source: SkillSource.global,
+                path: '/x',
+                skillMd: 'x',
+              ),
+              Skill(
+                name: 'y',
+                description: 'en y',
+                source: SkillSource.global,
+                path: '/y',
+                skillMd: 'y',
+              ),
+            ],
+          ),
+          onRescan: () async {},
+          onOpen: (_) {},
+          analysisStore: store,
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('배포를 돕는 스킬'), findsOneWidget);
+    expect(find.text('테스트 개요'), findsOneWidget);
+    expect(find.text('en x'), findsNothing);
+    expect(find.text('DevOps'), findsOneWidget);
+    expect(find.text('보안'), findsOneWidget);
+
+    await t.tap(find.byIcon(Icons.filter_list));
+    await t.pump();
+    expect(find.byType(Checkbox), findsNWidgets(3));
+    await t.tap(find.bySemanticsLabel('테스트'));
+    await t.pump();
+    expect(find.text('x'), findsNothing);
+    expect(find.text('y'), findsOneWidget);
+    await t.tap(find.text('선택 해제'));
+    await t.pump();
+    expect(find.text('x'), findsOneWidget);
+  });
+}
+
+class _MapCache implements SkillAnalysisCache {
+  _MapCache(this.values);
+  final Map<String, SkillAnalysis> values;
+
+  @override
+  Future<SkillAnalysis?> load(Skill skill) async => values[skill.path];
+
+  @override
+  Future<void> save(Skill skill, SkillAnalysis analysis) async {}
 }
