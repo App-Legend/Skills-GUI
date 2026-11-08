@@ -1,17 +1,128 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../features/skill_analysis/skill_analysis.dart';
+import '../features/skill_analysis/skill_analysis_cache.dart';
+import '../features/skill_analysis/skill_analysis_client.dart';
+import '../features/skill_analysis/skill_analysis_store.dart';
+import '../features/skill_analysis/skill_origin.dart';
+import '../features/skill_analysis/widgets/category_badges.dart';
+import '../features/skill_analysis/widgets/collapsible_item.dart';
+import '../features/skill_analysis/widgets/install_commands.dart';
+import '../access/folder_access.dart';
 import '../scan/skill.dart';
 import 'glass.dart';
 import 'skill_badges.dart';
 
 const _sub = Color(0xFF3A4658);
 const _red = Color(0xFFB42318);
+const _faint = Color(0xFF8A94A6);
 
-class SkillDetailPage extends StatelessWidget {
+class SkillDetailPage extends StatefulWidget {
   final Skill skill;
 
-  const SkillDetailPage({super.key, required this.skill});
+  /// 목록과 함께 쓰는 분석 저장소. null이면 이 화면에서 따로 만든다.
+  final SkillAnalysisStore? analysisStore;
+  final SkillAnalysisApiClient? analysisClient;
+  final SkillAnalysisCache? analysisCache;
+
+  /// 설치 명령과 GitHub 주소를 찾는다. null이면 홈의 `.claude`에서 찾는다.
+  final SkillOriginResolver? resolveOrigin;
+
+  const SkillDetailPage({
+    super.key,
+    required this.skill,
+    this.analysisStore,
+    this.analysisClient,
+    this.analysisCache,
+    this.resolveOrigin,
+  });
+
+  @override
+  State<SkillDetailPage> createState() => _SkillDetailPageState();
+}
+
+class _SkillDetailPageState extends State<SkillDetailPage> {
+  SkillAnalysisStore? _ownStore;
+  late final SkillAnalysisStore _store =
+      widget.analysisStore ??
+      (_ownStore = SkillAnalysisStore(
+        client: widget.analysisClient,
+        cache: widget.analysisCache,
+      ));
+  SkillOrigin? _origin;
+
+  SkillAnalysis? get _analysis => _store.analysisOf(widget.skill);
+  String? get _analysisError => _store.errorOf(widget.skill);
+  bool get _analyzing => _store.isLoading(widget.skill);
+
+  @override
+  void initState() {
+    super.initState();
+    _store.addListener(_changed);
+    _store.request([widget.skill], first: true);
+    _loadOrigin();
+  }
+
+  @override
+  void dispose() {
+    _store.removeListener(_changed);
+    _ownStore?.dispose();
+    super.dispose();
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadOrigin() async {
+    final resolve =
+        widget.resolveOrigin ?? (s) => resolveSkillOrigin(s, claudeHomeDir());
+    final origin = await resolve(widget.skill);
+    if (mounted) setState(() => _origin = origin);
+  }
+
+  Future<void> _openGithub(String url) async {
+    if (await openExternalUrl(url) || !mounted) return;
+    ScaffoldMessenger.maybeOf(context)
+        ?.showSnackBar(SnackBar(content: Text('브라우저를 열지 못했습니다: $url')));
+  }
+
+  Widget _githubButton() {
+    final url = _origin?.githubUrl;
+    // 내 스킬 목록의 필터 칩(전체·전역)과 같은 모양. 주소가 없으면 흐리게 두고 누를 수 없다.
+    final button = Semantics(
+      button: true,
+      enabled: url != null,
+      child: Opacity(
+        opacity: url == null ? 0.4 : 1,
+        child: IgnorePointer(
+          ignoring: url == null,
+          child: GlassTap(
+            onTap: url == null ? () {} : () => _openGithub(url),
+            color: const Color(0xB3FFFFFF),
+            child: const Text(
+              'GitHub로 가기',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (_origin == null || url != null) return button;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'GitHub 주소를 찾지 못했습니다',
+          maxLines: 1,
+          style: TextStyle(fontSize: 12, color: _sub),
+        ),
+        const SizedBox(width: 8),
+        button,
+      ],
+    );
+  }
 
   Widget _section(String title, Widget body) => Padding(
     padding: const EdgeInsets.only(top: 20),
@@ -27,7 +138,7 @@ class SkillDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = skill;
+    final s = widget.skill;
     final link = s.linkTarget;
     return CallbackShortcuts(
       bindings: {
@@ -37,6 +148,90 @@ class SkillDetailPage extends StatelessWidget {
       child: Focus(autofocus: true, child: _page(context, s, link)),
     );
   }
+
+  Widget _analysisBody() {
+    if (_analyzing) {
+      return const Row(
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 8),
+          Expanded(child: Text('SKILL.md와 파일 목록을 바탕으로 분석하고 있습니다.')),
+        ],
+      );
+    }
+    if (_analysisError case final error?) {
+      return Row(
+        children: [
+          Flexible(
+            child: Text(error, style: const TextStyle(color: _red)),
+          ),
+          TextButton(
+            onPressed: () => _store.retry(widget.skill),
+            child: const Text('다시 시도'),
+          ),
+        ],
+      );
+    }
+    final analysis = _analysis;
+    if (analysis == null) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _analysisItem('개요', [analysis.overview]),
+        _analysisItem('이럴 때 사용', analysis.whenToUse),
+        _analysisItem('처리 방식', analysis.workflow),
+        _analysisItem('결과물', analysis.outputs),
+        _analysisItem('포함된 구성', [
+          for (final item in analysis.contents) '${item.path}: ${item.role}',
+        ], collapsible: true),
+        _analysisItem('주의할 점', analysis.cautions, collapsible: true),
+      ],
+    );
+  }
+
+  Widget _analysisItem(
+    String title,
+    List<String> items, {
+    bool collapsible = false,
+  }) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    final body = items.length == 1
+        ? Text(items.single)
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final item in items)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text('• $item'),
+                ),
+            ],
+          );
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: collapsible
+          ? CollapsibleItem(title: title, child: body)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                body,
+              ],
+            ),
+    );
+  }
+
+  /// 이름 아래 작고 흐린 보조 정보.
+  Widget _meta(String text) =>
+      SelectableText(text, style: const TextStyle(fontSize: 12, color: _faint));
 
   Widget _page(BuildContext context, Skill s, String? link) {
     return Scaffold(
@@ -73,13 +268,29 @@ class SkillDetailPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        s.name,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              s.name,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (s.source != SkillSource.synced) ...[
+                            const SizedBox(width: 12),
+                            // 자기 너비만 쓰고 오른쪽 끝에 붙는다. 이름이 남은 너비를 모두 쓴다.
+                            _githubButton(),
+                          ],
+                        ],
                       ),
+                      const SizedBox(height: 4),
+                      _meta(s.path),
+                      if (link != null) _meta('실제 경로: $link'),
+                      if (s.pluginVersion != null)
+                        _meta('버전 ${s.pluginVersion}'),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -92,6 +303,11 @@ class SkillDetailPage extends StatelessWidget {
                               fg: _red,
                             ),
                           ],
+                          if (_analysis?.categories case final c?
+                              when c.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Flexible(flex: 2, child: CategoryBadges(c)),
+                          ],
                         ],
                       ),
                       if (s.projectPath != null)
@@ -99,29 +315,20 @@ class SkillDetailPage extends StatelessWidget {
                           s.projectPath!,
                           style: const TextStyle(color: _sub),
                         ),
-                      if (s.pluginVersion != null)
-                        _section('버전', SelectableText(s.pluginVersion!)),
-                      _section('경로', SelectableText(s.path)),
-                      if (link != null) _section('실제 경로', SelectableText(link)),
-                      if (s.description != null)
-                        _section('설명', Text(s.description!)),
+                      if (_origin case final origin?
+                          when origin.commands.isNotEmpty)
+                        _section('설치방법', InstallCommands(origin)),
+                      if (s.skillMd != null && s.problem == null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: _analysisBody(),
+                        ),
                       if (s.problem != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 20),
                           child: Text(
                             s.problem!.message,
                             style: const TextStyle(color: _red),
-                          ),
-                        ),
-                      if (s.skillMd != null)
-                        _section(
-                          'SKILL.md 원문',
-                          SelectableText(
-                            s.skillMd!,
-                            style: const TextStyle(
-                              fontFamily: 'Menlo',
-                              fontSize: 13,
-                            ),
                           ),
                         ),
                       if (s.files.isNotEmpty)

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../features/skill_analysis/skill_analysis.dart';
+import '../features/skill_analysis/skill_analysis_store.dart';
+import '../features/skill_analysis/widgets/category_badges.dart';
+import '../features/skill_analysis/widgets/category_filter_panel.dart';
 import '../scan/skill.dart';
 import 'glass.dart';
 import 'skill_badges.dart';
@@ -42,12 +46,16 @@ class SkillListPage extends StatefulWidget {
   /// 다시 스캔 중이면 버튼에 링을 보여준다.
   final bool scanning;
 
+  /// 한국어 요약·카테고리. null이면 원문 설명만 보여 준다.
+  final SkillAnalysisStore? analysisStore;
+
   const SkillListPage({
     super.key,
     required this.result,
     required this.onRescan,
     required this.onOpen,
     this.scanning = false,
+    this.analysisStore,
   });
 
   @override
@@ -57,22 +65,76 @@ class SkillListPage extends StatefulWidget {
 class _SkillListPageState extends State<SkillListPage> {
   SourceFilter _filter = SourceFilter.all;
   AgentFilter _agent = AgentFilter.all;
+  Set<String> _categories = {};
+  bool _categoryOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.analysisStore?.request(widget.result.skills);
+  }
+
+  @override
+  void didUpdateWidget(SkillListPage old) {
+    super.didUpdateWidget(old);
+    if (old.result != widget.result ||
+        old.analysisStore != widget.analysisStore) {
+      widget.analysisStore?.request(widget.result.skills);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final store = widget.analysisStore;
+    return DefaultTextStyle(
+      style: const TextStyle(color: _ink, fontSize: 14, height: 1.5),
+      child: store == null
+          ? _build((_) => null, 0)
+          : ListenableBuilder(
+              listenable: store,
+              builder: (_, _) => _build(
+                store.analysisOf,
+                widget.result.skills.where(store.isLoading).length,
+              ),
+            ),
+    );
+  }
+
+  Widget _build(SkillAnalysis? Function(Skill) analysisOf, int pending) {
+    final counts = <String, int>{};
+    for (final s in widget.result.skills) {
+      for (final c in analysisOf(s)?.categories ?? const <String>[]) {
+        counts[c] = (counts[c] ?? 0) + 1;
+      }
+    }
     // shortcut: Codex 스캔 전이라 Codex 필터는 빈 목록, Codex 스캔을 만들면 Skill에 에이전트 구분 추가.
     final shown = _agent == AgentFilter.codex
         ? <Skill>[]
-        : widget.result.skills.where(_filter.matches).toList();
-    return DefaultTextStyle(
-      style: const TextStyle(color: _ink, fontSize: 14, height: 1.5),
-      child: _Main(
-        shown: shown,
-        widget: widget,
-        filter: _filter,
-        onFilter: (f) => setState(() => _filter = f),
-        agent: _agent,
-        onAgent: (a) => setState(() => _agent = a),
+        : widget.result.skills
+              .where(_filter.matches)
+              .where(
+                (s) =>
+                    _categories.isEmpty ||
+                    (analysisOf(s)?.categories.any(_categories.contains) ??
+                        false),
+              )
+              .toList();
+    return _Main(
+      shown: shown,
+      widget: widget,
+      filter: _filter,
+      onFilter: (f) => setState(() => _filter = f),
+      agent: _agent,
+      onAgent: (a) => setState(() => _agent = a),
+      analysisOf: analysisOf,
+      categoryOpen: _categoryOpen,
+      onCategoryOpen: () => setState(() => _categoryOpen = !_categoryOpen),
+      categoryActive: _categories.isNotEmpty,
+      categoryPanel: CategoryFilterPanel(
+        counts: counts,
+        selected: _categories,
+        pendingCount: pending,
+        onChanged: (v) => setState(() => _categories = v),
       ),
     );
   }
@@ -85,6 +147,11 @@ class _Main extends StatelessWidget {
   final ValueChanged<SourceFilter> onFilter;
   final AgentFilter agent;
   final ValueChanged<AgentFilter> onAgent;
+  final SkillAnalysis? Function(Skill) analysisOf;
+  final bool categoryOpen;
+  final VoidCallback onCategoryOpen;
+  final bool categoryActive;
+  final Widget categoryPanel;
 
   const _Main({
     required this.shown,
@@ -93,20 +160,28 @@ class _Main extends StatelessWidget {
     required this.onFilter,
     required this.agent,
     required this.onAgent,
+    required this.analysisOf,
+    required this.categoryOpen,
+    required this.onCategoryOpen,
+    required this.categoryActive,
+    required this.categoryPanel,
   });
 
-  static Widget _chip(String label, bool selected, VoidCallback onTap) => Semantics(
-    selected: selected,
-    button: true,
-    child: GlassTap(
-      onTap: onTap,
-      color: selected ? const Color(0xB3FFFFFF) : null,
-      child: Text(
-        label,
-        style: TextStyle(fontWeight: selected ? FontWeight.w600 : FontWeight.w400),
-      ),
-    ),
-  );
+  static Widget _chip(String label, bool selected, VoidCallback onTap) =>
+      Semantics(
+        selected: selected,
+        button: true,
+        child: GlassTap(
+          onTap: onTap,
+          color: selected ? const Color(0xB3FFFFFF) : null,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) => Column(
@@ -127,16 +202,40 @@ class _Main extends StatelessWidget {
                   ),
                 ),
               ),
+              Tooltip(
+                message: '카테고리 필터',
+                child: Semantics(
+                  label: '카테고리 필터',
+                  button: true,
+                  selected: categoryOpen,
+                  child: GlassTap(
+                    onTap: onCategoryOpen,
+                    color: categoryOpen || categoryActive
+                        ? const Color(0xB3FFFFFF)
+                        : null,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Icon(
+                      Icons.filter_list,
+                      size: 20,
+                      color: categoryActive ? const Color(0xFF0064D1) : _ink,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               GlassTap(
                 onTap: widget.scanning ? () {} : widget.onRescan,
                 color: const Color(0xFF0064D1),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: widget.scanning
                     ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text(
                         '다시 스캔',
                         style: TextStyle(
@@ -149,6 +248,20 @@ class _Main extends StatelessWidget {
           ),
         ),
       ),
+      if (categoryOpen)
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: GlassPanel(
+            radius: 22,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 220),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: categoryPanel,
+              ),
+            ),
+          ),
+        ),
       Padding(
         padding: const EdgeInsets.only(top: 12),
         child: Wrap(
@@ -190,13 +303,16 @@ class _Main extends StatelessWidget {
             : GridView.builder(
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                   maxCrossAxisExtent: 320,
-                  mainAxisExtent: 168,
+                  mainAxisExtent: 196,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
                 ),
                 itemCount: shown.length,
-                itemBuilder: (_, i) =>
-                    _SkillCard(skill: shown[i], onOpen: widget.onOpen),
+                itemBuilder: (_, i) => _SkillCard(
+                  skill: shown[i],
+                  analysis: analysisOf(shown[i]),
+                  onOpen: widget.onOpen,
+                ),
               ),
       ),
     ],
@@ -205,14 +321,22 @@ class _Main extends StatelessWidget {
 
 class _SkillCard extends StatelessWidget {
   final Skill skill;
+  final SkillAnalysis? analysis;
   final void Function(Skill) onOpen;
 
-  const _SkillCard({required this.skill, required this.onOpen});
+  const _SkillCard({
+    required this.skill,
+    required this.analysis,
+    required this.onOpen,
+  });
 
   @override
   Widget build(BuildContext context) {
     final s = skill;
-    final body = s.problem?.message ?? s.description;
+    final a = analysis;
+    final summary = a == null || a.summary.isEmpty ? a?.overview : a.summary;
+    final body = s.problem?.message ?? summary ?? s.description;
+    final categories = a?.categories ?? const <String>[];
     return Material(
       color: const Color(0xDBFFFFFF), // 흰색 0.86
       borderRadius: BorderRadius.circular(22),
@@ -269,6 +393,13 @@ class _SkillCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                )
+              else
+                const Spacer(),
+              if (categories.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: CategoryBadges(categories),
                 ),
             ],
           ),

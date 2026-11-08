@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../features/skill_analysis/skill_analysis_store.dart';
 import '../scan/skill.dart';
 import 'glass.dart';
 import 'skill_detail_page.dart';
@@ -36,6 +37,9 @@ class AppShell extends StatefulWidget {
   /// 업데이트가 필요한 플러그인 수. 0이면 숫자를 숨긴다.
   final int updateCount;
 
+  /// null이면 기본 분석 서버와 캐시를 쓴다.
+  final SkillAnalysisStore? analysisStore;
+
   const AppShell({
     super.key,
     required this.result,
@@ -44,6 +48,7 @@ class AppShell extends StatefulWidget {
     this.ranking,
     this.scanning = false,
     this.updateCount = 0,
+    this.analysisStore,
   });
 
   @override
@@ -53,6 +58,16 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   AppTab _tab = AppTab.mine;
   Skill? _detail; // 내 스킬 탭에서 연 상세. 사이드바 오른쪽에만 뜬다.
+
+  // 목록 카드와 상세가 같은 분석 결과를 쓴다.
+  late final SkillAnalysisStore _analysis =
+      widget.analysisStore ?? SkillAnalysisStore();
+
+  @override
+  void dispose() {
+    if (widget.analysisStore == null) _analysis.dispose();
+    super.dispose();
+  }
 
   void _onTab(AppTab t) => setState(() {
     // 내 스킬 탭을 다시 누르면 목록으로 돌아간다.
@@ -99,10 +114,16 @@ class _AppShellState extends State<AppShell> {
                               onRescan: widget.onRescan,
                               onOpen: (s) => setState(() => _detail = s),
                               scanning: widget.scanning,
+                              analysisStore: _analysis,
                             ),
                           ),
                           if (_detail case final s?)
-                            MaterialPage(child: SkillDetailPage(skill: s)),
+                            MaterialPage(
+                              child: SkillDetailPage(
+                                skill: s,
+                                analysisStore: _analysis,
+                              ),
+                            ),
                         ],
                         onDidRemovePage: (_) => setState(() => _detail = null),
                       ),
