@@ -98,4 +98,46 @@ void main() {
       expect(unknown.commands, ['/plugin install a@none']);
     });
   });
+
+  test('npx skills 설치 기록에서 전역 스킬 출처를 찾는다', () async {
+    final home = await Directory.systemTemp.createTemp('skill-lock-');
+    addTearDown(() => home.delete(recursive: true));
+    final claude = Directory('${home.path}/.claude')..createSync();
+    Directory('${home.path}/.agents').createSync();
+    File('${home.path}/.agents/.skill-lock.json').writeAsStringSync(
+      jsonEncode({
+        'version': 3,
+        'skills': {
+          'design-taste-frontend': {
+            'source': 'leonxlnx/taste-skill',
+            'sourceType': 'github',
+            'skillPath': 'skills/taste-skill/SKILL.md',
+          },
+        },
+      }),
+    );
+    final o = await resolveSkillOrigin(
+      const Skill(
+        name: 'design-taste-frontend',
+        source: SkillSource.global,
+        path: '/s/design-taste-frontend',
+      ),
+      claude,
+    );
+    expect(
+      o.githubUrl,
+      'https://github.com/leonxlnx/taste-skill/tree/HEAD/skills/taste-skill',
+    );
+    expect(o.commands, [
+      'npx skills add leonxlnx/taste-skill --skill design-taste-frontend -g -a claude-code',
+    ]);
+    expect(o.note, isNull);
+
+    final none = await resolveSkillOrigin(
+      const Skill(name: 'x', source: SkillSource.global, path: '/s/x'),
+      claude,
+    );
+    expect(none.githubUrl, isNull);
+    expect(none.note, isNotNull);
+  });
 }

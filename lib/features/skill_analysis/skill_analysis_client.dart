@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../../scan/skill.dart';
+import 'file_list_summary.dart';
 import 'skill_analysis.dart';
 
 class SkillAnalysisApiException implements Exception {
@@ -67,7 +68,7 @@ class SkillAnalysisApiClient {
       'name': skill.name,
       'description': skill.description,
       'skill_md': skillMd,
-      'files': skill.files,
+      'files': summarizeFileList(skill.files),
     });
     try {
       final decoded = jsonDecode(response.body);

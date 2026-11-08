@@ -47,11 +47,53 @@ Future<Map<String, dynamic>?> _readJson(String path) async {
   }
 }
 
+/// `npx skills add -g`가 남기는 설치 기록(`~/.agents/.skill-lock.json`)에서 출처를 찾는다.
+/// 기록이 없거나 GitHub 출처가 아니면 null.
+Future<SkillOrigin?> _fromSkillsLock(
+  Skill s,
+  String folder,
+  Directory? claudeDir,
+) async {
+  if (claudeDir == null) return null;
+  final sep = Platform.pathSeparator;
+  final lock = await _readJson(
+    '${claudeDir.parent.path}$sep.agents$sep.skill-lock.json',
+  );
+  final skills = lock?['skills'];
+  if (skills is! Map) return null;
+  final key = skills.containsKey(folder) ? folder : s.name;
+  final entry = skills[key];
+  if (entry is! Map) return null;
+  final source = entry['source'];
+  final url = entry['sourceUrl'];
+  final repo = entry['sourceType'] == 'github' && source is String
+      ? source
+      : url is String
+      ? githubRepoOf(url)
+      : null;
+  if (repo == null || source is! String) return null;
+  final skillPath = entry['skillPath'];
+  final dir = skillPath is String && skillPath.contains('/')
+      ? _cleanPath(skillPath.substring(0, skillPath.lastIndexOf('/')))
+      : '';
+  return SkillOrigin(
+    githubUrl:
+        'https://github.com/$repo/tree/HEAD${dir.isEmpty ? '' : '/$dir'}',
+    commands: [
+      'npx skills add $source --skill ${key.contains(' ') ? '"$key"' : key} '
+          '-g -a claude-code',
+    ],
+  );
+}
+
 /// 출처를 찾는다. 예외를 밖으로 던지지 않는다.
 Future<SkillOrigin> resolveSkillOrigin(Skill s, Directory? claudeDir) async {
   if (s.source == SkillSource.synced) return const SkillOrigin();
   if (s.source != SkillSource.plugin || s.plugin == null) {
     final folder = _baseName(s.path);
+    if (await _fromSkillsLock(s, folder, claudeDir) case final origin?) {
+      return origin;
+    }
     return SkillOrigin(
       note: '출처 정보가 없는 스킬입니다. 스킬 폴더를 아래 위치에 복사하면 설치됩니다.',
       commands: [
