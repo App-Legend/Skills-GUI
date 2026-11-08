@@ -6,18 +6,24 @@ import 'package:skill_gui/features/ranking/widgets/ranking_state_view.dart';
 // 테스트용 가짜 데이터: 아래 이름·수치는 모두 동작 확인용 임의 값이다.
 Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
-Color? _changeColor(WidgetTester tester) =>
-    tester.widget<Text>(find.byKey(const Key('ranking-tile-change'))).style?.color;
+Color? _changeColor(WidgetTester tester) => tester
+    .widget<Text>(find.byKey(const Key('ranking-tile-change')))
+    .style
+    ?.color;
 
 void main() {
   group('RankingListTile', () {
     testWidgets('순위·이름·source·installs 를 보여 준다', (tester) async {
-      await tester.pumpWidget(_wrap(const RankingListTile(
-        rank: 3,
-        name: 'fake-skill',
-        source: 'fake/source',
-        installs: 1234,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          const RankingListTile(
+            rank: 3,
+            name: 'fake-skill',
+            source: 'fake/source',
+            installs: 1234,
+          ),
+        ),
+      );
 
       expect(find.text('3'), findsOneWidget);
       expect(find.text('fake-skill'), findsOneWidget);
@@ -27,39 +33,87 @@ void main() {
       expect(find.byKey(const Key('ranking-tile-installed')), findsNothing);
     });
 
+    testWidgets('stars 가 있으면 ★ 스타 수를, 없으면 아무것도 보이지 않는다', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const RankingListTile(
+            rank: 1,
+            name: 'a',
+            source: 's',
+            installs: 1,
+            stars: 318029,
+          ),
+        ),
+      );
+      expect(find.text('★ 318,029'), findsOneWidget);
+
+      await tester.pumpWidget(
+        _wrap(
+          const RankingListTile(rank: 1, name: 'a', source: 's', installs: 1),
+        ),
+      );
+      expect(find.byKey(const Key('ranking-tile-stars')), findsNothing);
+    });
+
+    testWidgets('category 가 있으면 카테고리 배지를 붙인다', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const RankingListTile(
+            rank: 1,
+            name: 'a',
+            source: 's',
+            installs: 1,
+            category: '백엔드',
+          ),
+        ),
+      );
+      expect(find.byKey(const Key('ranking-tile-category')), findsOneWidget);
+      expect(find.text('백엔드'), findsOneWidget);
+    });
+
     testWidgets('installed 면 설치됨 배지를 붙인다', (tester) async {
-      await tester.pumpWidget(_wrap(const RankingListTile(
-        rank: 1,
-        name: 'fake-skill',
-        source: 'fake/source',
-        installs: 1,
-        installed: true,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          const RankingListTile(
+            rank: 1,
+            name: 'fake-skill',
+            source: 'fake/source',
+            installs: 1,
+            installed: true,
+          ),
+        ),
+      );
       expect(find.text('설치됨'), findsOneWidget);
     });
 
     testWidgets('showChange 가 false 면 change 가 있어도 숨긴다', (tester) async {
-      await tester.pumpWidget(_wrap(const RankingListTile(
-        rank: 1,
-        name: 'a',
-        source: 'b',
-        installs: 1,
-        change: 5,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          const RankingListTile(
+            rank: 1,
+            name: 'a',
+            source: 'b',
+            installs: 1,
+            change: 5,
+          ),
+        ),
+      );
       expect(find.byKey(const Key('ranking-tile-change')), findsNothing);
     });
 
     testWidgets('change 양수·음수·없음 표시가 다르다', (tester) async {
-      Future<void> pump(int? change) => tester.pumpWidget(_wrap(
-            RankingListTile(
-              rank: 1,
-              name: 'a',
-              source: 'b',
-              installs: 1,
-              change: change,
-              showChange: true,
-            ),
-          ));
+      Future<void> pump(int? change) => tester.pumpWidget(
+        _wrap(
+          RankingListTile(
+            rank: 1,
+            name: 'a',
+            source: 'b',
+            installs: 1,
+            change: change,
+            showChange: true,
+          ),
+        ),
+      );
 
       await pump(12);
       expect(find.text('+12'), findsOneWidget);
@@ -96,10 +150,14 @@ void main() {
 
     testWidgets('오류 상태는 메시지를 숨기지 않고 보여 준다', (tester) async {
       var retried = 0;
-      await tester.pumpWidget(_wrap(RankingStateView.error(
-        message: '테스트용 오류 메시지',
-        onRetry: () => retried++,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          RankingStateView.error(
+            message: '테스트용 오류 메시지',
+            onRetry: () => retried++,
+          ),
+        ),
+      );
       expect(find.byKey(const Key('ranking-state-error')), findsOneWidget);
       expect(find.text('테스트용 오류 메시지'), findsOneWidget);
 
@@ -109,7 +167,8 @@ void main() {
 
     testWidgets('onRetry 가 없으면 다시 시도 버튼이 없다', (tester) async {
       await tester.pumpWidget(
-          _wrap(const RankingStateView.error(message: '오류')));
+        _wrap(const RankingStateView.error(message: '오류')),
+      );
       expect(find.byKey(const Key('ranking-state-retry')), findsNothing);
     });
 

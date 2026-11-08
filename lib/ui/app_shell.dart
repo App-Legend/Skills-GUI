@@ -15,7 +15,6 @@ const _notReady = Center(
 enum AppTab {
   mine('내 스킬'),
   updates('업데이트 필요'),
-  search('검색'),
   ranking('랭킹');
 
   final String label;
@@ -109,7 +108,6 @@ class _AppShellState extends State<AppShell> {
                       ),
                     ),
                     widget.updates ?? _notReady,
-                    _notReady,
                     widget.ranking ?? _notReady,
                   ],
                 ),

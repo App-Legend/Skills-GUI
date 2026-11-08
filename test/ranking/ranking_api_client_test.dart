@@ -29,10 +29,13 @@ RankingApiClient clientWith(
   List<Uri>? log,
   String base = 'https://relay.example.test',
 }) {
-  return RankingApiClient(base, httpGet: (uri) async {
-    log?.add(uri);
-    return respond(uri);
-  });
+  return RankingApiClient(
+    base,
+    httpGet: (uri) async {
+      log?.add(uri);
+      return respond(uri);
+    },
+  );
 }
 
 void main() {
@@ -45,8 +48,10 @@ void main() {
 
   test('쿼리 파라미터를 구성한다', () async {
     final log = <Uri>[];
-    final client =
-        clientWith((_) => RankingHttpResponse(200, _okBody), log: log);
+    final client = clientWith(
+      (_) => RankingHttpResponse(200, _okBody),
+      log: log,
+    );
     await client.fetchPage(RankingView.hot, 3, 50);
     final uri = log.single;
     expect(uri.host, 'relay.example.test');
@@ -64,13 +69,14 @@ void main() {
 
   for (final status in [400, 429, 503, 502, 500]) {
     test('상태 $status 는 RankingApiException', () async {
-      final client =
-          clientWith((_) => RankingHttpResponse(status, _errorBody));
+      final client = clientWith((_) => RankingHttpResponse(status, _errorBody));
       await expectLater(
         client.fetchPage(RankingView.allTime, 1, 10),
-        throwsA(isA<RankingApiException>()
-            .having((e) => e.statusCode, 'statusCode', status)
-            .having((e) => e.message, 'message', isNotEmpty)),
+        throwsA(
+          isA<RankingApiException>()
+              .having((e) => e.statusCode, 'statusCode', status)
+              .having((e) => e.message, 'message', isNotEmpty),
+        ),
       );
     });
   }
@@ -79,8 +85,9 @@ void main() {
     final client = clientWith((_) => RankingHttpResponse(502, _errorBody));
     await expectLater(
       client.fetchPage(RankingView.allTime, 1, 10),
-      throwsA(isA<RankingApiException>()
-          .having((e) => e.message, 'message', '가짜 오류')),
+      throwsA(
+        isA<RankingApiException>().having((e) => e.message, 'message', '가짜 오류'),
+      ),
     );
   });
 
@@ -90,8 +97,9 @@ void main() {
       client.fetchPage(RankingView.allTime, 1, 10),
       throwsA(isA<RankingApiException>()),
     );
-    final broken =
-        clientWith((_) => const RankingHttpResponse(200, 'not json'));
+    final broken = clientWith(
+      (_) => const RankingHttpResponse(200, 'not json'),
+    );
     await expectLater(
       broken.fetchPage(RankingView.allTime, 1, 10),
       throwsA(isA<RankingApiException>()),
@@ -105,8 +113,54 @@ void main() {
     );
     await expectLater(
       client.fetchPage(RankingView.allTime, 1, 10),
-      throwsA(isA<RankingApiException>()
-          .having((e) => e.statusCode, 'statusCode', 0)),
+      throwsA(
+        isA<RankingApiException>().having((e) => e.statusCode, 'statusCode', 0),
+      ),
+    );
+  });
+
+  test('검색은 /api/search 에 q·limit 를 보내고 결과를 파싱한다', () async {
+    final log = <Uri>[];
+    final client = clientWith(
+      (_) => RankingHttpResponse(
+        200,
+        jsonEncode({'query': 'react', 'data': jsonDecode(_okBody)['data']}),
+      ),
+      log: log,
+    );
+    final result = await client.search('  react  ', limit: 30);
+    expect(log.single.path, '/api/search');
+    expect(log.single.queryParameters, {'q': 'react', 'limit': '30'});
+    expect(result.query, 'react');
+    expect(result.items.single.name, '가짜 스킬');
+  });
+
+  test('스타는 /api/stars 에 repos 를 쉼표로 묶어 보낸다', () async {
+    final log = <Uri>[];
+    final client = clientWith(
+      (_) => RankingHttpResponse(
+        200,
+        jsonEncode({
+          'stars': {'a/b': 12, 'c/d': null},
+          'limited': true,
+        }),
+      ),
+      log: log,
+    );
+    final result = await client.fetchStars(['a/b', 'c/d']);
+    expect(log.single.path, '/api/stars');
+    expect(log.single.queryParameters['repos'], 'a/b,c/d');
+    expect(result.stars, {'a/b': 12, 'c/d': null});
+    expect(result.limited, isTrue);
+  });
+
+  test('검색 실패는 본문의 error 문구를 쓴다', () async {
+    final client = clientWith((_) => RankingHttpResponse(400, _errorBody));
+    await expectLater(
+      client.search('ab'),
+      throwsA(
+        isA<RankingApiException>().having((e) => e.message, 'message', '가짜 오류'),
+      ),
     );
   });
 }

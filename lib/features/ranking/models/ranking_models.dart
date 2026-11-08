@@ -31,6 +31,7 @@ class SkillRankItem {
   final String source;
   final int installs;
   final String sourceType;
+
   /// well-known 출처 스킬은 null 로 온다.
   final String? installUrl;
   final String url;
@@ -99,6 +100,49 @@ class RankingPage {
     return RankingPage(
       items: data.map(SkillRankItem.fromJson).toList(growable: false),
       pagination: RankingPagination.fromJson(map['pagination']),
+    );
+  }
+}
+
+/// 검색 응답. skills.sh 검색은 페이지 없이 최대 limit 개를 돌려준다.
+class SearchResult {
+  const SearchResult({required this.query, required this.items});
+
+  final String query;
+  final List<SkillRankItem> items;
+
+  factory SearchResult.fromJson(Object? json) {
+    final map = _asMap(json, '검색 응답');
+    final data = map['data'];
+    if (data is! List) {
+      throw const FormatException('data 는 목록이어야 해요.');
+    }
+    final query = map['query'];
+    return SearchResult(
+      query: query is String ? query : '',
+      items: data.map(SkillRankItem.fromJson).toList(growable: false),
+    );
+  }
+}
+
+/// 스타 응답. 값이 null 이면 그 저장소는 조회하지 못한 것이다.
+class StarsResult {
+  const StarsResult({required this.stars, required this.limited});
+
+  final Map<String, int?> stars;
+
+  /// GitHub 요청 한도에 걸려 일부를 못 가져왔으면 true.
+  final bool limited;
+
+  factory StarsResult.fromJson(Object? json) {
+    final map = _asMap(json, '스타 응답');
+    final raw = _asMap(map['stars'], 'stars');
+    return StarsResult(
+      stars: {
+        for (final entry in raw.entries)
+          entry.key: entry.value is int ? entry.value as int : null,
+      },
+      limited: map['limited'] == true,
     );
   }
 }
