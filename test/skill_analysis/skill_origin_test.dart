@@ -70,10 +70,7 @@ void main() {
 
     test('마켓 안 플러그인', () async {
       final o = await resolveSkillOrigin(plugin('local@mk'), claude);
-      expect(
-        o.githubUrl,
-        'https://github.com/o/r/tree/HEAD/plugins/local/skills/do-it',
-      );
+      expect(o.githubUrl, 'https://github.com/o/r');
       expect(o.commands, [
         '/plugin marketplace add o/r',
         '/plugin install local@mk',
@@ -82,10 +79,7 @@ void main() {
 
     test('다른 저장소 하위 폴더', () async {
       final o = await resolveSkillOrigin(plugin('sub@mk'), claude);
-      expect(
-        o.githubUrl,
-        'https://github.com/x/y/tree/v1/plugins/sub/skills/do-it',
-      );
+      expect(o.githubUrl, 'https://github.com/x/y');
     });
 
     test('GitHub가 아니거나 모르는 마켓이면 주소 없음', () async {
@@ -124,10 +118,7 @@ void main() {
       ),
       claude,
     );
-    expect(
-      o.githubUrl,
-      'https://github.com/leonxlnx/taste-skill/tree/HEAD/skills/taste-skill',
-    );
+    expect(o.githubUrl, 'https://github.com/leonxlnx/taste-skill');
     expect(o.commands, [
       'npx skills add leonxlnx/taste-skill --skill design-taste-frontend -g -a claude-code',
     ]);

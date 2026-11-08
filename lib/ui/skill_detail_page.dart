@@ -90,22 +90,33 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
 
   Widget _githubButton() {
     final url = _origin?.githubUrl;
-    final button = OutlinedButton.icon(
-      onPressed: url == null ? null : () => _openGithub(url),
-      icon: const Icon(Icons.open_in_new, size: 18),
-      label: const Text('원문 보기'),
+    // 내 스킬 목록의 필터 칩(전체·전역)과 같은 모양. 주소가 없으면 흐리게 두고 누를 수 없다.
+    final button = Semantics(
+      button: true,
+      enabled: url != null,
+      child: Opacity(
+        opacity: url == null ? 0.4 : 1,
+        child: IgnorePointer(
+          ignoring: url == null,
+          child: GlassTap(
+            onTap: url == null ? () {} : () => _openGithub(url),
+            color: const Color(0xB3FFFFFF),
+            child: const Text(
+              'GitHub로 가기',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ),
     );
     if (_origin == null || url != null) return button;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Flexible(
-          child: Text(
-            'GitHub 주소를 찾지 못했습니다',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, color: _sub),
-          ),
+        const Text(
+          'GitHub 주소를 찾지 못했습니다',
+          maxLines: 1,
+          style: TextStyle(fontSize: 12, color: _sub),
         ),
         const SizedBox(width: 8),
         button,
@@ -240,18 +251,13 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                 radius: 30,
                 child: Padding(
                   padding: const EdgeInsets.all(8),
-                  child: Row(
-                    children: [
-                      TextButton.icon(
-                        onPressed: () => Navigator.maybePop(context),
-                        icon: const Icon(Icons.chevron_left),
-                        label: const Text('내 스킬'),
-                      ),
-                      const Spacer(),
-                      if (s.source != SkillSource.synced)
-                        Flexible(flex: 3, child: _githubButton()),
-                      const SizedBox(width: 8),
-                    ],
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => Navigator.maybePop(context),
+                      icon: const Icon(Icons.chevron_left),
+                      label: const Text('내 스킬'),
+                    ),
                   ),
                 ),
               ),
@@ -262,12 +268,23 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        s.name,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              s.name,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (s.source != SkillSource.synced) ...[
+                            const SizedBox(width: 12),
+                            // 자기 너비만 쓰고 오른쪽 끝에 붙는다. 이름이 남은 너비를 모두 쓴다.
+                            _githubButton(),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 4),
                       _meta(s.path),

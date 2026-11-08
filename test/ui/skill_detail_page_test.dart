@@ -6,6 +6,7 @@ import 'package:skill_gui/features/skill_analysis/skill_analysis_cache.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_client.dart';
 import 'package:skill_gui/features/skill_analysis/skill_origin.dart';
 import 'package:skill_gui/scan/skill.dart';
+import 'package:skill_gui/ui/glass.dart';
 import 'package:skill_gui/ui/skill_detail_page.dart';
 
 class _MemoryCache implements SkillAnalysisCache {
@@ -36,7 +37,7 @@ Future<void> _pump(WidgetTester t, Skill s) async {
 }
 
 Future<SkillOrigin> _origin(Skill _) async => const SkillOrigin(
-  githubUrl: 'https://github.com/o/r/tree/HEAD/skills/alpha',
+  githubUrl: 'https://github.com/o/r',
   commands: ['/plugin marketplace add o/r', '/plugin install p@m'],
 );
 
@@ -197,15 +198,27 @@ void main() {
     expect(find.text('설치방법'), findsOneWidget);
     expect(find.text('/plugin install p@m'), findsOneWidget);
     expect(find.byIcon(Icons.copy), findsNWidgets(2));
-    expect(find.text('원문 보기'), findsOneWidget);
+    expect(find.text('GitHub로 가기'), findsOneWidget);
     expect(find.text('SKILL.md 원문'), findsNothing);
-    final button = t.widget<OutlinedButton>(
-      find.ancestor(
-        of: find.text('원문 보기'),
-        matching: find.byType(OutlinedButton),
-      ),
+    IgnorePointer gate() => t.widget<IgnorePointer>(
+      find
+          .ancestor(
+            of: find.text('GitHub로 가기'),
+            matching: find.byType(IgnorePointer),
+          )
+          .first,
     );
-    expect(button.onPressed, isNotNull);
+    expect(gate().ignoring, isFalse);
+    // 이름과 같은 줄에 있다.
+    expect(
+      t.getCenter(find.text('GitHub로 가기')).dy,
+      closeTo(t.getCenter(find.text('alpha')).dy, 12),
+    );
+    // 오른쪽 여백이 이름의 왼쪽 여백과 같다.
+    final panel = t.getRect(find.byType(GlassPanel).last);
+    final name = t.getRect(find.text('alpha'));
+    final button = t.getRect(find.byType(GlassTap));
+    expect(panel.right - button.right, closeTo(name.left - panel.left, 1));
   });
 
   testWidgets('GitHub 주소를 모르면 원문 보기 비활성', (t) async {
@@ -223,13 +236,15 @@ void main() {
     );
     await t.pump();
     expect(find.text('GitHub 주소를 찾지 못했습니다'), findsOneWidget);
-    final button = t.widget<OutlinedButton>(
-      find.ancestor(
-        of: find.text('원문 보기'),
-        matching: find.byType(OutlinedButton),
-      ),
+    final gate = t.widget<IgnorePointer>(
+      find
+          .ancestor(
+            of: find.text('GitHub로 가기'),
+            matching: find.byType(IgnorePointer),
+          )
+          .first,
     );
-    expect(button.onPressed, isNull);
+    expect(gate.ignoring, isTrue);
     expect(find.text('설치방법'), findsNothing);
   });
 

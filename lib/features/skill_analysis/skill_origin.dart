@@ -32,12 +32,6 @@ String? githubRepoOf(String url) {
 String _baseName(String path) =>
     path.split(RegExp(r'[/\\]')).where((p) => p.isNotEmpty).last;
 
-String _cleanPath(String path) => path
-    .replaceAll('\\', '/')
-    .split('/')
-    .where((p) => p.isNotEmpty && p != '.')
-    .join('/');
-
 Future<Map<String, dynamic>?> _readJson(String path) async {
   try {
     final v = jsonDecode(await File(path).readAsString());
@@ -72,13 +66,9 @@ Future<SkillOrigin?> _fromSkillsLock(
       ? githubRepoOf(url)
       : null;
   if (repo == null || source is! String) return null;
-  final skillPath = entry['skillPath'];
-  final dir = skillPath is String && skillPath.contains('/')
-      ? _cleanPath(skillPath.substring(0, skillPath.lastIndexOf('/')))
-      : '';
   return SkillOrigin(
-    githubUrl:
-        'https://github.com/$repo/tree/HEAD${dir.isEmpty ? '' : '/$dir'}',
+    // 저장소 메인(README가 보이는 첫 화면)으로 보낸다.
+    githubUrl: 'https://github.com/$repo',
     commands: [
       'npx skills add $source --skill ${key.contains(' ') ? '"$key"' : key} '
           '-g -a claude-code',
@@ -154,29 +144,22 @@ Future<SkillOrigin> resolveSkillOrigin(Skill s, Directory? claudeDir) async {
       if (p is Map && p['name'] == pluginName) plugin = p;
     }
   }
-  final skillPath = 'skills/${_baseName(s.path)}';
-  String? url;
+  // 저장소 메인(README가 보이는 첫 화면)으로 보낸다.
+  // 마켓 안에 있는 플러그인은 마켓 저장소, 따로 있는 플러그인은 그 저장소.
   final ps = plugin?['source'];
-  if (ps is String && marketRepo != null) {
-    final dir = _cleanPath(ps);
-    url =
-        'https://github.com/$marketRepo/tree/HEAD/'
-        '${dir.isEmpty ? '' : '$dir/'}$skillPath';
-  } else if (ps is Map) {
-    final repo = ps['repo'] is String
-        ? ps['repo'] as String
-        : ps['url'] is String
-        ? githubRepoOf(ps['url'] as String)
-        : null;
-    if (repo != null) {
-      final ref = ps['ref'] is String ? ps['ref'] as String : 'HEAD';
-      final dir = ps['path'] is String ? _cleanPath(ps['path'] as String) : '';
-      url =
-          'https://github.com/$repo/tree/$ref/'
-          '${dir.isEmpty ? '' : '$dir/'}$skillPath';
-    }
-  }
-  return SkillOrigin(githubUrl: url, commands: commands);
+  final repo = ps is String
+      ? marketRepo
+      : ps is Map
+      ? ps['repo'] is String
+            ? ps['repo'] as String
+            : ps['url'] is String
+            ? githubRepoOf(ps['url'] as String)
+            : null
+      : null;
+  return SkillOrigin(
+    githubUrl: repo == null ? null : 'https://github.com/$repo',
+    commands: commands,
+  );
 }
 
 /// 기본 브라우저로 https 주소를 연다. 성공하면 true.
