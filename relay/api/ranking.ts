@@ -1,20 +1,8 @@
-import { getVercelOidcToken } from "@vercel/oidc";
+import { json, parseInteger, proxySkills } from "../lib/skills";
 
 const UPSTREAM_URL = "https://skills.sh/api/v1/skills";
 const VIEWS = ["all-time", "trending", "hot"] as const;
 const MAX_PER_PAGE = 500;
-const PASSTHROUGH_STATUSES = new Set([429, 503]);
-
-function json(body: unknown, status: number, extra: Record<string, string> = {}): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json; charset=utf-8", ...extra },
-  });
-}
-
-function parseInteger(value: string): number | null {
-  return /^\d+$/.test(value) ? Number(value) : null;
-}
 
 export async function GET(request: Request): Promise<Response> {
   const params = new URL(request.url).searchParams;
@@ -46,32 +34,5 @@ export async function GET(request: Request): Promise<Response> {
     upstream.searchParams.set("per_page", String(n));
   }
 
-  let response: Response;
-  try {
-    const token = await getVercelOidcToken();
-    response = await fetch(upstream, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-    });
-  } catch {
-    return json({ error: "skills.sh 호출에 실패했습니다." }, 502);
-  }
-
-  if (response.status === 200) {
-    return new Response(await response.text(), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": "s-maxage=300",
-      },
-    });
-  }
-
-  if (PASSTHROUGH_STATUSES.has(response.status)) {
-    const headers: Record<string, string> = {};
-    const retryAfter = response.headers.get("Retry-After");
-    if (retryAfter !== null) headers["Retry-After"] = retryAfter;
-    return json({ error: `skills.sh 가 ${response.status} 를 반환했습니다.` }, response.status, headers);
-  }
-
-  return json({ error: `skills.sh 응답 오류 (${response.status})` }, 502);
+  return proxySkills(upstream);
 }

@@ -31,8 +31,7 @@ Future<RankingHttpResponse> defaultRankingHttpGet(Uri uri) async {
   try {
     final request = await client.getUrl(uri);
     request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-    final response =
-        await request.close().timeout(const Duration(seconds: 20));
+    final response = await request.close().timeout(const Duration(seconds: 20));
     final body = await response.transform(utf8.decoder).join();
     return RankingHttpResponse(response.statusCode, body);
   } finally {
@@ -42,30 +41,48 @@ Future<RankingHttpResponse> defaultRankingHttpGet(Uri uri) async {
 
 class RankingApiClient {
   RankingApiClient(this.baseUrl, {RankingHttpGet? httpGet})
-      : _httpGet = httpGet ?? defaultRankingHttpGet;
+    : _httpGet = httpGet ?? defaultRankingHttpGet;
 
   final String baseUrl;
   final RankingHttpGet _httpGet;
 
-  Uri buildUri(RankingView view, int page, int perPage) {
+  /// 한 번에 스타를 물을 수 있는 저장소 수 (중계 서버 한도와 같다).
+  static const int maxStarsRepos = 60;
+
+  Uri _endpoint(String name, Map<String, String> query) {
     final base = Uri.parse(baseUrl.trim());
     final basePath = base.path.endsWith('/')
         ? base.path.substring(0, base.path.length - 1)
         : base.path;
-    return base.replace(
-      path: '$basePath/api/ranking',
-      queryParameters: {
-        'view': view.apiValue,
-        'page': '$page',
-        'per_page': '$perPage',
-      },
-    );
+    return base.replace(path: '$basePath/api/$name', queryParameters: query);
   }
 
-  Future<RankingPage> fetchPage(RankingView view, int page, int perPage) async {
+  Uri buildUri(RankingView view, int page, int perPage) => _endpoint(
+    'ranking',
+    {'view': view.apiValue, 'page': '$page', 'per_page': '$perPage'},
+  );
+
+  Uri buildSearchUri(String query, int limit) =>
+      _endpoint('search', {'q': query, 'limit': '$limit'});
+
+  Uri buildStarsUri(Iterable<String> repos) =>
+      _endpoint('stars', {'repos': repos.join(',')});
+
+  Future<RankingPage> fetchPage(RankingView view, int page, int perPage) =>
+      _getJson(buildUri(view, page, perPage), RankingPage.fromJson);
+
+  /// skills.sh 검색. 검색어는 2자 이상이어야 한다.
+  Future<SearchResult> search(String query, {int limit = 100}) =>
+      _getJson(buildSearchUri(query.trim(), limit), SearchResult.fromJson);
+
+  /// GitHub 저장소(owner/repo) 스타 수. 최대 [maxStarsRepos] 개.
+  Future<StarsResult> fetchStars(Iterable<String> repos) =>
+      _getJson(buildStarsUri(repos), StarsResult.fromJson);
+
+  Future<T> _getJson<T>(Uri uri, T Function(Object?) parse) async {
     final RankingHttpResponse response;
     try {
-      response = await _httpGet(buildUri(view, page, perPage));
+      response = await _httpGet(uri);
     } on RankingApiException {
       rethrow;
     } on TimeoutException {
@@ -77,7 +94,7 @@ class RankingApiClient {
     final status = response.statusCode;
     if (status == 200) {
       try {
-        return RankingPage.fromJson(jsonDecode(response.body));
+        return parse(jsonDecode(response.body));
       } on FormatException catch (e) {
         throw RankingApiException(status, '응답 형식이 올바르지 않아요: ${e.message}');
       }

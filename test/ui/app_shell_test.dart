@@ -25,14 +25,14 @@ void main() {
     expect(find.text('alpha'), findsOneWidget);
     expect(find.text('내 스킬'), findsWidgets);
     expect(find.text('1'), findsOneWidget);
-    for (final gone in ['에이전트', '정리', '미사용 후보', '찾기·랭킹']) {
+    for (final gone in ['에이전트', '정리', '미사용 후보', '찾기·랭킹', '검색']) {
       expect(find.text(gone), findsNothing, reason: gone);
     }
   });
 
   testWidgets('준비 중 탭', (t) async {
     await _pump(t);
-    for (final tab in ['업데이트 필요', '검색']) {
+    for (final tab in ['업데이트 필요', '랭킹']) {
       await t.tap(find.text(tab));
       await t.pump();
       expect(find.text('아직 준비 중입니다'), findsOneWidget, reason: tab);
@@ -42,7 +42,7 @@ void main() {
 
   testWidgets('탭 왕복', (t) async {
     await _pump(t);
-    await t.tap(find.text('검색'));
+    await t.tap(find.text('랭킹'));
     await t.pump();
     await t.tap(find.text('내 스킬'));
     await t.pump();
@@ -66,9 +66,9 @@ void main() {
       ),
     );
     expect(
-      t.getSemantics(find.bySemanticsLabel('검색')),
+      t.getSemantics(find.bySemanticsLabel('랭킹')),
       matchesSemantics(
-        label: '검색',
+        label: '랭킹',
         isButton: true,
         isSelected: false,
         hasSelectedState: true,
@@ -90,7 +90,7 @@ void main() {
     await t.tap(find.text('Codex'));
     await t.pump();
     expect(find.text('alpha'), findsNothing);
-    await t.tap(find.text('검색'));
+    await t.tap(find.text('랭킹'));
     await t.pump();
     await t.tap(find.text('내 스킬').first);
     await t.pump();
