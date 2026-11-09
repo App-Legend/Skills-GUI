@@ -33,17 +33,27 @@ const _sub = Color(0xFF3A4658);
 const _red = Color(0xFFB42318);
 const _blue = Color(0xFF0064D1);
 
-const _tabs = <(RankingView, String)>[
-  (RankingView.allTime, '전체'),
-  (RankingView.trending, '트렌딩'),
-  (RankingView.hot, '핫'),
-];
+/// 랭킹 탭. 스타 탭은 skills.sh 에 없는 순서라, 누적 설치 목록을 받아 스타 순으로 다시 정렬한다.
+enum _Tab {
+  allTime(RankingView.allTime, '전체'),
+  trending(RankingView.trending, '트렌딩'),
+  stars(RankingView.allTime, '스타');
 
-/// 보기마다 아래에 붙는 설명.
+  const _Tab(this.view, this.label);
+
+  /// 이 탭이 불러오는 skills.sh 보기.
+  final RankingView view;
+  final String label;
+}
+
+/// 스타 탭이 다시 정렬할 누적 설치 상위 범위 (100 × 3 = 300개). 더 보기로 늘릴 수 있다.
+const int _starsPoolPages = 3;
+
+/// 탭마다 아래에 붙는 설명.
 const _notes = {
-  RankingView.allTime: 'skills.sh 누적 설치 수 기준입니다.',
-  RankingView.trending: 'skills.sh 최근 설치가 늘어난 순서입니다.',
-  RankingView.hot: '최근 한 시간 설치 수를 어제 같은 시간과 비교합니다.',
+  _Tab.allTime: 'skills.sh 누적 설치 수 기준입니다.',
+  _Tab.trending: 'skills.sh 최근 설치가 늘어난 순서입니다.',
+  _Tab.stars: '누적 설치 상위 스킬을 GitHub 저장소 스타 수 순으로 다시 줄 세웠습니다. 같은 저장소의 스킬은 스타가 같고, GitHub 저장소가 아닌 스킬은 뒤에 둡니다.',
 };
 
 const _categoryNote = '카테고리는 스킬 이름과 저장소 이름으로 나눈 것이라 정확하지 않을 수 있습니다.';
@@ -73,7 +83,7 @@ class _SearchState {
   int serial = 0;
 }
 
-/// "랭킹" 탭. 위쪽 검색창, 전체·트렌딩·핫 보기, 카테고리 칩, GitHub 스타 수를 맡는다.
+/// "랭킹" 탭. 위쪽 검색창, 전체·트렌딩·스타 보기, 카테고리 칩, GitHub 스타 수를 맡는다.
 ///
 /// [client] 가 없으면 `RANKING_API_BASE` 설정으로 만든다.
 /// 설정도 없으면 설정 누락 오류를 보인다.
@@ -103,9 +113,10 @@ class RankingScreen extends StatefulWidget {
 
 class _RankingScreenState extends State<RankingScreen> {
   late final RankingApiClient? _client;
-  RankingView _view = RankingView.allTime;
+  _Tab _tab = _Tab.allTime;
+  RankingView get _view => _tab.view;
   final Map<RankingView, _ViewState> _states = {
-    for (final tab in _tabs) tab.$1: _ViewState(),
+    for (final tab in _Tab.values) tab.view: _ViewState(),
   };
 
   /// null 이면 모든 카테고리.
@@ -153,14 +164,33 @@ class _RankingScreenState extends State<RankingScreen> {
 
   // ---- 랭킹 보기 ----
 
-  void _select(RankingView view) {
-    setState(() => _view = view);
-    final state = _states[view]!;
+  void _select(_Tab tab) {
+    setState(() => _tab = tab);
+    final state = _states[_view]!;
     if (!state.loaded && !state.loading) {
-      _load(view);
+      _load(_view);
     } else {
       _fillCategory();
+      _fillStars();
     }
+  }
+
+  /// 스타 탭은 정렬할 범위가 넓어야 의미가 있어 처음에 [_starsPoolPages] 페이지까지 불러온다.
+  void _fillStars() {
+    if (_tab != _Tab.stars || _searching) return;
+    final state = _states[_view]!;
+    if (!state.loaded || state.loading || !state.hasMore) return;
+    if (state.error != null || state.page + 1 >= _starsPoolPages) return;
+    _load(_view);
+  }
+
+  /// 스타 많은 순, 같으면 설치 많은 순. 스타를 모르는 스킬은 뒤로.
+  List<SkillRankItem> _byStars(List<SkillRankItem> items) {
+    int starsOf(SkillRankItem item) => _stars[item.source] ?? -1;
+    return [...items]..sort((a, b) {
+      final byStars = starsOf(b).compareTo(starsOf(a));
+      return byStars != 0 ? byStars : b.installs.compareTo(a.installs);
+    });
   }
 
   void _selectCategory(SkillCategory? category) {
@@ -200,6 +230,7 @@ class _RankingScreenState extends State<RankingScreen> {
       });
       _loadStars(result.items);
       _fillCategory();
+      _fillStars();
     } on RankingApiException catch (e) {
       if (!mounted || _states[view] != state) return;
       setState(() {
@@ -453,8 +484,13 @@ class _RankingScreenState extends State<RankingScreen> {
                 : Wrap(
                     spacing: 6,
                     children: [
-                      for (final tab in _tabs)
-                        _chip(tab.$2, tab.$1 == _view, () => _select(tab.$1)),
+                      for (final tab in _Tab.values)
+                        _chip(
+                          tab.label,
+                          tab == _tab,
+                          () => _select(tab),
+                          key: Key('ranking-tab-${tab.name}'),
+                        ),
                     ],
                   ),
           ),
@@ -462,7 +498,7 @@ class _RankingScreenState extends State<RankingScreen> {
             padding: const EdgeInsets.only(top: 8, left: 8),
             child: Text(
               [
-                if (!_searching) _notes[_view]!,
+                if (!_searching) _notes[_tab]!,
                 if (_category != null) _categoryNote,
                 if (_starsLimited) 'GitHub 요청 한도에 걸려 일부 스타 수를 가져오지 못했습니다.',
               ].join(' '),
@@ -566,12 +602,15 @@ class _RankingScreenState extends State<RankingScreen> {
       }
       return const RankingStateView.loading();
     }
-    final rows = _rows(state.items, showChange: view == RankingView.hot);
+    final rows = _rows(
+      _tab == _Tab.stars ? _byStars(state.items) : state.items,
+      showChange: false,
+    );
     if (rows.isEmpty && !state.hasMore && !state.loading) {
       return const RankingStateView.empty();
     }
     return ListView(
-      key: PageStorageKey<String>('ranking-list-${view.apiValue}'),
+      key: PageStorageKey<String>('ranking-list-${_tab.name}'),
       children: [...rows, _footer(view, state)],
     );
   }
