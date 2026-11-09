@@ -38,6 +38,7 @@ RankingApiClient _client(
   RankingHttpResponse Function(Uri) respond,
   List<Uri> log, {
   List<Uri>? starsLog,
+  Map<String, int>? stars,
 }) {
   return RankingApiClient(
     'https://relay.example.test',
@@ -48,7 +49,7 @@ RankingApiClient _client(
         return RankingHttpResponse(
           200,
           jsonEncode({
-            'stars': {for (final r in repos) r: 1234},
+            'stars': {for (final r in repos) r: stars?[r] ?? 1234},
             'limited': false,
           }),
         );
@@ -101,12 +102,79 @@ void main() {
     expect(log.last.queryParameters['view'], 'trending');
     expect(find.text('trending-항목'), findsOneWidget);
 
-    await tester.tap(find.text('핫'));
+    expect(find.text('핫'), findsNothing);
+    await tester.tap(find.text('스타'));
     await tester.pumpAndSettle();
-    expect(log.last.queryParameters['view'], 'hot');
-    expect(find.text('hot-항목'), findsOneWidget);
-    expect(find.byKey(const Key('ranking-tile-change')), findsOneWidget);
-    expect(find.text('+5'), findsOneWidget);
+    // 스타 탭은 누적 설치 목록을 다시 쓰므로 새로 부르지 않는다.
+    expect(log.last.queryParameters['view'], 'trending');
+    expect(find.text('all-time-항목'), findsOneWidget);
+  });
+
+  testWidgets('스타 탭은 GitHub 스타 많은 순으로 줄 세우고, 스타를 모르면 뒤로', (tester) async {
+    final log = <Uri>[];
+    await _pump(
+      tester,
+      _client(
+        (uri) => RankingHttpResponse(
+          200,
+          jsonEncode({
+            'data': [
+              for (final (name, source, installs) in [
+                ('a-skill', 'own/a', 300),
+                ('b-skill', 'own/b', 200),
+                ('c-skill', 'site.example', 100),
+              ])
+                {
+                  'id': 'id-$name',
+                  'slug': name,
+                  'name': name,
+                  'source': source,
+                  'installs': installs,
+                  'sourceType': source.contains('/') ? 'github' : 'well-known',
+                  'installUrl': null,
+                  'url': 'https://example.test',
+                },
+            ],
+            'pagination': {
+              'page': int.parse(uri.queryParameters['page']!),
+              'perPage': 3,
+              'total': 3,
+              'hasMore': false,
+            },
+          }),
+        ),
+        log,
+        stars: {'own/a': 10, 'own/b': 900},
+      ),
+    );
+    List<String> names() => tester
+        .widgetList<Text>(find.byKey(const Key('ranking-tile-name')))
+        .map((t) => t.data!)
+        .toList();
+    expect(names(), ['a-skill', 'b-skill', 'c-skill']);
+
+    await tester.tap(find.byKey(const Key('ranking-tab-stars')));
+    await tester.pumpAndSettle();
+    expect(names(), ['b-skill', 'a-skill', 'c-skill']);
+    expect(find.text('★ 900'), findsOneWidget);
+  });
+
+  testWidgets('스타 탭은 정렬할 범위를 넓히려 누적 설치를 3페이지까지 불러온다', (tester) async {
+    final log = <Uri>[];
+    await _pump(
+      tester,
+      _client((uri) {
+        final page = int.parse(uri.queryParameters['page']!);
+        return RankingHttpResponse(
+          200,
+          _body(['skill-$page'], page: page, hasMore: page < 9),
+        );
+      }, log),
+    );
+    expect(log, hasLength(1));
+    await tester.tap(find.byKey(const Key('ranking-tab-stars')));
+    await tester.pumpAndSettle();
+    expect(log.map((u) => u.queryParameters['page']), ['0', '1', '2']);
   });
 
   testWidgets('다음 페이지 버튼이 page 를 1 올려 목록을 이어 붙인다', (tester) async {
