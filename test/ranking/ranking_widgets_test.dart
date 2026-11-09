@@ -88,7 +88,7 @@ void main() {
       expect(badge.center.dy, closeTo(name.center.dy, 4));
     });
 
-    testWidgets('installed 면 설치됨 배지를 붙인다', (tester) async {
+    testWidgets('installed 면 맨 오른쪽에 설치됨 체크를 붙인다', (tester) async {
       await tester.pumpWidget(
         _wrap(
           const RankingListTile(
@@ -100,7 +100,41 @@ void main() {
           ),
         ),
       );
-      expect(find.text('설치됨'), findsOneWidget);
+      expect(find.byKey(const Key('ranking-tile-installed')), findsOneWidget);
+      expect(find.byTooltip('설치됨'), findsOneWidget);
+      // 체크가 숫자보다 오른쪽에 있다.
+      final check = tester.getCenter(
+        find.byKey(const Key('ranking-tile-installed')),
+      );
+      final installs = tester.getCenter(
+        find.byKey(const Key('ranking-tile-installs')),
+      );
+      expect(check.dx, greaterThan(installs.dx));
+    });
+
+    testWidgets('카테고리는 이름 바로 옆, 설치 수·스타 수는 오른쪽 끝을 맞춘다', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const RankingListTile(
+            rank: 1,
+            name: 'fake-skill',
+            source: 'fake/source',
+            installs: 1234567,
+            stars: 12,
+            category: '백엔드',
+          ),
+        ),
+      );
+      final name = tester.getRect(find.byKey(const Key('ranking-tile-name')));
+      final badge = tester.getRect(
+        find.byKey(const Key('ranking-tile-category')),
+      );
+      expect(badge.left - name.right, lessThan(16));
+      final installs = tester.getRect(
+        find.byKey(const Key('ranking-tile-installs')),
+      );
+      final stars = tester.getRect(find.byKey(const Key('ranking-tile-stars')));
+      expect((installs.right - stars.right).abs(), lessThan(1));
     });
 
     testWidgets('showChange 가 false 면 change 가 있어도 숨긴다', (tester) async {

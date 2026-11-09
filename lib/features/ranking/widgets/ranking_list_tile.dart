@@ -12,8 +12,8 @@ const _star = Color(0xFF8A5A00);
 /// [showChange] 가 true 이면 [change] 를 +/− 로 표시한다 (핫 뷰용).
 /// [change] 가 null 이면 변화량 자리에 '-' 를 보인다.
 /// [stars] 는 GitHub 저장소 스타 수. null 이면 스타 줄을 그리지 않는다.
-/// [category] 가 있으면 이름과 같은 줄, 오른쪽 설치 수 옆에 카테고리 배지를 붙인다.
-/// 이름 아래에는 [summary](한국어 짧은 개요)를 한 줄로 보인다. 스타 수 바로 앞까지 쓴다.
+/// [category] 가 있으면 이름 바로 옆에 카테고리 배지를 붙이고, 이름 아래에는 [summary](한국어 짧은 개요)를 한 줄로 보인다.
+/// 설치 수와 스타 수는 오른쪽 정렬, [installed] 면 맨 오른쪽에 체크 표시를 둔다.
 class RankingListTile extends StatelessWidget {
   const RankingListTile({
     super.key,
@@ -39,7 +39,7 @@ class RankingListTile extends StatelessWidget {
   final int? change;
   final bool showChange;
 
-  /// 내 스킬에 같은 이름이 있으면 "설치됨" 배지를 붙인다.
+  /// 내 스킬에 같은 이름이 있으면 맨 오른쪽에 체크 표시를 붙인다.
   final bool installed;
 
   final int? stars;
@@ -102,7 +102,7 @@ class RankingListTile extends StatelessWidget {
                   ),
                 ),
               ),
-              // 첫 줄: 이름 · 카테고리 · 설치 수. 둘째 줄: 한 줄 개요 · 스타 수.
+              // 왼쪽: 이름 · 카테고리, 그 아래 한 줄 개요.
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,67 +121,77 @@ class RankingListTile extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (installed) ...[
-                          const SizedBox(width: 8),
-                          const SkillBadge(
-                            '설치됨',
-                            key: Key('ranking-tile-installed'),
-                            bg: Color(0x1F067647),
-                            fg: _green,
-                          ),
-                        ],
-                        const Spacer(),
                         if (category != null) ...[
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
                           SkillBadge(
                             category!,
                             key: const Key('ranking-tile-category'),
                           ),
                         ],
-                        const SizedBox(width: 8),
-                        Text(
-                          '설치 ${formatCount(installs)}',
-                          key: const Key('ranking-tile-installs'),
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            summary ?? '',
-                            key: const Key('ranking-tile-summary'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12, color: _sub),
-                          ),
-                        ),
-                        if (stars != null) ...[
-                          const SizedBox(width: 12),
-                          Text(
-                            '★ ${formatCount(stars!)}',
-                            key: const Key('ranking-tile-stars'),
-                            style: const TextStyle(fontSize: 12, color: _star),
-                          ),
-                        ],
-                        if (showChange) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            formatChange(change),
-                            key: const Key('ranking-tile-change'),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: _changeColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ],
+                    Text(
+                      summary ?? '',
+                      key: const Key('ranking-tile-summary'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: _sub),
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(width: 16),
+              // 오른쪽 정렬: 설치 수, 그 아래 스타 수(와 핫 변화량).
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '설치 ${formatCount(installs)}',
+                    key: const Key('ranking-tile-installs'),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (stars != null)
+                        Text(
+                          '★ ${formatCount(stars!)}',
+                          key: const Key('ranking-tile-stars'),
+                          style: const TextStyle(fontSize: 12, color: _star),
+                        ),
+                      if (showChange) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          formatChange(change),
+                          key: const Key('ranking-tile-change'),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _changeColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+              // 맨 오른쪽: 설치됨 체크. 자리를 늘 비워 둬서 숫자 줄이 어긋나지 않게 한다.
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 24,
+                child: installed
+                    ? const Tooltip(
+                        message: '설치됨',
+                        child: Icon(
+                          Icons.check_circle_rounded,
+                          key: Key('ranking-tile-installed'),
+                          size: 22,
+                          color: _green,
+                        ),
+                      )
+                    : null,
               ),
             ],
           ),
