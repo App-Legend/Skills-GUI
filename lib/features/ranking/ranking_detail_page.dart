@@ -150,8 +150,16 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
     widget.history?.removeListener(_onHistoryChanged);
     widget.analysis?.removeListener(_onHistoryChanged);
     // 상세를 닫으면 터미널 명령도 멈추므로, 진행 중이던 터미널 설치는 중지로 남긴다.
-    for (final record in _cliRecords.values) {
-      widget.history?.finish(record, ok: false, message: '상세 화면을 닫아 중지했다');
+    // dispose 는 위젯 트리를 정리하는 중이라 여기서 바로 알리면 기록을 듣는 위젯이
+    // "트리가 잠긴 동안 setState" 오류를 낸다. 이번 프레임이 끝난 뒤에 남긴다.
+    final history = widget.history;
+    final records = _cliRecords.values.toList();
+    if (history != null && records.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        for (final record in records) {
+          history.finish(record, ok: false, message: '상세 화면을 닫아 중지했습니다');
+        }
+      });
     }
     super.dispose();
   }
