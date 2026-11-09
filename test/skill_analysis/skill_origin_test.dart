@@ -131,4 +131,56 @@ void main() {
     expect(none.githubUrl, isNull);
     expect(none.note, isNotNull);
   });
+
+  group('프로젝트 설치 기록(skills-lock.json)', () {
+    late Directory home;
+    late Directory claude;
+    void writeLock(String dir, String name, String source) {
+      File('$dir/skills-lock.json').writeAsStringSync(
+        jsonEncode({
+          'version': 1,
+          'skills': {
+            name: {'source': source, 'sourceType': 'github'},
+          },
+        }),
+      );
+    }
+
+    setUp(() async {
+      home = await Directory.systemTemp.createTemp('skill-proj-');
+      claude = Directory('${home.path}/.claude')..createSync();
+    });
+    tearDown(() => home.delete(recursive: true));
+
+    test('프로젝트 폴더에서 설치한 스킬은 -g 없이, 실행 폴더 안내', () async {
+      final project = Directory('${home.path}/proj')..createSync();
+      final skillDir = Directory('${project.path}/.agents/skills/taste')
+        ..createSync(recursive: true);
+      writeLock(project.path, 'taste', 'a/taste');
+      final o = await resolveSkillOrigin(
+        Skill(name: 'taste', source: SkillSource.global, path: skillDir.path),
+        claude,
+      );
+      expect(o.githubUrl, 'https://github.com/a/taste');
+      expect(o.commands, [
+        'npx skills add a/taste --skill taste -a claude-code',
+      ]);
+      expect(o.note, contains(project.path));
+    });
+
+    test('홈에서 -g 없이 설치한 기록은 전역 명령으로 보여준다', () async {
+      final skillDir = Directory('${claude.path}/skills/hall')
+        ..createSync(recursive: true);
+      writeLock(home.path, 'hall', 'n/hall');
+      final o = await resolveSkillOrigin(
+        Skill(name: 'hall', source: SkillSource.global, path: skillDir.path),
+        claude,
+      );
+      expect(o.githubUrl, 'https://github.com/n/hall');
+      expect(o.commands, [
+        'npx skills add n/hall --skill hall -g -a claude-code',
+      ]);
+      expect(o.note, isNull);
+    });
+  });
 }

@@ -41,19 +41,16 @@ Future<Map<String, dynamic>?> _readJson(String path) async {
   }
 }
 
-/// `npx skills add -g`가 남기는 설치 기록(`~/.agents/.skill-lock.json`)에서 출처를 찾는다.
+/// `npx skills` 설치 기록 파일 하나에서 출처를 찾는다.
+/// [projectDir]가 있으면 `-g` 없이 그 폴더에서 설치한 기록이다.
 /// 기록이 없거나 GitHub 출처가 아니면 null.
-Future<SkillOrigin?> _fromSkillsLock(
+Future<SkillOrigin?> _fromLockFile(
+  String lockPath,
   Skill s,
-  String folder,
-  Directory? claudeDir,
-) async {
-  if (claudeDir == null) return null;
-  final sep = Platform.pathSeparator;
-  final lock = await _readJson(
-    '${claudeDir.parent.path}$sep.agents$sep.skill-lock.json',
-  );
-  final skills = lock?['skills'];
+  String folder, {
+  String? projectDir,
+}) async {
+  final skills = (await _readJson(lockPath))?['skills'];
   if (skills is! Map) return null;
   final key = skills.containsKey(folder) ? folder : s.name;
   final entry = skills[key];
@@ -66,14 +63,54 @@ Future<SkillOrigin?> _fromSkillsLock(
       ? githubRepoOf(url)
       : null;
   if (repo == null || source is! String) return null;
+  final name = key.contains(' ') ? '"$key"' : key;
   return SkillOrigin(
     // 저장소 메인(README가 보이는 첫 화면)으로 보낸다.
     githubUrl: 'https://github.com/$repo',
+    note: projectDir == null ? null : '$projectDir 폴더에서 실행합니다.',
     commands: [
-      'npx skills add $source --skill ${key.contains(' ') ? '"$key"' : key} '
-          '-g -a claude-code',
+      'npx skills add $source --skill $name '
+          '${projectDir == null ? '-g ' : ''}-a claude-code',
     ],
   );
+}
+
+/// 스킬 폴더에서 위로 올라가며 가장 가까운 프로젝트 기록(`skills-lock.json`)을 찾는다.
+/// `-g` 없이 설치하면 명령을 실행한 폴더에 이 파일이 남는다.
+Future<SkillOrigin?> _fromProjectLock(
+  Skill s,
+  String folder,
+  Directory? home,
+) async {
+  final sep = Platform.pathSeparator;
+  final starts = [s.path, ?s.linkTarget];
+  for (final start in starts) {
+    var dir = Directory(start).parent;
+    while (true) {
+      final lockPath = '${dir.path}${sep}skills-lock.json';
+      if (await File(lockPath).exists()) {
+        // 홈 폴더에서 설치했으면 전역과 같은 곳에 깔리므로 -g 명령을 보여준다.
+        final atHome = home != null && _samePath(dir.path, home.path);
+        final origin = await _fromLockFile(
+          lockPath,
+          s,
+          folder,
+          projectDir: atHome ? null : dir.path,
+        );
+        if (origin != null) return origin;
+      }
+      final parent = dir.parent;
+      if (parent.path == dir.path) break;
+      dir = parent;
+    }
+  }
+  return null;
+}
+
+bool _samePath(String a, String b) {
+  String norm(String p) =>
+      p.replaceAll('\\', '/').replaceAll(RegExp(r'/+$'), '').toLowerCase();
+  return norm(a) == norm(b);
 }
 
 /// 출처를 찾는다. 예외를 밖으로 던지지 않는다.
@@ -81,7 +118,15 @@ Future<SkillOrigin> resolveSkillOrigin(Skill s, Directory? claudeDir) async {
   if (s.source == SkillSource.synced) return const SkillOrigin();
   if (s.source != SkillSource.plugin || s.plugin == null) {
     final folder = _baseName(s.path);
-    if (await _fromSkillsLock(s, folder, claudeDir) case final origin?) {
+    final home = claudeDir?.parent;
+    if (home != null) {
+      final sep = Platform.pathSeparator;
+      final global = '${home.path}$sep.agents$sep.skill-lock.json';
+      if (await _fromLockFile(global, s, folder) case final origin?) {
+        return origin;
+      }
+    }
+    if (await _fromProjectLock(s, folder, home) case final origin?) {
       return origin;
     }
     return SkillOrigin(
