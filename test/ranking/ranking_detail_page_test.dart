@@ -170,6 +170,14 @@ void main() {
         tester.getTopLeft(find.byKey(const Key('ranking-install-card'))).dy,
       ),
     );
+    // 개요 아래 작은 GitHub 버튼. 내 스킬 버튼(44)보다 낮다.
+    final github = find.byKey(const Key('ranking-github'));
+    expect(find.text('GitHub로 가기'), findsOneWidget);
+    expect(tester.getSize(github).height, lessThan(44));
+    expect(
+      tester.getTopLeft(github).dy,
+      greaterThan(tester.getTopLeft(find.text('가짜 개요')).dy),
+    );
     expect(find.textContaining('가짜 본문'), findsNothing);
     expect(find.text('docs/a.md'), findsNothing);
     expect(find.text('가짜 점검'), findsOneWidget);
@@ -178,7 +186,7 @@ void main() {
 
   testWidgets('점검 기록이 없으면(404) 없다고 알린다', (tester) async {
     await pumpDetail(tester, client: _client(auditStatus: 404));
-    expect(find.text('아직 보안 점검 기록이 없습니다.'), findsOneWidget);
+    expect(find.text('아직 보안 점검 기록이 없다.'), findsOneWidget);
   });
 
   testWidgets('직접 설치를 누르면 운영체제별 CLI 명령이 보이고 복사된다', (tester) async {
@@ -239,7 +247,7 @@ void main() {
     await pumpDetail(tester, onInstalled: () => installed++);
 
     await _tapWithIo(tester, find.byKey(const Key('ranking-install')));
-    expect(find.text('스킬을 설치할까요?'), findsOneWidget);
+    expect(find.text('스킬을 설치할까?'), findsOneWidget);
 
     await tester.runAsync(() async {
       await tester.tap(find.byKey(const Key('ranking-install-confirm')));

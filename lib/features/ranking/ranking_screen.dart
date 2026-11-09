@@ -55,12 +55,12 @@ const int _starsPoolPages = 3;
 
 /// 탭마다 아래에 붙는 설명.
 const _notes = {
-  _Tab.allTime: 'skills.sh 누적 설치 수 기준입니다.',
-  _Tab.trending: 'skills.sh 최근 설치가 늘어난 순서입니다.',
-  _Tab.stars: '누적 설치 상위 스킬을 GitHub 저장소 스타 수 순으로 다시 줄 세웠습니다. 같은 저장소의 스킬은 스타가 같고, GitHub 저장소가 아닌 스킬은 뒤에 둡니다.',
+  _Tab.allTime: 'skills.sh 누적 설치 수 기준이다.',
+  _Tab.trending: 'skills.sh 최근 설치가 늘어난 순서다.',
+  _Tab.stars: '누적 설치 상위 스킬을 GitHub 저장소 스타 수 순으로 다시 줄 세웠다. 같은 저장소의 스킬은 스타가 같고, GitHub 저장소가 아닌 스킬은 뒤에 둔다.',
 };
 
-const _categoryNote = '카테고리는 스킬 이름과 저장소 이름으로 나눈 것이라 정확하지 않을 수 있습니다.';
+const _categoryNote = '카테고리는 스킬 이름과 저장소 이름으로 나눈 것이라 정확하지 않을 수 있다.';
 
 final _repoPattern = RegExp(r'^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$');
 
@@ -531,7 +531,7 @@ class _RankingScreenState extends State<RankingScreen> {
               [
                 if (!_searching) _notes[_tab]!,
                 if (_category != null) _categoryNote,
-                if (_starsLimited) 'GitHub 요청 한도에 걸려 일부 스타 수를 가져오지 못했습니다.',
+                if (_starsLimited) 'GitHub 요청 한도에 걸려 일부 스타 수를 가져오지 못했다.',
               ].join(' '),
               style: const TextStyle(fontSize: 12, color: _sub),
             ),

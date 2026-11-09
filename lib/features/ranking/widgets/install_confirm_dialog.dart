@@ -99,13 +99,13 @@ class InstallConfirmDialog extends StatelessWidget {
                         const SizedBox(height: 10),
                         _note(
                           Icons.warning_amber_rounded,
-                          '같은 이름의 폴더를 새 파일로 바꿉니다. 그 폴더에서 고친 내용은 사라집니다.',
+                          '같은 이름의 폴더를 새 파일로 바꾼다. 그 폴더에서 고친 내용은 사라진다.',
                           _red,
                         ),
                       ],
                       const SizedBox(height: 14),
                       const Text(
-                        '스킬은 에이전트에게 주는 지시문입니다. 믿을 수 있는 출처인지 확인하세요.',
+                        '스킬은 에이전트에게 주는 지시문이다. 믿을 수 있는 출처인지 확인해야 한다.',
                         style: TextStyle(fontSize: 12, color: _sub),
                       ),
                       const SizedBox(height: 22),
@@ -141,7 +141,7 @@ class InstallConfirmDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              replacing ? '이미 있는 스킬을 바꿀까요?' : '스킬을 설치할까요?',
+              replacing ? '이미 있는 스킬을 바꿀까?' : '스킬을 설치할까?',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             Text(

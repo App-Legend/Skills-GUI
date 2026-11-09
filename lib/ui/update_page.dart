@@ -39,7 +39,7 @@ class _UpdatePageState extends State<UpdatePage> {
   String? _error;
   final _failed = <String, String>{}; // id → 실패 이유
 
-  static const _noCli = 'Claude Code 명령(claude)을 찾지 못했습니다';
+  static const _noCli = 'Claude Code 명령(claude)을 찾지 못했다';
 
   String _why(CmdResult r) {
     final msg = [r.stderr, r.stdout].map((s) => s.trim()).firstWhere(
@@ -64,7 +64,7 @@ class _UpdatePageState extends State<UpdatePage> {
       error = _noCli;
     } else {
       // 마켓 갱신이 실패해도 갖고 있는 복사본으로 비교는 한다.
-      if (r.exitCode != 0) error = '최신 정보를 받지 못했습니다: ${_why(r)}';
+      if (r.exitCode != 0) error = '최신 정보를 받지 못했다: ${_why(r)}';
       found = await widget.check(dir);
     }
     if (!mounted) return;
@@ -84,7 +84,7 @@ class _UpdatePageState extends State<UpdatePage> {
       context: context,
       builder: (c) => AlertDialog(
         content: Text(
-          '${p.id}을(를) ${p.current} → ${p.latest}(으)로 업데이트합니다. Claude Code를 다시 시작해야 적용됩니다.',
+          '${p.id}을(를) ${p.current} → ${p.latest}(으)로 업데이트한다. Claude Code를 다시 시작해야 적용된다.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('취소')),
@@ -103,8 +103,8 @@ class _UpdatePageState extends State<UpdatePage> {
             ? _noCli
             // 명령형 설치는 사람이 명령을 확인해야 해서 앱에서 대신 승인하지 않는다.
             : '${r.stdout}${r.stderr}'.contains('shownCommand')
-            ? 'Claude Code에서 직접 업데이트해 주세요'
-            : '업데이트하지 못했습니다: ${_why(r)}';
+            ? 'Claude Code에서 직접 업데이트해야 한다'
+            : '업데이트하지 못했다: ${_why(r)}';
       });
       return;
     }
@@ -210,7 +210,7 @@ class _UpdatePageState extends State<UpdatePage> {
         const Padding(
           padding: EdgeInsets.only(top: 12, left: 8),
           child: Text(
-            '플러그인만 확인합니다. 전역 스킬은 버전 정보가 없어 빠집니다.',
+            '플러그인만 확인한다. 전역 스킬은 버전 정보가 없어 빠진다.',
             style: TextStyle(fontSize: 12, color: _sub),
           ),
         ),
@@ -225,14 +225,14 @@ class _UpdatePageState extends State<UpdatePage> {
               ? const Center(child: CircularProgressIndicator())
               : found == null
               ? const Center(
-                  child: Text('업데이트 확인을 눌러 주세요', style: TextStyle(color: _sub)),
+                  child: Text('업데이트 확인을 누르면 된다', style: TextStyle(color: _sub)),
                 )
               : ListView(
                   children: [
                     if (needed.isEmpty)
                       const Padding(
                         padding: EdgeInsets.all(8),
-                        child: Text('모든 플러그인이 최신입니다', style: TextStyle(color: _sub)),
+                        child: Text('모든 플러그인이 최신이다', style: TextStyle(color: _sub)),
                       ),
                     for (final p in needed) _row(p),
                     if (unknown.isNotEmpty) ...[

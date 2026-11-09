@@ -30,12 +30,12 @@ class SkillDeletePlan {
 SkillDeletePlan planSkillDelete(Skill s) {
   switch (s.source) {
     case SkillSource.synced:
-      return const SkillDeletePlan._(blockedReason: '동기화 폴더는 앱에서 지울 수 없습니다.');
+      return const SkillDeletePlan._(blockedReason: '동기화 폴더는 앱에서 지울 수 없다.');
     case SkillSource.plugin:
       return SkillDeletePlan._(
         blockedReason:
-            '플러그인에 들어 있는 스킬은 하나만 지울 수 없습니다. '
-            'Claude Code에서 /plugin uninstall ${s.plugin ?? '<플러그인>'} 으로 플러그인을 지웁니다.',
+            '플러그인에 들어 있는 스킬은 하나만 지울 수 없다. '
+            'Claude Code에서 /plugin uninstall ${s.plugin ?? '<플러그인>'} 으로 플러그인을 지운다.',
       );
     case SkillSource.global:
       break;
@@ -44,7 +44,7 @@ SkillDeletePlan planSkillDelete(Skill s) {
   final parts = s.path.split(RegExp(r'[/\\]')).where((p) => p.isNotEmpty);
   if (parts.length < 2 || parts.elementAt(parts.length - 2) != 'skills') {
     return const SkillDeletePlan._(
-      blockedReason: 'skills 폴더 밖에 있는 스킬이라 앱에서 지우지 않습니다.',
+      blockedReason: 'skills 폴더 밖에 있는 스킬이라 앱에서 지우지 않는다.',
     );
   }
   final link = s.linkTarget;
@@ -60,7 +60,7 @@ SkillDeletePlan planSkillDelete(Skill s) {
 Future<void> deleteSkill(SkillDeletePlan plan) async {
   final target = plan.target;
   if (!plan.canDelete || target == null) {
-    throw StateError(plan.blockedReason ?? '지울 대상이 없습니다.');
+    throw StateError(plan.blockedReason ?? '지울 대상이 없다.');
   }
   final type = await FileSystemEntity.type(target, followLinks: false);
   switch (type) {
@@ -69,12 +69,12 @@ Future<void> deleteSkill(SkillDeletePlan plan) async {
     case FileSystemEntityType.directory:
       if (plan.isLink) {
         // 스캔 때는 링크였는데 지금은 폴더면 원본일 수 있어 지우지 않는다.
-        throw FileSystemException('링크가 아니라 폴더로 바뀌어 지우지 않았습니다', target);
+        throw FileSystemException('링크가 아니라 폴더로 바뀌어 지우지 않았다', target);
       }
       await Directory(target).delete(recursive: true);
     case FileSystemEntityType.notFound:
       return; // 이미 없다.
     default:
-      throw FileSystemException('스킬 폴더가 아닙니다', target);
+      throw FileSystemException('스킬 폴더가 아니다', target);
   }
 }

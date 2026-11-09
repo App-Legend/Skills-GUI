@@ -97,7 +97,7 @@ function parseJson(value: string): unknown {
 
 export async function POST(request: Request): Promise<Response> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return json({ error: "분석 서버에 Claude API 키가 설정되지 않았습니다." }, 503);
+  if (!apiKey) return json({ error: "분석 서버에 Claude API 키가 설정되지 않았다." }, 503);
 
   let body: Record<string, unknown>;
   try {
@@ -105,16 +105,16 @@ export async function POST(request: Request): Promise<Response> {
     if (typeof value !== "object" || value === null) throw new Error();
     body = value as Record<string, unknown>;
   } catch {
-    return json({ error: "분석 요청 형식이 올바르지 않습니다." }, 400);
+    return json({ error: "분석 요청 형식이 올바르지 않다." }, 400);
   }
 
   const name = text(body.name);
   const description = text(body.description);
   const skillMd = text(body.skill_md);
   const files = texts(body.files);
-  if (!name || !skillMd) return json({ error: "스킬 이름과 SKILL.md가 필요합니다." }, 400);
+  if (!name || !skillMd) return json({ error: "스킬 이름과 SKILL.md가 필요하다." }, 400);
   if (skillMd.length > MAX_SKILL_MD_LENGTH || files.length > MAX_FILE_COUNT) {
-    return json({ error: "분석할 스킬 내용이 너무 큽니다." }, 413);
+    return json({ error: "분석할 스킬 내용이 너무 크다." }, 413);
   }
 
   const prompt = [
@@ -122,6 +122,7 @@ export async function POST(request: Request): Promise<Response> {
     "원문에 확인되는 내용만 사용해 한국어 분석 JSON 하나를 작성하세요. 없는 내용은 빈 배열로 두고, 추측하거나 과장하지 마세요.",
     "overview는 스킬의 목적을 2~4문장으로 정리합니다. additionalSections는 공통 항목으로 설명할 수 없고 빠지면 오해를 낳는 특이사항만 넣습니다. 파일 이름만으로 역할을 추정하지 마세요.",
     "summary는 목록 카드에 쓸 한 줄 요약입니다. 이 스킬이 무엇을 하는지 60자 이내 한국어 한 문장으로 씁니다.",
+    "모든 한국어 문장은 '~이다', '~한다' 같은 평서체로 끝냅니다. '~합니다', '~해요' 같은 존댓말은 쓰지 마세요.",
     `categories는 아래 목록에서 스킬에 가장 맞는 slug를 1~3개 고릅니다. 목록에 없는 값은 쓰지 마세요: ${CATEGORY_SLUGS.join(", ")}`,
     "설명, 인사말, Markdown 코드 블록 없이 JSON 객체만 반환하세요.",
     "반환 형식: {\"overview\":\"...\",\"summary\":\"...\",\"categories\":[\"...\"],\"whenToUse\":[\"...\"],\"workflow\":[\"...\"],\"requirements\":[\"...\"],\"outputs\":[\"...\"],\"contents\":[{\"path\":\"...\",\"role\":\"...\"}],\"cautions\":[\"...\"],\"additionalSections\":[{\"title\":\"...\",\"content\":\"...\"}]}",
@@ -146,25 +147,25 @@ export async function POST(request: Request): Promise<Response> {
       }),
     });
   } catch {
-    return json({ error: "Claude 분석 서버에 연결하지 못했습니다." }, 502);
+    return json({ error: "Claude 분석 서버에 연결하지 못했다." }, 502);
   }
 
   if (!upstream.ok) {
     const status = upstream.status === 429 ? 429 : 502;
-    return json({ error: status === 429 ? "분석 요청이 많습니다. 잠시 후 다시 열어 주세요." : "Claude가 분석을 완료하지 못했습니다." }, status);
+    return json({ error: status === 429 ? "분석 요청이 많다. 잠시 후 다시 열면 된다." : "Claude가 분석을 완료하지 못했다." }, status);
   }
 
   try {
     const result = await upstream.json() as { stop_reason?: string; content?: Array<{ type?: string; text?: string }> };
     const responseText = result.content?.find((item) => item.type === "text")?.text;
     if (result.stop_reason === "max_tokens") {
-      return json({ error: "분석 결과가 너무 길어 끝까지 받지 못했습니다." }, 502);
+      return json({ error: "분석 결과가 너무 길어 끝까지 받지 못했다." }, 502);
     }
     if (!responseText) throw new Error();
     const analysis = analysisFrom(parseJson(responseText));
     if (!analysis) throw new Error();
     return json({ analysis });
   } catch {
-    return json({ error: "Claude 분석 결과 형식을 읽지 못했습니다." }, 502);
+    return json({ error: "Claude 분석 결과 형식을 읽지 못했다." }, 502);
   }
 }

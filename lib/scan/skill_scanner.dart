@@ -5,14 +5,14 @@ import 'frontmatter.dart';
 import 'skill.dart';
 
 const _messages = {
-  ProblemKind.noSkillMd: 'SKILL.md가 없습니다',
-  ProblemKind.badFrontmatter: 'SKILL.md 머리말을 읽을 수 없습니다',
+  ProblemKind.noSkillMd: 'SKILL.md가 없다',
+  ProblemKind.badFrontmatter: 'SKILL.md 머리말을 읽을 수 없다',
   ProblemKind.noPermission: '읽을 수 없음, 권한 없음',
-  ProblemKind.brokenLink: '링크가 가리키는 폴더가 없습니다',
+  ProblemKind.brokenLink: '링크가 가리키는 폴더가 없다',
 };
 
 SkillProblem _problem(ProblemKind kind, [String? detail]) =>
-    SkillProblem(kind, _messages[kind] ?? '읽을 수 없습니다: $detail');
+    SkillProblem(kind, _messages[kind] ?? '읽을 수 없다: $detail');
 
 /// EPERM(1)·EACCES(13)은 권한 문제, 나머지는 읽기 실패.
 ProblemKind classifyFsError(FileSystemException e) {
@@ -196,8 +196,8 @@ Future<List<Skill>> _scanPlugins(
   Directory claudeDir,
   List<String> notices,
 ) async {
-  const badJson = 'installed_plugins.json을 읽지 못했습니다';
-  const badEntry = 'installed_plugins.json 항목을 읽지 못했습니다';
+  const badJson = 'installed_plugins.json을 읽지 못했다';
+  const badEntry = 'installed_plugins.json 항목을 읽지 못했다';
   final out = <Skill>[];
   final installed = File('${claudeDir.path}/plugins/installed_plugins.json');
   if (!installed.existsSync()) return out;
@@ -239,7 +239,7 @@ Future<List<Skill>> _scanPlugins(
 
           final dir = Directory(installPath);
           if (!dir.existsSync()) {
-            notices.add('$id: 플러그인 폴더가 없습니다');
+            notices.add('$id: 플러그인 폴더가 없다');
             continue;
           }
           try {
@@ -268,7 +268,7 @@ Future<List<Skill>> _scanPlugins(
       }
     }
     if (settingsNotice) {
-      notices.add('settings.json을 읽지 못해 플러그인 켜짐 여부를 알 수 없습니다');
+      notices.add('settings.json을 읽지 못해 플러그인 켜짐 여부를 알 수 없다');
     }
   } on Object {
     // 최상위 형식 불일치·읽기 실패.

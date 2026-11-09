@@ -88,7 +88,7 @@ class _DeleteDialog extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      plan.canDelete ? '$name 삭제' : '$name은 지울 수 없습니다',
+                      plan.canDelete ? '$name 삭제' : '$name은 지울 수 없다',
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -103,7 +103,7 @@ class _DeleteDialog extends StatelessWidget {
                       _pathBox(target),
                       const SizedBox(height: 12),
                       if (plan.isLink) ...[
-                        const Text('링크만 지웁니다. 원본 폴더는 남습니다.'),
+                        const Text('링크만 지운다. 원본 폴더는 남는다.'),
                         if (plan.keptOriginal case final original?) ...[
                           const SizedBox(height: 8),
                           const Text(
@@ -114,7 +114,7 @@ class _DeleteDialog extends StatelessWidget {
                         ],
                       ] else
                         Text(
-                          '폴더와 안의 파일 $fileCount개를 모두 지웁니다. 되돌릴 수 없습니다.',
+                          '폴더와 안의 파일 $fileCount개를 모두 지운다. 되돌릴 수 없다.',
                           style: const TextStyle(color: _red),
                         ),
                     ] else

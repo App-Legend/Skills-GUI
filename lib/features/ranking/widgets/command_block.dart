@@ -74,7 +74,7 @@ class _CommandBlockState extends State<CommandBlock> {
           padding: const EdgeInsets.all(6),
           child: IconButton(
             key: const Key('command-copy'),
-            tooltip: _copied ? '복사했습니다' : '명령 복사',
+            tooltip: _copied ? '복사했다' : '명령 복사',
             onPressed: _copy,
             icon: Icon(
               _copied ? Icons.check : Icons.copy_rounded,

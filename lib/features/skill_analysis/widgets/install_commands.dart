@@ -59,7 +59,7 @@ class _CommandRowState extends State<_CommandRow> {
           ),
         ),
         Tooltip(
-          message: _copied ? '복사했습니다' : '복사',
+          message: _copied ? '복사했다' : '복사',
           child: Semantics(
             button: true,
             label: '복사',

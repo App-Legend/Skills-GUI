@@ -36,7 +36,7 @@ void main() {
     for (final tab in ['업데이트 필요', '랭킹']) {
       await t.tap(find.text(tab));
       await t.pump();
-      expect(find.text('아직 준비 중입니다'), findsOneWidget, reason: tab);
+      expect(find.text('아직 준비 중이다'), findsOneWidget, reason: tab);
       expect(find.text('alpha'), findsNothing, reason: tab);
     }
   });

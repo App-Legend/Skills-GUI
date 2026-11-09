@@ -57,15 +57,12 @@ void main() {
 
   testWidgets('기본 정보 표시', (t) async {
     await _pump(t, full);
-    for (final x in [
-      'alpha',
-      '전역',
-      '/home/.claude/skills/alpha',
-      '포함된 파일',
-      'a.txt',
-    ]) {
+    for (final x in ['alpha', '전역', '/home/.claude/skills/alpha']) {
       expect(find.text(x), findsWidgets, reason: x);
     }
+    // 포함된 파일 목록은 너무 길어 보여 주지 않는다.
+    expect(find.text('포함된 파일'), findsNothing);
+    expect(find.text('a.txt'), findsNothing);
   });
 
   const denied = Skill(
@@ -240,7 +237,7 @@ void main() {
       ),
     );
     await t.pump();
-    expect(find.text('GitHub 주소를 찾지 못했습니다'), findsOneWidget);
+    expect(find.text('GitHub 주소를 찾지 못했다'), findsOneWidget);
     final gate = t.widget<IgnorePointer>(
       find
           .ancestor(

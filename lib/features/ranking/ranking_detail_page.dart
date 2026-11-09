@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../ui/glass.dart';
 import '../../ui/skill_badges.dart';
 import '../skill_analysis/ranking_analysis.dart';
+import '../skill_analysis/skill_origin.dart';
 import '../skill_analysis/widgets/analysis_sections.dart';
 import 'data/ranking_api_client.dart';
 import 'install/install_commands.dart';
@@ -150,7 +151,7 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
     widget.analysis?.removeListener(_onHistoryChanged);
     // 상세를 닫으면 터미널 명령도 멈추므로, 진행 중이던 터미널 설치는 중지로 남긴다.
     for (final record in _cliRecords.values) {
-      widget.history?.finish(record, ok: false, message: '상세 화면을 닫아 중지했습니다');
+      widget.history?.finish(record, ok: false, message: '상세 화면을 닫아 중지했다');
     }
     super.dispose();
   }
@@ -210,9 +211,9 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
       );
       final skipped = result.skipped.isEmpty
           ? ''
-          : ' 내용을 받지 못한 파일 ${result.skipped.length}개는 건너뛰었습니다.';
+          : ' 내용을 받지 못한 파일 ${result.skipped.length}개는 건너뛰었다.';
       _showResult(
-        '${_target.displayPath(detail.slug)} 에 파일 ${result.written}개를 설치했습니다.$skipped',
+        '${_target.displayPath(detail.slug)} 에 파일 ${result.written}개를 설치했다.$skipped',
       );
       if (record != null) {
         widget.history?.finish(
@@ -285,13 +286,13 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
     final audits = _audits;
     final notPassed = audits?.where((a) => !a.passed).length ?? 0;
     final (String text, AuditTone tone) = audits == null
-        ? ('보안 점검 결과를 아직 받지 못했습니다.', AuditTone.none)
+        ? ('보안 점검 결과를 아직 받지 못했다.', AuditTone.none)
         : audits.isEmpty
-        ? ('아직 보안 점검 기록이 없는 스킬입니다.', AuditTone.none)
+        ? ('아직 보안 점검 기록이 없는 스킬이다.', AuditTone.none)
         : notPassed == 0
-        ? ('보안 점검 ${audits.length}곳 모두 통과했습니다.', AuditTone.passed)
+        ? ('보안 점검 ${audits.length}곳 모두 통과했다.', AuditTone.passed)
         : (
-            '보안 점검 ${audits.length}곳 중 $notPassed곳이 통과가 아닙니다. 상세의 보안 점검을 확인하세요.',
+            '보안 점검 ${audits.length}곳 중 $notPassed곳이 통과가 아니다. 상세의 보안 점검을 확인해야 한다.',
             AuditTone.warning,
           );
     return showInstallConfirm(
@@ -499,7 +500,7 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${_target.label}에 이미 설치되어 있습니다.',
+                    '${_target.label}에 이미 설치되어 있다.',
                     style: const TextStyle(
                       color: _green,
                       fontWeight: FontWeight.w600,
@@ -564,14 +565,14 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
           ),
           if (_target == InstallTarget.codex)
             const Text(
-              '내 스킬 목록은 아직 Claude Code 폴더만 읽어서 Codex 에 설치한 스킬은 목록에 보이지 않습니다.',
+              '내 스킬 목록은 아직 Claude Code 폴더만 읽어서 Codex 에 설치한 스킬은 목록에 보이지 않는다.',
               style: TextStyle(fontSize: 12, color: _sub),
             ),
           if (_detailError != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                '파일을 받지 못해 설치할 수 없습니다: $_detailError',
+                '파일을 받지 못해 설치할 수 없다: $_detailError',
                 style: const TextStyle(color: _red),
               ),
             ),
@@ -602,7 +603,7 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
           _title('직접 설치'),
           if (!_cliSupported)
             const Text(
-              '이 스킬은 GitHub 저장소가 아닌 곳에서 배포되어 CLI 명령을 안내하지 않습니다. 위의 설치 버튼을 써 주세요.',
+              '이 스킬은 GitHub 저장소가 아닌 곳에서 배포되어 CLI 명령을 안내하지 않는다. 위의 설치 버튼을 쓰면 된다.',
               style: TextStyle(color: _sub),
             )
           else ...[
@@ -621,8 +622,8 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
             const SizedBox(height: 12),
             Text(
               _os == InstallOs.windows
-                  ? 'PowerShell 에서 실행합니다. ${_target.label} 전역 스킬로 설치됩니다.'
-                  : '터미널에서 실행합니다. ${_target.label} 전역 스킬로 설치됩니다.',
+                  ? 'PowerShell 에서 실행한다. ${_target.label} 전역 스킬로 설치된다.'
+                  : '터미널에서 실행한다. ${_target.label} 전역 스킬로 설치된다.',
               style: const TextStyle(color: _sub),
             ),
             const SizedBox(height: 8),
@@ -652,10 +653,7 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
                   : null,
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Node.js 가 없으면 먼저 설치합니다.',
-              style: TextStyle(color: _sub),
-            ),
+            const Text('Node.js 가 없으면 먼저 설치한다.', style: TextStyle(color: _sub)),
             const SizedBox(height: 8),
             CommandBlock(
               key: const Key('ranking-command-node'),
@@ -668,8 +666,8 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
             const SizedBox(height: 8),
             Text(
               _os == InstallOs.windows
-                  ? '복사 버튼은 한 줄짜리 명령을 복사합니다. npx 대신 npx.cmd 를 쓰는 것은 PowerShell 실행 정책에 막히지 않게 하려는 것입니다.'
-                  : '복사 버튼은 한 줄짜리 명령을 복사합니다. brew 가 없으면 nodejs.org 에서 설치할 수 있습니다.',
+                  ? '복사 버튼은 한 줄짜리 명령을 복사한다. npx 대신 npx.cmd 를 쓰는 것은 PowerShell 실행 정책에 막히지 않게 하려는 것이다.'
+                  : '복사 버튼은 한 줄짜리 명령을 복사한다. brew 가 없으면 nodejs.org 에서 설치할 수 있다.',
               style: const TextStyle(fontSize: 12, color: _sub),
             ),
           ],
@@ -680,7 +678,7 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
           ),
           const SizedBox(height: 4),
           const Text(
-            '실행 버튼은 지금 컴퓨터 운영체제의 명령에만 보입니다. 색이나 화살표 메뉴 같은 대화형 화면은 그대로 나오지 않습니다.',
+            '실행 버튼은 지금 컴퓨터 운영체제의 명령에만 보인다. 색이나 화살표 메뉴 같은 대화형 화면은 그대로 나오지 않는다.',
             style: TextStyle(fontSize: 12, color: _sub),
           ),
           const SizedBox(height: 8),
@@ -705,13 +703,13 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
           _title('보안 점검'),
           if (_auditError != null)
             Text(
-              '점검 결과를 불러오지 못했습니다: $_auditError',
+              '점검 결과를 불러오지 못했다: $_auditError',
               style: const TextStyle(color: _sub),
             )
           else if (audits == null)
-            const Text('불러오는 중입니다', style: TextStyle(color: _sub))
+            const Text('불러오는 중이다', style: TextStyle(color: _sub))
           else if (audits.isEmpty)
-            const Text('아직 보안 점검 기록이 없습니다.', style: TextStyle(color: _sub))
+            const Text('아직 보안 점검 기록이 없다.', style: TextStyle(color: _sub))
           else
             for (final audit in audits)
               Padding(
@@ -751,7 +749,7 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
                 ),
               ),
           const Text(
-            'skills.sh 가 모은 외부 점검 결과입니다. 통과여도 내용을 직접 확인하는 것이 좋습니다.',
+            'skills.sh 가 모은 외부 점검 결과다. 통과여도 내용을 직접 확인하는 것이 좋다.',
             style: TextStyle(fontSize: 12, color: _sub),
           ),
         ],
@@ -787,11 +785,11 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
     } else if (a != null) {
       body = Text(a.overview, key: const Key('ranking-overview'));
     } else if (_detail != null && analysis == null) {
-      body = const Text('한국어 분석을 쓸 수 없습니다.', style: TextStyle(color: _sub));
+      body = const Text('한국어 분석을 쓸 수 없다.', style: TextStyle(color: _sub));
     } else {
       // 랭킹 화면의 다른 카드처럼 글자로만 알린다.
       body = const Text(
-        'SKILL.md와 파일 목록을 바탕으로 분석하고 있습니다.',
+        'SKILL.md와 파일 목록을 바탕으로 분석하고 있다.',
         style: TextStyle(color: _sub),
       );
     }
@@ -799,8 +797,65 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
       key: const Key('ranking-overview-card'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [_title('개요'), body],
+        children: [
+          _title('개요'),
+          body,
+          const SizedBox(height: 12),
+          _githubButton(),
+        ],
       ),
+    );
+  }
+
+  /// GitHub 저장소 메인 주소. GitHub 출처가 아니면 null.
+  String? get _githubUrl {
+    final item = widget.item;
+    if (item.sourceType != 'github' || !item.source.contains('/')) return null;
+    return 'https://github.com/${item.source}';
+  }
+
+  Future<void> _openGithub(String url) async {
+    if (await openExternalUrl(url) || !mounted) return;
+    ScaffoldMessenger.maybeOf(context)
+        ?.showSnackBar(SnackBar(content: Text('브라우저를 열지 못했다: $url')));
+  }
+
+  /// 내 스킬 상세의 "GitHub로 가기"와 같은 칩. 안쪽 여백만 작게 줄였다.
+  /// GitHub 출처가 아니면 흐리게 두고 누를 수 없다.
+  Widget _githubButton() {
+    final url = _githubUrl;
+    final button = Semantics(
+      button: true,
+      enabled: url != null,
+      child: Opacity(
+        opacity: url == null ? 0.4 : 1,
+        child: IgnorePointer(
+          ignoring: url == null,
+          child: GlassTap(
+            key: const Key('ranking-github'),
+            onTap: url == null ? () {} : () => _openGithub(url),
+            color: const Color(0xFFE8EEF8),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            minHeight: 30,
+            child: const Text(
+              'GitHub로 가기',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (url != null) return button;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button,
+        const SizedBox(width: 8),
+        const Text(
+          'GitHub 저장소가 아닌 곳에서 배포된 스킬이다',
+          style: TextStyle(fontSize: 12, color: _sub),
+        ),
+      ],
     );
   }
 

@@ -86,7 +86,7 @@ class SkillAnalysisStore extends ChangeNotifier {
     } on SkillAnalysisApiException catch (e) {
       _errors[key] = e.message;
     } catch (_) {
-      _errors[key] = '한국어 분석을 만들지 못했습니다.';
+      _errors[key] = '한국어 분석을 만들지 못했다.';
     }
     _pending.remove(key);
     _notify();

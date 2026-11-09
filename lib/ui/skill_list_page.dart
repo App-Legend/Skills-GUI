@@ -293,10 +293,10 @@ class _Main extends StatelessWidget {
             ? Center(
                 child: Text(
                   agent == AgentFilter.codex
-                      ? '아직 준비 중입니다'
+                      ? '아직 준비 중이다'
                       : widget.result.skills.isEmpty
-                      ? '스킬을 찾지 못했습니다'
-                      : '해당하는 스킬이 없습니다',
+                      ? '스킬을 찾지 못했다'
+                      : '해당하는 스킬이 없다',
                   style: const TextStyle(color: _sub),
                 ),
               )

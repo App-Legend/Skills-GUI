@@ -14,11 +14,8 @@ class CategoryBadges extends StatelessWidget {
       for (final (i, slug) in slugs.indexed) ...[
         if (i > 0) const SizedBox(width: 4),
         Flexible(
-          child: SkillBadge(
-            categoryLabel(slug),
-            bg: const Color(0x14101828),
-            fg: const Color(0xFF3A4658),
-          ),
+          // 랭킹 카테고리 배지와 같은 파란색.
+          child: SkillBadge(categoryLabel(slug)),
         ),
       ],
     ],

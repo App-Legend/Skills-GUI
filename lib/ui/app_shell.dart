@@ -12,7 +12,7 @@ const _ink = Color(0xFF101828);
 const _sub = Color(0xFF3A4658);
 
 const _notReady = Center(
-  child: Text('아직 준비 중입니다', style: TextStyle(color: _sub)),
+  child: Text('아직 준비 중이다', style: TextStyle(color: _sub)),
 );
 
 enum AppTab {
