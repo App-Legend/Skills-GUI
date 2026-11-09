@@ -9,6 +9,8 @@ import '../features/skill_analysis/skill_origin.dart';
 import '../features/skill_analysis/widgets/category_badges.dart';
 import '../features/skill_analysis/widgets/collapsible_item.dart';
 import '../features/skill_analysis/widgets/install_commands.dart';
+import '../features/skill_delete/skill_deleter.dart';
+import '../features/skill_delete/widgets/delete_confirm_dialog.dart';
 import '../access/folder_access.dart';
 import '../scan/skill.dart';
 import 'glass.dart';
@@ -29,6 +31,12 @@ class SkillDetailPage extends StatefulWidget {
   /// 설치 명령과 GitHub 주소를 찾는다. null이면 홈의 `.claude`에서 찾는다.
   final SkillOriginResolver? resolveOrigin;
 
+  /// 삭제한 뒤 부른다(목록 다시 스캔).
+  final Future<void> Function()? onDeleted;
+
+  /// 실제로 지우는 함수. 테스트에서 바꿔 끼운다.
+  final Future<void> Function(SkillDeletePlan plan) deleter;
+
   const SkillDetailPage({
     super.key,
     required this.skill,
@@ -36,6 +44,8 @@ class SkillDetailPage extends StatefulWidget {
     this.analysisClient,
     this.analysisCache,
     this.resolveOrigin,
+    this.onDeleted,
+    this.deleter = deleteSkill,
   });
 
   @override
@@ -124,6 +134,48 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
     );
   }
 
+  Future<void> _delete() async {
+    final s = widget.skill;
+    final plan = planSkillDelete(s);
+    final ok = await confirmSkillDelete(
+      context,
+      name: s.name,
+      plan: plan,
+      fileCount: s.files.length,
+    );
+    if (!ok || !mounted) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    try {
+      await widget.deleter(plan);
+    } on Object catch (e) {
+      messenger?.showSnackBar(SnackBar(content: Text('삭제하지 못했습니다: $e')));
+      return;
+    }
+    messenger?.showSnackBar(SnackBar(content: Text('${s.name}을 삭제했습니다.')));
+    if (mounted) Navigator.maybePop(context);
+    await widget.onDeleted?.call();
+  }
+
+  Widget _deleteButton() {
+    final canDelete = planSkillDelete(widget.skill).canDelete;
+    // GitHub 버튼과 같은 칩 모양. 지울 수 없으면 흐리게 두고, 누르면 이유를 보여준다.
+    return Semantics(
+      button: true,
+      label: '스킬 삭제',
+      child: Opacity(
+        opacity: canDelete ? 1 : 0.4,
+        child: GlassTap(
+          onTap: _delete,
+          color: const Color(0xB3FFFFFF),
+          child: const Text(
+            '삭제',
+            style: TextStyle(fontWeight: FontWeight.w600, color: _red),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _section(String title, Widget body) => Padding(
     padding: const EdgeInsets.only(top: 20),
     child: Column(
@@ -169,9 +221,14 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
           Flexible(
             child: Text(error, style: const TextStyle(color: _red)),
           ),
-          TextButton(
-            onPressed: () => _store.retry(widget.skill),
-            child: const Text('다시 시도'),
+          const SizedBox(width: 8),
+          GlassTap(
+            onTap: () => _store.retry(widget.skill),
+            color: const Color(0xB3FFFFFF),
+            child: const Text(
+              '다시 시도',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       );
@@ -283,6 +340,8 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                             const SizedBox(width: 12),
                             // 자기 너비만 쓰고 오른쪽 끝에 붙는다. 이름이 남은 너비를 모두 쓴다.
                             _githubButton(),
+                            const SizedBox(width: 8),
+                            _deleteButton(),
                           ],
                         ],
                       ),

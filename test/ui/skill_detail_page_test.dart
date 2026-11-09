@@ -5,6 +5,7 @@ import 'package:skill_gui/features/skill_analysis/skill_analysis.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_cache.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_client.dart';
 import 'package:skill_gui/features/skill_analysis/skill_origin.dart';
+import 'package:skill_gui/features/skill_delete/skill_deleter.dart';
 import 'package:skill_gui/scan/skill.dart';
 import 'package:skill_gui/ui/glass.dart';
 import 'package:skill_gui/ui/skill_detail_page.dart';
@@ -214,10 +215,14 @@ void main() {
       t.getCenter(find.text('GitHub로 가기')).dy,
       closeTo(t.getCenter(find.text('alpha')).dy, 12),
     );
-    // 오른쪽 여백이 이름의 왼쪽 여백과 같다.
+    // 맨 오른쪽 버튼(삭제)의 오른쪽 여백이 이름의 왼쪽 여백과 같다.
     final panel = t.getRect(find.byType(GlassPanel).last);
     final name = t.getRect(find.text('alpha'));
-    final button = t.getRect(find.byType(GlassTap));
+    Rect chip(String label) => t.getRect(
+      find.ancestor(of: find.text(label), matching: find.byType(GlassTap)),
+    );
+    final button = chip('삭제');
+    expect(chip('GitHub로 가기').right, lessThan(button.left));
     expect(panel.right - button.right, closeTo(name.left - panel.left, 1));
   });
 
@@ -282,5 +287,67 @@ void main() {
     await t.pump();
     expect(find.text('a.txt: 구성 본문'), findsOneWidget);
     expect(find.text('주의 본문'), findsOneWidget);
+  });
+  testWidgets('삭제: 경로 확인 후 지우고 다시 스캔', (t) async {
+    t.view.physicalSize = const Size(1200, 900);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    SkillDeletePlan? deleted;
+    var rescans = 0;
+    await t.pumpWidget(
+      MaterialApp(
+        home: SkillDetailPage(
+          skill: full,
+          analysisCache: _readyCache(),
+          resolveOrigin: _origin,
+          deleter: (p) async => deleted = p,
+          onDeleted: () async => rescans++,
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.text('삭제'));
+    await t.pumpAndSettle();
+    expect(find.text('alpha 삭제'), findsOneWidget);
+    expect(find.text('/home/.claude/skills/alpha'), findsWidgets);
+    await t.tap(find.text('취소'));
+    await t.pumpAndSettle();
+    expect(deleted, isNull);
+
+    await t.tap(find.text('삭제'));
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(GlassTap, '삭제').last);
+    await t.pumpAndSettle();
+    expect(deleted?.target, '/home/.claude/skills/alpha');
+    expect(rescans, 1);
+  });
+
+  testWidgets('플러그인 스킬은 삭제 대신 안내', (t) async {
+    var called = false;
+    t.view.physicalSize = const Size(1200, 900);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      MaterialApp(
+        home: SkillDetailPage(
+          skill: const Skill(
+            name: 'p',
+            source: SkillSource.plugin,
+            plugin: 'p@m',
+            path: '/c/x/skills/p',
+          ),
+          analysisCache: _readyCache(),
+          resolveOrigin: _origin,
+          deleter: (_) async => called = true,
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.text('삭제'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('/plugin uninstall p@m'), findsOneWidget);
+    await t.tap(find.text('닫기'));
+    await t.pumpAndSettle();
+    expect(called, isFalse);
   });
 }

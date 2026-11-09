@@ -122,6 +122,7 @@ class _AppShellState extends State<AppShell> {
                               child: SkillDetailPage(
                                 skill: s,
                                 analysisStore: _analysis,
+                                onDeleted: widget.onRescan,
                               ),
                             ),
                         ],

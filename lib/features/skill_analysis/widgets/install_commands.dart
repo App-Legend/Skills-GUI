@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../ui/glass.dart';
 import '../skill_origin.dart';
 
 /// 설치 명령 목록. 줄마다 복사 버튼이 있다.
@@ -44,7 +45,7 @@ class _CommandRowState extends State<_CommandRow> {
   @override
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(top: 4),
-    padding: const EdgeInsets.fromLTRB(12, 6, 0, 6),
+    padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
     decoration: BoxDecoration(
       color: const Color(0x0F101828),
       borderRadius: BorderRadius.circular(10),
@@ -57,10 +58,17 @@ class _CommandRowState extends State<_CommandRow> {
             style: const TextStyle(fontFamily: 'Menlo', fontSize: 13),
           ),
         ),
-        IconButton(
-          onPressed: _copy,
-          tooltip: _copied ? '복사했습니다' : '복사',
-          icon: Icon(_copied ? Icons.check : Icons.copy, size: 18),
+        Tooltip(
+          message: _copied ? '복사했습니다' : '복사',
+          child: Semantics(
+            button: true,
+            label: '복사',
+            child: GlassTap(
+              onTap: _copy,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Icon(_copied ? Icons.check : Icons.copy, size: 18),
+            ),
+          ),
         ),
       ],
     ),
