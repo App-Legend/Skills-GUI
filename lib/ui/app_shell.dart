@@ -76,8 +76,8 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _onTab(AppTab t) => setState(() {
-    // 내 스킬 탭을 다시 누르면 목록으로 돌아간다.
-    if (t == AppTab.mine && _tab == AppTab.mine) _detail = null;
+    // 내 스킬 탭을 누르면 언제나 목록으로 돌아간다(다른 탭에 갔다 와도).
+    if (t == AppTab.mine) _detail = null;
     _tab = t;
   });
 

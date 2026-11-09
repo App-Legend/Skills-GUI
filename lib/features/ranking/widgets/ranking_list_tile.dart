@@ -12,7 +12,8 @@ const _star = Color(0xFF8A5A00);
 /// [showChange] 가 true 이면 [change] 를 +/− 로 표시한다 (핫 뷰용).
 /// [change] 가 null 이면 변화량 자리에 '-' 를 보인다.
 /// [stars] 는 GitHub 저장소 스타 수. null 이면 스타 줄을 그리지 않는다.
-/// [category] 가 있으면 출처 옆에 카테고리 배지를 붙인다.
+/// [category] 가 있으면 이름 옆에 카테고리 배지를 붙인다.
+/// 이름 아래에는 [summary](한국어 짧은 개요)를 보인다. 없으면 빈 줄로 둔다.
 class RankingListTile extends StatelessWidget {
   const RankingListTile({
     super.key,
@@ -25,11 +26,14 @@ class RankingListTile extends StatelessWidget {
     this.installed = false,
     this.stars,
     this.category,
+    this.summary,
     this.onTap,
   });
 
   final int rank;
   final String name;
+
+  /// 출처(저장소). 이름 아래에는 이제 개요를 보여서 화면에는 쓰지 않는다.
   final String source;
   final int installs;
   final int? change;
@@ -40,6 +44,9 @@ class RankingListTile extends StatelessWidget {
 
   final int? stars;
   final String? category;
+
+  /// 한국어 짧은 개요. 분석 전이면 null.
+  final String? summary;
 
   /// 누르면 상세로 간다. null 이면 누를 수 없다.
   final VoidCallback? onTap;
@@ -113,6 +120,13 @@ class RankingListTile extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (category != null) ...[
+                          const SizedBox(width: 8),
+                          SkillBadge(
+                            category!,
+                            key: const Key('ranking-tile-category'),
+                          ),
+                        ],
                         if (installed) ...[
                           const SizedBox(width: 8),
                           const SkillBadge(
@@ -124,25 +138,12 @@ class RankingListTile extends StatelessWidget {
                         ],
                       ],
                     ),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            source,
-                            key: const Key('ranking-tile-source'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12, color: _sub),
-                          ),
-                        ),
-                        if (category != null) ...[
-                          const SizedBox(width: 8),
-                          SkillBadge(
-                            category!,
-                            key: const Key('ranking-tile-category'),
-                          ),
-                        ],
-                      ],
+                    Text(
+                      summary ?? '',
+                      key: const Key('ranking-tile-summary'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: _sub),
                     ),
                   ],
                 ),

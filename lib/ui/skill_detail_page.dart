@@ -7,7 +7,7 @@ import '../features/skill_analysis/skill_analysis_client.dart';
 import '../features/skill_analysis/skill_analysis_store.dart';
 import '../features/skill_analysis/skill_origin.dart';
 import '../features/skill_analysis/widgets/category_badges.dart';
-import '../features/skill_analysis/widgets/collapsible_item.dart';
+import '../features/skill_analysis/widgets/analysis_sections.dart';
 import '../features/skill_analysis/widgets/install_commands.dart';
 import '../features/skill_delete/skill_deleter.dart';
 import '../features/skill_delete/widgets/delete_confirm_dialog.dart';
@@ -235,54 +235,9 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
     }
     final analysis = _analysis;
     if (analysis == null) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _analysisItem('개요', [analysis.overview]),
-        _analysisItem('이럴 때 사용', analysis.whenToUse),
-        _analysisItem('처리 방식', analysis.workflow),
-        _analysisItem('결과물', analysis.outputs),
-        _analysisItem('포함된 구성', [
-          for (final item in analysis.contents) '${item.path}: ${item.role}',
-        ], collapsible: true),
-        _analysisItem('주의할 점', analysis.cautions, collapsible: true),
-      ],
-    );
-  }
-
-  Widget _analysisItem(
-    String title,
-    List<String> items, {
-    bool collapsible = false,
-  }) {
-    if (items.isEmpty) return const SizedBox.shrink();
-    final body = items.length == 1
-        ? Text(items.single)
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final item in items)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text('• $item'),
-                ),
-            ],
-          );
     return Padding(
       padding: const EdgeInsets.only(top: 12),
-      child: collapsible
-          ? CollapsibleItem(title: title, child: body)
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                body,
-              ],
-            ),
+      child: AnalysisSections(analysis),
     );
   }
 

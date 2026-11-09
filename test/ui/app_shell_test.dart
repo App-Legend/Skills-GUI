@@ -141,6 +141,19 @@ void main() {
     expect(find.text('alpha'), findsOneWidget);
   });
 
+  testWidgets('상세에서 다른 탭에 갔다가 내 스킬로 오면 목록', (t) async {
+    await _pump(t);
+    await t.tap(find.text('alpha'));
+    await t.pumpAndSettle();
+    expect(find.byType(SkillDetailPage), findsOneWidget);
+    await t.tap(find.text('랭킹'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('내 스킬').first);
+    await t.pumpAndSettle();
+    expect(find.byType(SkillDetailPage), findsNothing);
+    expect(find.text('alpha'), findsOneWidget);
+  });
+
   testWidgets('업데이트 필요 탭에 개수, 0이면 숨김', (t) async {
     t.view.physicalSize = const Size(1280, 820);
     t.view.devicePixelRatio = 1;

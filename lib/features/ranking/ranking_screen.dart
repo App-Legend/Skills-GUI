@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../ui/glass.dart';
+import '../skill_analysis/ranking_analysis.dart';
+import '../skill_analysis/skill_analysis_store.dart';
+import '../skill_analysis/widgets/request_on_show.dart';
 import 'category/skill_category.dart';
 import 'data/ranking_api_client.dart';
 import 'install/install_history.dart';
@@ -96,9 +99,13 @@ class RankingScreen extends StatefulWidget {
     this.installer,
     this.onInstalled,
     this.history,
+    this.analysisStore,
   });
 
   final RankingApiClient? client;
+
+  /// 한국어 개요·분석. null이면 기본 분석 서버와 캐시로 만든다.
+  final SkillAnalysisStore? analysisStore;
 
   /// 상세 화면에서 쓰는 설치기. 없으면 기본 설치기(홈 폴더)를 쓴다.
   final SkillInstaller? installer;
@@ -141,6 +148,14 @@ class _RankingScreenState extends State<RankingScreen> {
   /// 열어 둔 상세. null 이면 목록을 보인다.
   SkillRankItem? _detail;
 
+  /// 목록에 보인 스킬부터 한국어 개요를 만든다. 서버 설정이 없으면 null.
+  SkillAnalysisStore? _ownStore;
+  RankingAnalysis? _analysis;
+
+  void _onAnalysis() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
@@ -149,11 +164,20 @@ class _RankingScreenState extends State<RankingScreen> {
         (RankingConfig.isConfigured
             ? RankingApiClient(RankingConfig.apiBase)
             : null);
-    if (_client != null) _load(_view);
+    if (_client case final client?) {
+      final store = widget.analysisStore ?? (_ownStore = SkillAnalysisStore());
+      _analysis = RankingAnalysis(store: store, fetchDetail: client.fetchDetail)
+        ..addListener(_onAnalysis);
+      _load(_view);
+    }
   }
 
   @override
   void dispose() {
+    _analysis
+      ?..removeListener(_onAnalysis)
+      ..dispose();
+    _ownStore?.dispose();
     _searchTimer?.cancel();
     _searchText.dispose();
     super.dispose();
@@ -403,6 +427,7 @@ class _RankingScreenState extends State<RankingScreen> {
         onBack: () => setState(() => _detail = null),
         onInstalled: widget.onInstalled,
         history: widget.history,
+        analysis: _analysis,
       );
     }
     final loading = _searching ? _search.loading : _states[_view]!.loading;
@@ -645,19 +670,32 @@ class _RankingScreenState extends State<RankingScreen> {
     return [
       for (var i = 0; i < items.length; i++)
         if (category == null || _categoriesOf(items[i]).contains(category))
-          RankingListTile(
-            rank: i + 1,
-            name: items[i].name,
-            source: items[i].source,
-            installs: items[i].installs,
-            change: items[i].change,
-            showChange: showChange,
-            installed: widget.installed.contains(items[i].name),
-            stars: _stars[items[i].source],
-            category: (category ?? _categoriesOf(items[i]).first).label,
-            onTap: () => setState(() => _detail = items[i]),
+          // 화면에 그려질 때 개요 분석을 요청한다.
+          RequestOnShow(
+            key: ValueKey('ranking-row-${items[i].id}'),
+            onShow: () => _analysis?.request(items[i]),
+            child: RankingListTile(
+              rank: i + 1,
+              name: items[i].name,
+              source: items[i].source,
+              installs: items[i].installs,
+              change: items[i].change,
+              showChange: showChange,
+              installed: widget.installed.contains(items[i].name),
+              stars: _stars[items[i].source],
+              category: (category ?? _categoriesOf(items[i]).first).label,
+              summary: _summaryOf(items[i]),
+              onTap: () => setState(() => _detail = items[i]),
+            ),
           ),
     ];
+  }
+
+  /// 짧은 개요. 없으면 긴 개요의 첫 줄.
+  String? _summaryOf(SkillRankItem item) {
+    final a = _analysis?.analysisOf(item);
+    if (a == null) return null;
+    return a.summary.isNotEmpty ? a.summary : a.overview;
   }
 
   Widget _footer(RankingView view, _ViewState state) {

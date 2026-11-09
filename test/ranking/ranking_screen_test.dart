@@ -54,6 +54,10 @@ RankingApiClient _client(
           }),
         );
       }
+      // 목록 개요를 만들려고 보내는 상세 요청은 따로 둔다.
+      if (uri.path.endsWith('/api/skill')) {
+        return const RankingHttpResponse(404, '{"error":"없음"}');
+      }
       log.add(uri);
       return respond(uri);
     },

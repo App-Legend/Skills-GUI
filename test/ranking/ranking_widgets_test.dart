@@ -13,7 +13,7 @@ Color? _changeColor(WidgetTester tester) => tester
 
 void main() {
   group('RankingListTile', () {
-    testWidgets('순위·이름·source·installs 를 보여 준다', (tester) async {
+    testWidgets('순위·이름·짧은 개요·installs 를 보여 주고 source 는 숨긴다', (tester) async {
       await tester.pumpWidget(
         _wrap(
           const RankingListTile(
@@ -21,13 +21,15 @@ void main() {
             name: 'fake-skill',
             source: 'fake/source',
             installs: 1234,
+            summary: '가짜 짧은 개요',
           ),
         ),
       );
 
       expect(find.text('3'), findsOneWidget);
       expect(find.text('fake-skill'), findsOneWidget);
-      expect(find.text('fake/source'), findsOneWidget);
+      expect(find.text('가짜 짧은 개요'), findsOneWidget);
+      expect(find.text('fake/source'), findsNothing);
       expect(find.text('설치 1,234'), findsOneWidget);
       expect(find.byKey(const Key('ranking-tile-change')), findsNothing);
       expect(find.byKey(const Key('ranking-tile-installed')), findsNothing);
@@ -69,6 +71,11 @@ void main() {
       );
       expect(find.byKey(const Key('ranking-tile-category')), findsOneWidget);
       expect(find.text('백엔드'), findsOneWidget);
+      // 이름과 같은 줄에 있다.
+      expect(
+        tester.getCenter(find.text('백엔드')).dy,
+        closeTo(tester.getCenter(find.text('a')).dy, 4),
+      );
     });
 
     testWidgets('installed 면 설치됨 배지를 붙인다', (tester) async {

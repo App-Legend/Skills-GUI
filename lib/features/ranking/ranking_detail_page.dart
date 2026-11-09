@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 
 import '../../ui/glass.dart';
 import '../../ui/skill_badges.dart';
+import '../skill_analysis/ranking_analysis.dart';
+import '../skill_analysis/widgets/analysis_sections.dart';
 import 'data/ranking_api_client.dart';
 import 'install/install_commands.dart';
 import 'install/install_history.dart';
@@ -24,7 +26,7 @@ const _amber = Color(0xFF8A5A00);
 const _red = Color(0xFFB42318);
 const _card = Color(0xDBFFFFFF);
 
-/// 랭킹 스킬 하나의 상세. SKILL.md·파일·보안 점검을 보여 주고 설치를 돕는다.
+/// 랭킹 스킬 하나의 상세. 한국어 분석·보안 점검을 보여 주고 설치를 돕는다.
 ///
 /// "설치" 는 앱이 파일을 바로 쓰고, "직접 설치" 는 운영체제별 CLI 명령을 보여 준다.
 class RankingDetailPage extends StatefulWidget {
@@ -40,6 +42,7 @@ class RankingDetailPage extends StatefulWidget {
     this.onInstalled,
     this.runner,
     this.history,
+    this.analysis,
   });
 
   final SkillRankItem item;
@@ -58,6 +61,9 @@ class RankingDetailPage extends StatefulWidget {
 
   /// 설치 기록. 있으면 앱 설치와 터미널 skills 설치를 여기에 남긴다.
   final InstallHistory? history;
+
+  /// 한국어 분석. null이면 분석 카드를 숨긴다.
+  final RankingAnalysis? analysis;
 
   @override
   State<RankingDetailPage> createState() => _RankingDetailPageState();
@@ -135,11 +141,13 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
     _loadAudits();
     _checkPresent();
     widget.history?.addListener(_onHistoryChanged);
+    widget.analysis?.addListener(_onHistoryChanged);
   }
 
   @override
   void dispose() {
     widget.history?.removeListener(_onHistoryChanged);
+    widget.analysis?.removeListener(_onHistoryChanged);
     // 상세를 닫으면 터미널 명령도 멈추므로, 진행 중이던 터미널 설치는 중지로 남긴다.
     for (final record in _cliRecords.values) {
       widget.history?.finish(record, ok: false, message: '상세 화면을 닫아 중지했습니다');
@@ -151,7 +159,10 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
     setState(() => _detailError = null);
     try {
       final detail = await widget.client.fetchDetail(widget.item.id);
-      if (mounted) setState(() => _detail = detail);
+      if (!mounted) return;
+      setState(() => _detail = detail);
+      // 받은 내용을 그대로 분석에 넘겨 한 번 더 받지 않는다.
+      widget.analysis?.useDetail(widget.item, detail);
     } on RankingApiException catch (e) {
       if (mounted) setState(() => _detailError = e.message);
     }
@@ -312,6 +323,8 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
               child: ListView(
                 key: const PageStorageKey<String>('ranking-detail'),
                 children: [
+                  _overviewCard(),
+                  const SizedBox(height: 12),
                   _installCard(),
                   if (_showGuide && !_alreadyInstalled) ...[
                     const SizedBox(height: 12),
@@ -319,8 +332,10 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
                   ],
                   const SizedBox(height: 12),
                   _auditCard(),
-                  const SizedBox(height: 12),
-                  _contentCard(),
+                  if (_analysisCard() case final card?) ...[
+                    const SizedBox(height: 12),
+                    card,
+                  ],
                   const SizedBox(height: 16),
                 ],
               ),
@@ -744,67 +759,58 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
     );
   }
 
-  Widget _contentCard() {
-    final detail = _detail;
-    return _cardBox(
-      key: const Key('ranking-content-card'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  /// 맨 위 개요. 스킬 내용을 못 받았으면 그 오류와 다시 시도를 보인다.
+  Widget _overviewCard() {
+    final analysis = widget.analysis;
+    final a = analysis?.analysisOf(widget.item);
+    final error = _detailError ?? analysis?.errorOf(widget.item);
+    final Widget body;
+    if (error != null) {
+      body = Row(
         children: [
-          _title('스킬 내용'),
-          if (_detailError != null)
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _detailError!,
-                    style: const TextStyle(color: _red),
-                  ),
-                ),
-                TextButton(onPressed: _loadDetail, child: const Text('다시 시도')),
-              ],
-            )
-          else if (detail == null)
-            const Text('불러오는 중입니다', style: TextStyle(color: _sub))
-          else ...[
-            Text(
-              '파일 ${detail.files.length}개',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 4),
-            for (final file in detail.files)
-              Text(
-                file.contents == null ? '${file.path} (내용 없음)' : file.path,
-                style: const TextStyle(fontSize: 12, color: _sub),
-              ),
-            const SizedBox(height: 16),
-            const Text(
-              'SKILL.md',
+          Expanded(
+            child: Text(error, style: const TextStyle(color: _red)),
+          ),
+          const SizedBox(width: 8),
+          GlassTap(
+            onTap: _detailError != null
+                ? _loadDetail
+                : () => analysis?.retry(widget.item),
+            color: const Color(0xB3FFFFFF),
+            child: const Text(
+              '다시 시도',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F6FA),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: SelectableText(
-                detail.skillMd ?? 'SKILL.md 가 없습니다.',
-                key: const Key('ranking-skill-md'),
-                style: const TextStyle(
-                  fontFamily: 'Consolas',
-                  fontFamilyFallback: ['Menlo', 'monospace'],
-                  fontSize: 13,
-                  height: 1.6,
-                  color: _ink,
-                ),
-              ),
-            ),
-          ],
+          ),
         ],
+      );
+    } else if (a != null) {
+      body = Text(a.overview, key: const Key('ranking-overview'));
+    } else if (_detail != null && analysis == null) {
+      body = const Text('한국어 분석을 쓸 수 없습니다.', style: TextStyle(color: _sub));
+    } else {
+      // 랭킹 화면의 다른 카드처럼 글자로만 알린다.
+      body = const Text(
+        'SKILL.md와 파일 목록을 바탕으로 분석하고 있습니다.',
+        style: TextStyle(color: _sub),
+      );
+    }
+    return _cardBox(
+      key: const Key('ranking-overview-card'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [_title('개요'), body],
       ),
+    );
+  }
+
+  /// 개요 밖의 분석 항목(이럴 때 사용·처리 방식·결과물·포함된 구성·주의할 점).
+  Widget? _analysisCard() {
+    final a = widget.analysis?.analysisOf(widget.item);
+    if (a == null) return null;
+    return _cardBox(
+      key: const Key('ranking-analysis-card'),
+      child: AnalysisSections(a, overview: false),
     );
   }
 }
