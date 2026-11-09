@@ -226,8 +226,8 @@ class PanelToggleIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
     key: const Key('panel-toggle-icon'),
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 26,
     child: CustomPaint(painter: _PanelIconPainter(busy: busy)),
   );
 }
@@ -243,16 +243,17 @@ class _PanelIconPainter extends CustomPainter {
       ..color = _ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.8;
-    final box = Rect.fromLTWH(2, 4, size.width - 4, size.height - 8);
+    // 세로로 긴 사각형 (가로 14 × 세로 22).
+    final box = Rect.fromLTWH(3, 2, size.width - 6, size.height - 4);
     canvas.drawRRect(
       RRect.fromRectAndRadius(box, const Radius.circular(4)),
       stroke,
     );
     // 패널 자리를 뜻하는 세로 막대 (오른쪽 패널이라 오른쪽에 둔다).
-    final barX = box.right - 5.5;
+    final barX = box.right - 4;
     canvas.drawLine(
-      Offset(barX, box.top + 3.5),
-      Offset(barX, box.bottom - 3.5),
+      Offset(barX, box.top + 4),
+      Offset(barX, box.bottom - 4),
       stroke..strokeCap = StrokeCap.round,
     );
     if (busy) {
