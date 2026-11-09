@@ -46,11 +46,7 @@ class InstallHistoryPanel extends StatelessWidget {
                   IconButton(
                     key: const Key('install-history-close'),
                     tooltip: '설치 기록 접기',
-                    icon: const Icon(
-                      Icons.keyboard_double_arrow_right_rounded,
-                      size: 20,
-                      color: _sub,
-                    ),
+                    icon: const PanelToggleIcon(),
                     onPressed: () => history.panelOpen.value = false,
                   ),
                 ],
@@ -201,54 +197,73 @@ class InstallHistoryRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GlassPanel(
     key: const Key('install-history-rail'),
-    radius: 22,
+    radius: 16,
     child: ListenableBuilder(
       listenable: history,
-      builder: (context, _) {
-        final running = history.runningCount;
-        return InkWell(
-          key: const Key('install-history-open'),
-          borderRadius: BorderRadius.circular(22),
-          onTap: () => history.panelOpen.value = true,
-          child: Tooltip(
-            message: '설치 기록 펼치기',
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.keyboard_double_arrow_left_rounded,
-                    size: 20,
-                    color: _sub,
-                  ),
-                  const SizedBox(height: 10),
-                  if (running > 0) ...[
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: _blue,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '$running',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: _blue,
-                      ),
-                    ),
-                  ] else
-                    const Icon(Icons.history_rounded, size: 20, color: _sub),
-                ],
-              ),
-            ),
+      builder: (context, _) => InkWell(
+        key: const Key('install-history-open'),
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => history.panelOpen.value = true,
+        child: Tooltip(
+          message: history.anyRunning ? '설치 중 · 설치 기록 펼치기' : '설치 기록 펼치기',
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: PanelToggleIcon(busy: history.anyRunning),
           ),
-        );
-      },
+        ),
+      ),
     ),
   );
+}
+
+/// 오른쪽 패널을 여닫는 아이콘: 둥근 사각형 안 오른쪽에 세로 막대.
+/// [busy] 면 오른쪽 위에 작은 파란 점을 붙인다 (설치 중).
+class PanelToggleIcon extends StatelessWidget {
+  const PanelToggleIcon({super.key, this.busy = false});
+
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    key: const Key('panel-toggle-icon'),
+    width: 22,
+    height: 22,
+    child: CustomPaint(painter: _PanelIconPainter(busy: busy)),
+  );
+}
+
+class _PanelIconPainter extends CustomPainter {
+  const _PanelIconPainter({required this.busy});
+
+  final bool busy;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..color = _ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8;
+    final box = Rect.fromLTWH(2, 4, size.width - 4, size.height - 8);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(box, const Radius.circular(4)),
+      stroke,
+    );
+    // 패널 자리를 뜻하는 세로 막대 (오른쪽 패널이라 오른쪽에 둔다).
+    final barX = box.right - 5.5;
+    canvas.drawLine(
+      Offset(barX, box.top + 3.5),
+      Offset(barX, box.bottom - 3.5),
+      stroke..strokeCap = StrokeCap.round,
+    );
+    if (busy) {
+      canvas.drawCircle(
+        Offset(box.right, box.top),
+        3.6,
+        Paint()..color = _blue,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PanelIconPainter old) => old.busy != busy;
 }
