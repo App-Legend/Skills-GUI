@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../ui/glass.dart';
 import '../install/install_history.dart';
 
 const _ink = Color(0xFF101828);
@@ -11,29 +12,70 @@ const _blue = Color(0xFF0064D1);
 String _time(DateTime t) =>
     '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
-/// 설치 기록 창을 연다. 창이 열려 있는 동안 진행 상황이 바로 바뀐다.
-Future<void> showInstallHistory(BuildContext context, InstallHistory history) =>
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('설치 기록'),
-        content: SizedBox(
-          width: 520,
-          child: InstallHistoryView(history: history),
-        ),
-        actions: [
-          TextButton(
-            key: const Key('install-history-clear'),
-            onPressed: history.clearFinished,
-            child: const Text('끝난 기록 지우기'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
-          ),
-        ],
+/// 오른쪽 사이드바의 설치 기록 패널. 왼쪽 사이드바와 같은 유리 패널 모양이다.
+class InstallHistoryPanel extends StatelessWidget {
+  const InstallHistoryPanel({super.key, required this.history});
+
+  final InstallHistory history;
+
+  @override
+  Widget build(BuildContext context) => GlassPanel(
+    key: const Key('install-history-panel'),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 8, 12),
+      child: ListenableBuilder(
+        listenable: history,
+        builder: (context, _) {
+          final running = history.runningCount;
+          final hasFinished = history.records.length > running;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      '설치 기록',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: _ink,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const Key('install-history-close'),
+                    tooltip: '닫기',
+                    icon: const Icon(Icons.close, size: 18, color: _sub),
+                    onPressed: () => history.panelOpen.value = false,
+                  ),
+                ],
+              ),
+              Text(
+                running > 0 ? '설치 중 $running개' : '이번 실행 동안의 설치',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: running > 0 ? _blue : _sub,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(child: InstallHistoryView(history: history)),
+              if (hasFinished)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    key: const Key('install-history-clear'),
+                    onPressed: history.clearFinished,
+                    child: const Text('끝난 기록 지우기'),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
-    );
+    ),
+  );
+}
 
 /// 설치 기록 목록. 최근 것이 위.
 class InstallHistoryView extends StatelessWidget {
@@ -48,21 +90,18 @@ class InstallHistoryView extends StatelessWidget {
       final records = history.records;
       if (records.isEmpty) {
         return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
+          padding: EdgeInsets.only(top: 16, right: 8),
           child: Text(
             '아직 설치한 스킬이 없습니다. 앱을 끄면 기록도 사라집니다.',
-            style: TextStyle(color: _sub),
+            style: TextStyle(fontSize: 13, color: _sub),
           ),
         );
       }
-      return ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 420),
-        child: ListView.separated(
-          shrinkWrap: true,
-          itemCount: records.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, i) => _row(records[i]),
-        ),
+      return ListView.separated(
+        padding: const EdgeInsets.only(right: 8),
+        itemCount: records.length,
+        separatorBuilder: (_, _) => const Divider(height: 1),
+        itemBuilder: (context, i) => _row(records[i]),
       );
     },
   );
@@ -96,20 +135,42 @@ class InstallHistoryView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(padding: const EdgeInsets.only(top: 2), child: icon),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  r.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: _ink,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        r.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: _ink,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      r.status.label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
-                  '${r.source} · ${r.target} · ${r.method.label} · $when',
+                  '${r.target} · ${r.method.label} · $when',
+                  style: const TextStyle(fontSize: 12, color: _sub),
+                ),
+                Text(
+                  r.source,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12, color: _sub),
                 ),
                 if (r.message != null)
@@ -119,11 +180,6 @@ class InstallHistoryView extends StatelessWidget {
                   ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            r.status.label,
-            style: TextStyle(fontWeight: FontWeight.w600, color: color),
           ),
         ],
       ),

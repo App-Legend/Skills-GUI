@@ -11,7 +11,6 @@ import 'models/ranking_models.dart';
 import 'ranking_config.dart';
 import 'ranking_detail_page.dart';
 import 'widgets/category_list.dart';
-import 'widgets/install_history_view.dart';
 import 'widgets/ranking_list_tile.dart';
 import 'widgets/ranking_state_view.dart';
 
@@ -530,14 +529,14 @@ class _RankingScreenState extends State<RankingScreen> {
     );
   }
 
-  /// 설치 기록 버튼. 설치 중이면 돌아가는 표시와 개수를 붙인다.
+  /// 설치 기록 버튼. 오른쪽 사이드바를 열고 닫는다. 설치 중이면 돌아가는 표시와 개수를 붙인다.
   Widget _historyButton(InstallHistory history) => ListenableBuilder(
     listenable: history,
     builder: (context, _) {
       final running = history.runningCount;
       return GlassTap(
         key: const Key('ranking-history'),
-        onTap: () => showInstallHistory(context, history),
+        onTap: history.togglePanel,
         color: const Color(0xB3FFFFFF),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../features/ranking/install/install_history.dart';
+import '../features/ranking/widgets/install_history_view.dart';
 import '../features/skill_analysis/skill_analysis_store.dart';
 import '../scan/skill.dart';
 import 'glass.dart';
@@ -139,6 +140,20 @@ class _AppShellState extends State<AppShell> {
                   ],
                 ),
               ),
+              // 오른쪽 사이드바: 설치 기록. 열려 있을 때만 보이고 어느 탭에서든 남는다.
+              if (widget.installHistory case final history?)
+                ValueListenableBuilder<bool>(
+                  valueListenable: history.panelOpen,
+                  builder: (context, open, _) => open
+                      ? Padding(
+                          padding: const EdgeInsets.only(left: 16),
+                          child: SizedBox(
+                            width: 300,
+                            child: InstallHistoryPanel(history: history),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
             ],
           ),
         ),
@@ -169,24 +184,27 @@ class _Sidebar extends StatelessWidget {
       builder: (context, _) {
         final n = history.runningCount;
         if (n == 0) return const SizedBox.shrink();
-        return Row(
-          key: const Key('sidebar-installing'),
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: 12,
-              height: 12,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Color(0xFF0064D1),
+        return GestureDetector(
+          onTap: () => history.panelOpen.value = true,
+          child: Row(
+            key: const Key('sidebar-installing'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color(0xFF0064D1),
+                ),
               ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '설치 중 $n',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF0064D1)),
-            ),
-          ],
+              const SizedBox(width: 6),
+              Text(
+                '설치 중 $n',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF0064D1)),
+              ),
+            ],
+          ),
         );
       },
     );

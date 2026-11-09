@@ -55,6 +55,11 @@ class InstallHistory extends ChangeNotifier {
   final List<InstallRecord> _records = [];
   int _nextId = 1;
 
+  /// 오른쪽 설치 기록 패널을 열어 둘지. 설치를 시작하면 자동으로 연다.
+  final ValueNotifier<bool> panelOpen = ValueNotifier(false);
+
+  void togglePanel() => panelOpen.value = !panelOpen.value;
+
   /// 최근 것이 먼저.
   List<InstallRecord> get records => List.unmodifiable(_records.reversed);
 
@@ -83,6 +88,7 @@ class InstallHistory extends ChangeNotifier {
       startedAt: now ?? DateTime.now(),
     );
     _records.add(record);
+    panelOpen.value = true;
     notifyListeners();
     return record;
   }
@@ -105,5 +111,11 @@ class InstallHistory extends ChangeNotifier {
   void clearFinished() {
     _records.removeWhere((r) => r.status != InstallStatus.running);
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    panelOpen.dispose();
+    super.dispose();
   }
 }

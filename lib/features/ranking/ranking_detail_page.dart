@@ -101,6 +101,26 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
   bool _installFailed = false;
   late bool _installed = widget.installed;
 
+  /// 설치할 곳마다 같은 이름의 스킬 폴더가 이미 있는지 (파일 시스템 확인 결과).
+  final Map<InstallTarget, bool> _present = {};
+
+  /// 고른 설치할 곳에 이미 설치돼 있으면 설치 버튼을 숨긴다.
+  /// Claude Code 는 내 스킬 스캔 결과(이름)도 함께 본다.
+  bool get _alreadyInstalled =>
+      (_target == InstallTarget.claude && _installed) ||
+      (_present[_target] ?? false);
+
+  Future<void> _checkPresent() async {
+    for (final target in InstallTarget.values) {
+      try {
+        final exists = await _installer.exists(target, widget.item.slug);
+        if (mounted) setState(() => _present[target] = exists);
+      } on SkillInstallException {
+        // 홈 폴더를 못 찾거나 이름이 폴더로 쓸 수 없으면 확인을 건너뛴다.
+      }
+    }
+  }
+
   bool get _cliSupported => InstallCommands.supports(
     widget.item.source,
     widget.item.sourceType,
@@ -112,6 +132,7 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
     super.initState();
     _loadDetail();
     _loadAudits();
+    _checkPresent();
     widget.history?.addListener(_onHistoryChanged);
   }
 
@@ -188,8 +209,11 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
           message: _target.displayPath(detail.slug),
         );
       }
-      if (_target == InstallTarget.claude && mounted) {
-        setState(() => _installed = true);
+      if (mounted) {
+        setState(() {
+          _present[_target] = true;
+          if (_target == InstallTarget.claude) _installed = true;
+        });
       }
       widget.onInstalled?.call();
     } on SkillInstallException catch (e) {
@@ -229,6 +253,7 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
       );
     }
     if (exitCode != 0 || !command.contains('skills add')) return;
+    _checkPresent();
     if (command.contains('-a ${InstallTarget.claude.cliAgent}')) {
       setState(() => _installed = true);
     }
@@ -317,7 +342,10 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
                 key: const PageStorageKey<String>('ranking-detail'),
                 children: [
                   _installCard(),
-                  if (_showGuide) ...[const SizedBox(height: 12), _guideCard()],
+                  if (_showGuide && !_alreadyInstalled) ...[
+                    const SizedBox(height: 12),
+                    _guideCard(),
+                  ],
                   const SizedBox(height: 12),
                   _auditCard(),
                   const SizedBox(height: 12),
@@ -477,54 +505,72 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
             ],
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              GlassTap(
-                key: const Key('ranking-install'),
-                onTap: ready ? _install : () {},
-                color: ready ? _blue : const Color(0x660064D1),
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        '설치',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-              ),
-              GlassTap(
-                key: const Key('ranking-direct-install'),
-                onTap: () => setState(() => _showGuide = !_showGuide),
-                color: const Color(0xFFE8EEF8),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      '직접 설치',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+          if (_alreadyInstalled && !_busy)
+            Row(
+              key: const Key('ranking-already-installed'),
+              children: [
+                const Icon(Icons.check_circle, size: 20, color: _green),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${_target.label}에 이미 설치되어 있습니다.',
+                    style: const TextStyle(
+                      color: _green,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      _showGuide ? Icons.expand_less : Icons.expand_more,
-                      size: 18,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                GlassTap(
+                  key: const Key('ranking-install'),
+                  onTap: ready ? _install : () {},
+                  color: ready ? _blue : const Color(0x660064D1),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          '설치',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+                GlassTap(
+                  key: const Key('ranking-direct-install'),
+                  onTap: () => setState(() => _showGuide = !_showGuide),
+                  color: const Color(0xFFE8EEF8),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        '직접 설치',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _showGuide ? Icons.expand_less : Icons.expand_more,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 10),
           Text(
             '설치 위치: ${_target.displayPath(widget.item.slug)}',

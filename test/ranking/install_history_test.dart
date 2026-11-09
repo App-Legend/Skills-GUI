@@ -170,7 +170,7 @@ void main() {
 
     expect(history.runningCount, 1);
     expect(find.byKey(const Key('sidebar-installing')), findsOneWidget);
-    expect(find.text('설치 중 1'), findsOneWidget);
+    expect(find.byKey(const Key('install-history-panel')), findsOneWidget);
 
     // 다른 탭으로 가도 사이드바 표시는 남는다.
     await t.tap(find.text('내 스킬'));
@@ -185,16 +185,27 @@ void main() {
     expect(history.records.single.method, InstallMethod.app);
     expect(rescans, 1);
 
-    // 랭킹으로 돌아와 상세를 닫으면 설치 기록 버튼으로 볼 수 있다.
+    // 설치를 시작하면 오른쪽 사이드바가 열려 있고, 완료 기록이 보인다.
+    expect(find.byKey(const Key('install-history-panel')), findsOneWidget);
+    expect(find.byType(InstallHistoryView), findsOneWidget);
+    expect(find.text('완료'), findsOneWidget);
+
+    // 닫기 → 랭킹의 설치 기록 버튼으로 다시 연다.
+    await t.tap(find.byKey(const Key('install-history-close')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('install-history-panel')), findsNothing);
     await t.tap(find.text('랭킹'));
     await t.pumpAndSettle();
     await t.tap(find.byKey(const Key('ranking-detail-back')));
     await t.pumpAndSettle();
     await t.tap(find.byKey(const Key('ranking-history')));
     await t.pumpAndSettle();
-    expect(find.byType(InstallHistoryView), findsOneWidget);
-    expect(find.text('fake-skill'), findsWidgets);
-    expect(find.text('완료'), findsOneWidget);
+    expect(find.byKey(const Key('install-history-panel')), findsOneWidget);
+
+    // 끝난 기록 지우기.
+    await t.tap(find.byKey(const Key('install-history-clear')));
+    await t.pumpAndSettle();
+    expect(history.records, isEmpty);
   });
 
   testWidgets('설치가 실패하면 기록에 실패와 이유가 남는다', (t) async {
