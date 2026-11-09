@@ -105,8 +105,13 @@ class RankingApiClient {
       rethrow;
     } on TimeoutException {
       throw const RankingApiException(0, '응답이 너무 늦어요. 잠시 뒤 다시 시도해 주세요.');
-    } on IOException catch (e) {
-      throw RankingApiException(0, '서버에 연결하지 못했어요: $e');
+    } on IOException {
+      // 예외 원문(SocketException…)은 길고 읽기 어려워 주소만 알려 준다.
+      throw RankingApiException(
+        0,
+        '중계 서버(${uri.host}${uri.hasPort ? ':${uri.port}' : ''})에 연결하지 못했어요. '
+        '인터넷 연결이나 서버가 켜져 있는지 확인해 주세요.',
+      );
     }
 
     final status = response.statusCode;
