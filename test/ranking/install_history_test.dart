@@ -190,15 +190,14 @@ void main() {
     expect(find.byType(InstallHistoryView), findsOneWidget);
     expect(find.text('완료'), findsOneWidget);
 
-    // 닫기 → 랭킹의 설치 기록 버튼으로 다시 연다.
+    // 접기 → 오른쪽 끝의 접힌 탭(≪)으로 다시 편다. 다른 탭에서도 보인다.
     await t.tap(find.byKey(const Key('install-history-close')));
     await t.pumpAndSettle();
     expect(find.byKey(const Key('install-history-panel')), findsNothing);
-    await t.tap(find.text('랭킹'));
+    expect(find.byKey(const Key('install-history-rail')), findsOneWidget);
+    await t.tap(find.text('내 스킬').first);
     await t.pumpAndSettle();
-    await t.tap(find.byKey(const Key('ranking-detail-back')));
-    await t.pumpAndSettle();
-    await t.tap(find.byKey(const Key('ranking-history')));
+    await t.tap(find.byKey(const Key('install-history-open')));
     await t.pumpAndSettle();
     expect(find.byKey(const Key('install-history-panel')), findsOneWidget);
 

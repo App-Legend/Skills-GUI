@@ -3,23 +3,23 @@ import 'package:skill_gui/features/ranking/models/ranking_models.dart';
 
 // 테스트용 가짜 데이터. 실제 skills.sh 수치가 아니다.
 Map<String, Object?> fakeItem({Object? installs = 1, Object? change}) => {
-      'id': 'fake-id',
-      'slug': 'fake-slug',
-      'name': '가짜 스킬',
-      'source': 'fake/source',
-      'installs': installs,
-      'sourceType': 'github',
-      'installUrl': 'https://example.test/install',
-      'url': 'https://example.test/skill',
-      'change': ?change,
-    };
+  'id': 'fake-id',
+  'slug': 'fake-slug',
+  'name': '가짜 스킬',
+  'source': 'fake/source',
+  'installs': installs,
+  'sourceType': 'github',
+  'installUrl': 'https://example.test/install',
+  'url': 'https://example.test/skill',
+  'change': ?change,
+};
 
 Map<String, Object?> fakePagination() => {
-      'page': 1,
-      'perPage': 2,
-      'total': 5,
-      'hasMore': true,
-    };
+  'page': 1,
+  'perPage': 2,
+  'total': 5,
+  'hasMore': true,
+};
 
 void main() {
   test('RankingView apiValue', () {

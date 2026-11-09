@@ -429,8 +429,6 @@ class _RankingScreenState extends State<RankingScreen> {
                       ),
                     ),
                   ),
-                  if (widget.history case final history?)
-                    _historyButton(history),
                   if (_client != null) ...[
                     const SizedBox(width: 8),
                     GlassTap(
@@ -528,37 +526,6 @@ class _RankingScreenState extends State<RankingScreen> {
       ),
     );
   }
-
-  /// 설치 기록 버튼. 오른쪽 사이드바를 열고 닫는다. 설치 중이면 돌아가는 표시와 개수를 붙인다.
-  Widget _historyButton(InstallHistory history) => ListenableBuilder(
-    listenable: history,
-    builder: (context, _) {
-      final running = history.runningCount;
-      return GlassTap(
-        key: const Key('ranking-history'),
-        onTap: history.togglePanel,
-        color: const Color(0xB3FFFFFF),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (running > 0) ...[
-              const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2, color: _blue),
-              ),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              running > 0 ? '설치 중 $running' : '설치 기록',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      );
-    },
-  );
 
   // TextField 는 Material 조상이 있어야 해서 배경을 Material 로 깐다.
   Widget _searchField() => Material(

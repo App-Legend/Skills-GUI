@@ -13,6 +13,7 @@ import 'models/ranking_models.dart';
 import 'terminal/command_runner.dart';
 import 'terminal/terminal_panel.dart';
 import 'widgets/command_block.dart';
+import 'widgets/install_confirm_dialog.dart';
 import 'widgets/ranking_list_tile.dart';
 
 const _ink = Color(0xFF101828);
@@ -272,56 +273,26 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
   Future<bool?> _confirm(SkillDetail detail, bool exists) {
     final audits = _audits;
     final notPassed = audits?.where((a) => !a.passed).length ?? 0;
-    final auditLine = audits == null
-        ? '보안 점검 결과를 아직 받지 못했습니다.'
+    final (String text, AuditTone tone) = audits == null
+        ? ('보안 점검 결과를 아직 받지 못했습니다.', AuditTone.none)
         : audits.isEmpty
-        ? '아직 보안 점검 기록이 없는 스킬입니다.'
+        ? ('아직 보안 점검 기록이 없는 스킬입니다.', AuditTone.none)
         : notPassed == 0
-        ? '보안 점검 ${audits.length}곳 모두 통과했습니다.'
-        : '보안 점검 ${audits.length}곳 중 $notPassed곳이 통과가 아닙니다. 아래 내용을 확인하세요.';
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(exists ? '이미 있는 스킬을 바꿀까요?' : '스킬을 설치할까요?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${detail.source} / ${detail.slug}'),
-            const SizedBox(height: 8),
-            Text('설치 위치: ${_target.displayPath(detail.slug)}'),
-            Text('파일 ${detail.files.length}개'),
-            const SizedBox(height: 8),
-            Text(
-              auditLine,
-              style: TextStyle(color: notPassed > 0 ? _red : _sub),
-            ),
-            if (exists) ...[
-              const SizedBox(height: 8),
-              const Text(
-                '같은 이름의 폴더를 새 파일로 바꿉니다. 그 폴더에서 고친 내용은 사라집니다.',
-                style: TextStyle(color: _red),
-              ),
-            ],
-            const SizedBox(height: 8),
-            const Text(
-              '스킬은 에이전트에게 주는 지시문입니다. 믿을 수 있는 출처인지 확인하세요.',
-              style: TextStyle(fontSize: 12, color: _sub),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
-          ),
-          FilledButton(
-            key: const Key('ranking-install-confirm'),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(exists ? '바꾸기' : '설치'),
-          ),
-        ],
-      ),
+        ? ('보안 점검 ${audits.length}곳 모두 통과했습니다.', AuditTone.passed)
+        : (
+            '보안 점검 ${audits.length}곳 중 $notPassed곳이 통과가 아닙니다. 상세의 보안 점검을 확인하세요.',
+            AuditTone.warning,
+          );
+    return showInstallConfirm(
+      context,
+      name: detail.slug,
+      source: detail.source,
+      target: _target.label,
+      path: _target.displayPath(detail.slug),
+      fileCount: detail.files.length,
+      auditText: text,
+      auditTone: tone,
+      replacing: exists,
     );
   }
 

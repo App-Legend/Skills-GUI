@@ -144,15 +144,21 @@ class _AppShellState extends State<AppShell> {
               if (widget.installHistory case final history?)
                 ValueListenableBuilder<bool>(
                   valueListenable: history.panelOpen,
-                  builder: (context, open, _) => open
-                      ? Padding(
-                          padding: const EdgeInsets.only(left: 16),
-                          child: SizedBox(
+                  builder: (context, open, _) => Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: open
+                        ? SizedBox(
                             width: 300,
                             child: InstallHistoryPanel(history: history),
+                          )
+                        : Align(
+                            alignment: Alignment.topCenter,
+                            child: SizedBox(
+                              width: 52,
+                              child: InstallHistoryRail(history: history),
+                            ),
                           ),
-                        )
-                      : const SizedBox.shrink(),
+                  ),
                 ),
             ],
           ),

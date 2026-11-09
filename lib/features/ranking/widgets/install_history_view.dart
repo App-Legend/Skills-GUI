@@ -45,8 +45,12 @@ class InstallHistoryPanel extends StatelessWidget {
                   ),
                   IconButton(
                     key: const Key('install-history-close'),
-                    tooltip: '닫기',
-                    icon: const Icon(Icons.close, size: 18, color: _sub),
+                    tooltip: '설치 기록 접기',
+                    icon: const Icon(
+                      Icons.keyboard_double_arrow_right_rounded,
+                      size: 20,
+                      color: _sub,
+                    ),
                     onPressed: () => history.panelOpen.value = false,
                   ),
                 ],
@@ -66,6 +70,7 @@ class InstallHistoryPanel extends StatelessWidget {
                   child: TextButton(
                     key: const Key('install-history-clear'),
                     onPressed: history.clearFinished,
+                    style: TextButton.styleFrom(foregroundColor: _sub),
                     child: const Text('끝난 기록 지우기'),
                   ),
                 ),
@@ -185,4 +190,65 @@ class InstallHistoryView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 설치 기록이 접혀 있을 때 오른쪽 끝에 보이는 좁은 탭. 누르면 펼친다.
+class InstallHistoryRail extends StatelessWidget {
+  const InstallHistoryRail({super.key, required this.history});
+
+  final InstallHistory history;
+
+  @override
+  Widget build(BuildContext context) => GlassPanel(
+    key: const Key('install-history-rail'),
+    radius: 22,
+    child: ListenableBuilder(
+      listenable: history,
+      builder: (context, _) {
+        final running = history.runningCount;
+        return InkWell(
+          key: const Key('install-history-open'),
+          borderRadius: BorderRadius.circular(22),
+          onTap: () => history.panelOpen.value = true,
+          child: Tooltip(
+            message: '설치 기록 펼치기',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.keyboard_double_arrow_left_rounded,
+                    size: 20,
+                    color: _sub,
+                  ),
+                  const SizedBox(height: 10),
+                  if (running > 0) ...[
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _blue,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$running',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _blue,
+                      ),
+                    ),
+                  ] else
+                    const Icon(Icons.history_rounded, size: 20, color: _sub),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ),
+  );
 }
