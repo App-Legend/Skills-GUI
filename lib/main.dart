@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'access/folder_access.dart';
+import 'features/ranking/install/install_history.dart';
 import 'features/ranking/ranking_screen.dart';
 import 'scan/skill.dart';
 import 'scan/skill_scanner.dart';
@@ -43,6 +44,16 @@ class SkillGuiApp extends StatefulWidget {
 class _SkillGuiAppState extends State<SkillGuiApp> {
   ScanResult? _result;
   bool _loading = true;
+
+  /// 랭킹 설치 기록. 탭을 옮겨도, 다시 스캔해도 남도록 앱에 하나만 둔다.
+  final InstallHistory _installs = InstallHistory();
+
+  @override
+  void dispose() {
+    _installs.dispose();
+    super.dispose();
+  }
+
   bool _failed = false;
   bool _reduce = false;
   int _updateCount = 0;
@@ -91,7 +102,9 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
     if (_loading && _result == null) {
       return const Scaffold(
         backgroundColor: Colors.transparent,
-        body: GlassBackground(child: Center(child: CircularProgressIndicator())),
+        body: GlassBackground(
+          child: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
     final r = _result;
@@ -113,6 +126,7 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
       );
     }
     return AppShell(
+      installHistory: _installs,
       result: r,
       onRescan: _rescan,
       scanning: _loading,
@@ -127,6 +141,7 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
       ranking: RankingScreen(
         installed: {for (final s in r.skills) s.name},
         onInstalled: _rescan,
+        history: _installs,
       ),
     );
   }

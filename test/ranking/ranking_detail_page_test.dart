@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/features/ranking/data/ranking_api_client.dart';
+import 'package:skill_gui/features/ranking/install/install_history.dart';
 import 'package:skill_gui/features/ranking/install/skill_installer.dart';
 import 'package:skill_gui/features/ranking/models/ranking_models.dart';
 import 'package:skill_gui/features/ranking/ranking_detail_page.dart';
@@ -99,6 +100,7 @@ void main() {
     VoidCallback? onBack,
     VoidCallback? onInstalled,
     FakeRunner? runner,
+    InstallHistory? history,
   }) async {
     tester.view.physicalSize = const Size(1200, 1600);
     tester.view.devicePixelRatio = 1;
@@ -113,6 +115,7 @@ void main() {
             onBack: onBack ?? () {},
             onInstalled: onInstalled,
             runner: runner ?? FakeRunner(),
+            history: history,
           ),
         ),
       ),
@@ -231,8 +234,14 @@ void main() {
 
   testWidgets('지금 운영체제 명령의 실행 버튼이 터미널에서 설치 명령을 돌린다', (tester) async {
     final runner = FakeRunner();
+    final history = InstallHistory();
     var installed = 0;
-    await pumpDetail(tester, runner: runner, onInstalled: () => installed++);
+    await pumpDetail(
+      tester,
+      runner: runner,
+      history: history,
+      onInstalled: () => installed++,
+    );
     await tester.tap(find.byKey(const Key('ranking-direct-install')));
     await tester.pumpAndSettle();
 
@@ -262,8 +271,12 @@ void main() {
       '$npx skills add fake/repo --skill fake-skill -a claude-code -g',
     ]);
 
+    expect(history.records.single.status, InstallStatus.running);
+    expect(history.records.single.method, InstallMethod.cli);
+
     runner.commands.single.finish(0);
     await tester.pumpAndSettle();
+    expect(history.records.single.status, InstallStatus.done);
     expect(installed, 1);
     expect(find.byKey(const Key('ranking-detail-installed')), findsOneWidget);
   });

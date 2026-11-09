@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import '../../ui/glass.dart';
 import 'category/skill_category.dart';
 import 'data/ranking_api_client.dart';
+import 'install/install_history.dart';
 import 'install/skill_installer.dart';
 import 'models/ranking_models.dart';
 import 'ranking_config.dart';
 import 'ranking_detail_page.dart';
 import 'widgets/category_list.dart';
+import 'widgets/install_history_view.dart';
 import 'widgets/ranking_list_tile.dart';
 import 'widgets/ranking_state_view.dart';
 
@@ -94,6 +96,7 @@ class RankingScreen extends StatefulWidget {
     this.installed = const {},
     this.installer,
     this.onInstalled,
+    this.history,
   });
 
   final RankingApiClient? client;
@@ -103,6 +106,9 @@ class RankingScreen extends StatefulWidget {
 
   /// 상세 화면에서 설치를 마친 뒤 부른다.
   final VoidCallback? onInstalled;
+
+  /// 설치 기록. 앱 전체에서 하나를 같이 쓴다 (사이드바 "설치 중" 표시용).
+  final InstallHistory? history;
 
   /// 내 스킬 이름들. 랭킹 항목과 이름이 같으면 "설치됨"으로 표시한다.
   final Set<String> installed;
@@ -397,6 +403,7 @@ class _RankingScreenState extends State<RankingScreen> {
         installed: widget.installed.contains(detail.name),
         onBack: () => setState(() => _detail = null),
         onInstalled: widget.onInstalled,
+        history: widget.history,
       );
     }
     final loading = _searching ? _search.loading : _states[_view]!.loading;
@@ -423,6 +430,8 @@ class _RankingScreenState extends State<RankingScreen> {
                       ),
                     ),
                   ),
+                  if (widget.history case final history?)
+                    _historyButton(history),
                   if (_client != null) ...[
                     const SizedBox(width: 8),
                     GlassTap(
@@ -520,6 +529,37 @@ class _RankingScreenState extends State<RankingScreen> {
       ),
     );
   }
+
+  /// 설치 기록 버튼. 설치 중이면 돌아가는 표시와 개수를 붙인다.
+  Widget _historyButton(InstallHistory history) => ListenableBuilder(
+    listenable: history,
+    builder: (context, _) {
+      final running = history.runningCount;
+      return GlassTap(
+        key: const Key('ranking-history'),
+        onTap: () => showInstallHistory(context, history),
+        color: const Color(0xB3FFFFFF),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (running > 0) ...[
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2, color: _blue),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              running > 0 ? '설치 중 $running' : '설치 기록',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 
   // TextField 는 Material 조상이 있어야 해서 배경을 Material 로 깐다.
   Widget _searchField() => Material(

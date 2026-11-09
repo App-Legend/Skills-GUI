@@ -28,9 +28,17 @@ enum _Kind { output, command, ok, error }
 /// 진짜 터미널이 아니라서 색·화살표 메뉴 같은 대화형 화면은 그대로 나오지 않는다.
 /// 실행 중에 입력 줄에 쓰면 그 명령의 표준 입력으로 보낸다 (y/n 답하기).
 class TerminalPanel extends StatefulWidget {
-  const TerminalPanel({super.key, required this.runner, this.onFinished});
+  const TerminalPanel({
+    super.key,
+    required this.runner,
+    this.onStarted,
+    this.onFinished,
+  });
 
   final CommandRunner runner;
+
+  /// 명령을 실제로 시작했을 때 부른다.
+  final void Function(String command)? onStarted;
 
   /// 명령이 끝나면 (명령, 종료 코드) 로 부른다.
   final void Function(String command, int exitCode)? onFinished;
@@ -90,6 +98,7 @@ class TerminalPanelState extends State<TerminalPanel> {
       return false;
     }
     setState(() => _running = proc);
+    widget.onStarted?.call(command);
     final drained = Completer<void>();
     _sub = proc.lines.listen(
       (line) => _add(_Kind.output, line),
