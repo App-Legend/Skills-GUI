@@ -133,7 +133,7 @@ void main() {
     await _pump(t);
     await t.tap(find.text('Codex'));
     await t.pump();
-    expect(find.text('아직 준비 중입니다'), findsOneWidget);
+    expect(find.text('아직 준비 중이다'), findsOneWidget);
     expect(find.text('a'), findsNothing);
     await t.tap(find.text('Claude Code'));
     await t.pump();
@@ -186,10 +186,10 @@ void main() {
     );
     await t.tap(find.text('꺼짐'));
     await t.pump();
-    expect(find.text('해당하는 스킬이 없습니다'), findsOneWidget);
+    expect(find.text('해당하는 스킬이 없다'), findsOneWidget);
     await _pump(t, skills: const []);
     await t.pump();
-    expect(find.text('스킬을 찾지 못했습니다'), findsOneWidget);
+    expect(find.text('스킬을 찾지 못했다'), findsOneWidget);
   });
 
   testWidgets('한국어 요약과 카테고리, 카테고리 필터', (t) async {

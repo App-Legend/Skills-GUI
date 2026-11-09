@@ -10,6 +10,12 @@ import 'package:skill_gui/features/ranking/install/skill_installer.dart';
 import 'package:skill_gui/features/ranking/models/ranking_models.dart';
 import 'package:skill_gui/features/ranking/ranking_detail_page.dart';
 import 'package:skill_gui/features/ranking/ranking_screen.dart';
+import 'package:skill_gui/features/skill_analysis/ranking_analysis.dart';
+import 'package:skill_gui/features/skill_analysis/skill_analysis.dart';
+import 'package:skill_gui/features/skill_analysis/skill_analysis_cache.dart';
+import 'package:skill_gui/features/skill_analysis/skill_analysis_client.dart';
+import 'package:skill_gui/features/skill_analysis/skill_analysis_store.dart';
+import 'package:skill_gui/scan/skill.dart';
 
 import 'terminal_panel_test.dart' show FakeRunner;
 
@@ -102,6 +108,7 @@ void main() {
     FakeRunner? runner,
     InstallHistory? history,
     bool installed = false,
+    RankingAnalysis? analysis,
   }) async {
     tester.view.physicalSize = const Size(1200, 1600);
     tester.view.devicePixelRatio = 1;
@@ -118,6 +125,7 @@ void main() {
             runner: runner ?? FakeRunner(),
             history: history,
             installed: installed,
+            analysis: analysis,
           ),
         ),
       ),
@@ -125,22 +133,60 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('SKILL.md·파일 목록·보안 점검을 보여 준다', (tester) async {
+  testWidgets('개요·분석 항목·보안 점검을 보여 주고 SKILL.md 원문은 없다', (tester) async {
     final log = <Uri>[];
-    await pumpDetail(tester, client: _client(log: log));
+    final client = _client(log: log);
+    final store = SkillAnalysisStore(
+      cache: _NoCache(),
+      client: SkillAnalysisApiClient(
+        'https://relay.example.test',
+        httpPost: (_, body) async => const SkillAnalysisHttpResponse(
+          200,
+          '{"analysis":{"overview":"가짜 개요","summary":"짧게",'
+          '"whenToUse":["이럴 때"],"cautions":["조심"],'
+          '"categories":["devops"]}}',
+        ),
+      ),
+    );
+    addTearDown(store.dispose);
+    final analysis = RankingAnalysis(
+      store: store,
+      fetchDetail: client.fetchDetail,
+    );
+    addTearDown(analysis.dispose);
+    await pumpDetail(tester, client: client, analysis: analysis);
+    await tester.pumpAndSettle();
     expect(
       log.firstWhere((u) => u.path.endsWith('/api/skill')).queryParameters,
       {'id': 'fake/repo/fake-skill'},
     );
-    expect(find.textContaining('가짜 본문'), findsOneWidget);
-    expect(find.text('docs/a.md'), findsOneWidget);
+    expect(find.text('가짜 개요'), findsOneWidget);
+    expect(find.text('이럴 때 사용'), findsOneWidget);
+    expect(find.text('주의할 점'), findsOneWidget);
+    // 개요 카드가 설치 카드보다 위에 있다.
+    expect(
+      tester.getTopLeft(find.byKey(const Key('ranking-overview-card'))).dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const Key('ranking-install-card'))).dy,
+      ),
+    );
+    // 개요 아래 작은 GitHub 버튼. 내 스킬 버튼(44)보다 낮다.
+    final github = find.byKey(const Key('ranking-github'));
+    expect(find.text('GitHub로 가기'), findsOneWidget);
+    expect(tester.getSize(github).height, lessThan(44));
+    expect(
+      tester.getTopLeft(github).dy,
+      greaterThan(tester.getTopLeft(find.text('가짜 개요')).dy),
+    );
+    expect(find.textContaining('가짜 본문'), findsNothing);
+    expect(find.text('docs/a.md'), findsNothing);
     expect(find.text('가짜 점검'), findsOneWidget);
     expect(find.text('통과'), findsOneWidget);
   });
 
   testWidgets('점검 기록이 없으면(404) 없다고 알린다', (tester) async {
     await pumpDetail(tester, client: _client(auditStatus: 404));
-    expect(find.text('아직 보안 점검 기록이 없습니다.'), findsOneWidget);
+    expect(find.text('아직 보안 점검 기록이 없다.'), findsOneWidget);
   });
 
   testWidgets('직접 설치를 누르면 운영체제별 CLI 명령이 보이고 복사된다', (tester) async {
@@ -201,7 +247,7 @@ void main() {
     await pumpDetail(tester, onInstalled: () => installed++);
 
     await _tapWithIo(tester, find.byKey(const Key('ranking-install')));
-    expect(find.text('스킬을 설치할까요?'), findsOneWidget);
+    expect(find.text('스킬을 설치할까?'), findsOneWidget);
 
     await tester.runAsync(() async {
       await tester.tap(find.byKey(const Key('ranking-install-confirm')));
@@ -340,4 +386,11 @@ void main() {
     expect(find.byType(RankingDetailPage), findsNothing);
     expect(find.text('fake-skill'), findsOneWidget);
   });
+}
+
+class _NoCache implements SkillAnalysisCache {
+  @override
+  Future<SkillAnalysis?> load(Skill skill) async => null;
+  @override
+  Future<void> save(Skill skill, SkillAnalysis analysis) async {}
 }

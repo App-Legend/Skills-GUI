@@ -95,7 +95,7 @@ class InstallHistoryView extends StatelessWidget {
         return const Padding(
           padding: EdgeInsets.only(top: 16, right: 8),
           child: Text(
-            '아직 설치한 스킬이 없습니다. 앱을 끄면 기록도 사라집니다.',
+            '아직 설치한 스킬이 없다. 앱을 끄면 기록도 사라진다.',
             style: TextStyle(fontSize: 13, color: _sub),
           ),
         );

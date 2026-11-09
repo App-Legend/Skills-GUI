@@ -244,7 +244,7 @@ void main() {
       await user();
       final r = await scanClaude(claude);
       expect(plug(r).pluginEnabled, isNull);
-      expect(r.notices, ['settings.json을 읽지 못해 플러그인 켜짐 여부를 알 수 없습니다']);
+      expect(r.notices, ['settings.json을 읽지 못해 플러그인 켜짐 여부를 알 수 없다']);
     });
 
     test('oldVersions', () async {
@@ -299,10 +299,10 @@ void main() {
       await file('plugins/installed_plugins.json', '{oops');
       var r = await scanClaude(claude);
       expect(r.skills.length, 1);
-      expect(r.notices, ['installed_plugins.json을 읽지 못했습니다']);
+      expect(r.notices, ['installed_plugins.json을 읽지 못했다']);
       await file('plugins/installed_plugins.json', '{"plugins":[1]}');
       r = await scanClaude(claude);
-      expect(r.notices, ['installed_plugins.json을 읽지 못했습니다']);
+      expect(r.notices, ['installed_plugins.json을 읽지 못했다']);
     });
 
     test('badEntryKeepsOthers', () async {
@@ -330,9 +330,9 @@ void main() {
       final r = await scanClaude(claude);
       expect(plug(r).plugin, 'p@m');
       expect(r.notices, [
-        'q@m: installed_plugins.json 항목을 읽지 못했습니다',
-        'r@m: installed_plugins.json 항목을 읽지 못했습니다',
-        's@m: installed_plugins.json 항목을 읽지 못했습니다',
+        'q@m: installed_plugins.json 항목을 읽지 못했다',
+        'r@m: installed_plugins.json 항목을 읽지 못했다',
+        's@m: installed_plugins.json 항목을 읽지 못했다',
       ]);
     });
 
@@ -340,7 +340,7 @@ void main() {
       await user();
       await file('settings.json', '{"enabledPlugins":{"p@m":true}}');
       final r = await scanClaude(claude);
-      expect(r.notices, ['p@m: 플러그인 폴더가 없습니다']);
+      expect(r.notices, ['p@m: 플러그인 폴더가 없다']);
     });
 
     test('pluginWithoutSkills', () async {

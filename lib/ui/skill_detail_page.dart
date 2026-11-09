@@ -7,8 +7,10 @@ import '../features/skill_analysis/skill_analysis_client.dart';
 import '../features/skill_analysis/skill_analysis_store.dart';
 import '../features/skill_analysis/skill_origin.dart';
 import '../features/skill_analysis/widgets/category_badges.dart';
-import '../features/skill_analysis/widgets/collapsible_item.dart';
+import '../features/skill_analysis/widgets/analysis_sections.dart';
 import '../features/skill_analysis/widgets/install_commands.dart';
+import '../features/skill_delete/skill_deleter.dart';
+import '../features/skill_delete/widgets/delete_confirm_dialog.dart';
 import '../access/folder_access.dart';
 import '../scan/skill.dart';
 import 'glass.dart';
@@ -29,6 +31,12 @@ class SkillDetailPage extends StatefulWidget {
   /// 설치 명령과 GitHub 주소를 찾는다. null이면 홈의 `.claude`에서 찾는다.
   final SkillOriginResolver? resolveOrigin;
 
+  /// 삭제한 뒤 부른다(목록 다시 스캔).
+  final Future<void> Function()? onDeleted;
+
+  /// 실제로 지우는 함수. 테스트에서 바꿔 끼운다.
+  final Future<void> Function(SkillDeletePlan plan) deleter;
+
   const SkillDetailPage({
     super.key,
     required this.skill,
@@ -36,6 +44,8 @@ class SkillDetailPage extends StatefulWidget {
     this.analysisClient,
     this.analysisCache,
     this.resolveOrigin,
+    this.onDeleted,
+    this.deleter = deleteSkill,
   });
 
   @override
@@ -85,7 +95,7 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
   Future<void> _openGithub(String url) async {
     if (await openExternalUrl(url) || !mounted) return;
     ScaffoldMessenger.maybeOf(context)
-        ?.showSnackBar(SnackBar(content: Text('브라우저를 열지 못했습니다: $url')));
+        ?.showSnackBar(SnackBar(content: Text('브라우저를 열지 못했다: $url')));
   }
 
   Widget _githubButton() {
@@ -114,13 +124,55 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text(
-          'GitHub 주소를 찾지 못했습니다',
+          'GitHub 주소를 찾지 못했다',
           maxLines: 1,
           style: TextStyle(fontSize: 12, color: _sub),
         ),
         const SizedBox(width: 8),
         button,
       ],
+    );
+  }
+
+  Future<void> _delete() async {
+    final s = widget.skill;
+    final plan = planSkillDelete(s);
+    final ok = await confirmSkillDelete(
+      context,
+      name: s.name,
+      plan: plan,
+      fileCount: s.files.length,
+    );
+    if (!ok || !mounted) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    try {
+      await widget.deleter(plan);
+    } on Object catch (e) {
+      messenger?.showSnackBar(SnackBar(content: Text('삭제하지 못했다: $e')));
+      return;
+    }
+    messenger?.showSnackBar(SnackBar(content: Text('${s.name}을 삭제했다.')));
+    if (mounted) Navigator.maybePop(context);
+    await widget.onDeleted?.call();
+  }
+
+  Widget _deleteButton() {
+    final canDelete = planSkillDelete(widget.skill).canDelete;
+    // GitHub 버튼과 같은 칩 모양. 지울 수 없으면 흐리게 두고, 누르면 이유를 보여준다.
+    return Semantics(
+      button: true,
+      label: '스킬 삭제',
+      child: Opacity(
+        opacity: canDelete ? 1 : 0.4,
+        child: GlassTap(
+          onTap: _delete,
+          color: const Color(0xB3FFFFFF),
+          child: const Text(
+            '삭제',
+            style: TextStyle(fontWeight: FontWeight.w600, color: _red),
+          ),
+        ),
+      ),
     );
   }
 
@@ -159,7 +211,7 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           SizedBox(width: 8),
-          Expanded(child: Text('SKILL.md와 파일 목록을 바탕으로 분석하고 있습니다.')),
+          Expanded(child: Text('SKILL.md와 파일 목록을 바탕으로 분석하고 있다.')),
         ],
       );
     }
@@ -169,63 +221,23 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
           Flexible(
             child: Text(error, style: const TextStyle(color: _red)),
           ),
-          TextButton(
-            onPressed: () => _store.retry(widget.skill),
-            child: const Text('다시 시도'),
+          const SizedBox(width: 8),
+          GlassTap(
+            onTap: () => _store.retry(widget.skill),
+            color: const Color(0xB3FFFFFF),
+            child: const Text(
+              '다시 시도',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       );
     }
     final analysis = _analysis;
     if (analysis == null) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _analysisItem('개요', [analysis.overview]),
-        _analysisItem('이럴 때 사용', analysis.whenToUse),
-        _analysisItem('처리 방식', analysis.workflow),
-        _analysisItem('결과물', analysis.outputs),
-        _analysisItem('포함된 구성', [
-          for (final item in analysis.contents) '${item.path}: ${item.role}',
-        ], collapsible: true),
-        _analysisItem('주의할 점', analysis.cautions, collapsible: true),
-      ],
-    );
-  }
-
-  Widget _analysisItem(
-    String title,
-    List<String> items, {
-    bool collapsible = false,
-  }) {
-    if (items.isEmpty) return const SizedBox.shrink();
-    final body = items.length == 1
-        ? Text(items.single)
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final item in items)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text('• $item'),
-                ),
-            ],
-          );
     return Padding(
       padding: const EdgeInsets.only(top: 12),
-      child: collapsible
-          ? CollapsibleItem(title: title, child: body)
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                body,
-              ],
-            ),
+      child: AnalysisSections(analysis),
     );
   }
 
@@ -255,6 +267,9 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
                       onPressed: () => Navigator.maybePop(context),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF101828),
+                      ),
                       icon: const Icon(Icons.chevron_left),
                       label: const Text('내 스킬'),
                     ),
@@ -283,6 +298,8 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                             const SizedBox(width: 12),
                             // 자기 너비만 쓰고 오른쪽 끝에 붙는다. 이름이 남은 너비를 모두 쓴다.
                             _githubButton(),
+                            const SizedBox(width: 8),
+                            _deleteButton(),
                           ],
                         ],
                       ),
@@ -329,17 +346,6 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                           child: Text(
                             s.problem!.message,
                             style: const TextStyle(color: _red),
-                          ),
-                        ),
-                      if (s.files.isNotEmpty)
-                        _section(
-                          '포함된 파일',
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 240),
-                            child: ListView(
-                              shrinkWrap: true,
-                              children: [for (final f in s.files) Text(f)],
-                            ),
                           ),
                         ),
                     ],

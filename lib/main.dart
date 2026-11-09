@@ -116,7 +116,7 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('스캔하지 못했습니다'),
+                const Text('스캔하지 못했다'),
                 const SizedBox(height: 12),
                 FilledButton(onPressed: _rescan, child: const Text('다시 스캔')),
               ],

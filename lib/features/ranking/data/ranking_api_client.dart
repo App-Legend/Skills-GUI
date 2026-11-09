@@ -104,13 +104,13 @@ class RankingApiClient {
     } on RankingApiException {
       rethrow;
     } on TimeoutException {
-      throw const RankingApiException(0, '응답이 너무 늦어요. 잠시 뒤 다시 시도해 주세요.');
+      throw const RankingApiException(0, '응답이 너무 늦다. 잠시 뒤 다시 시도하면 된다.');
     } on IOException {
       // 예외 원문(SocketException…)은 길고 읽기 어려워 주소만 알려 준다.
       throw RankingApiException(
         0,
-        '중계 서버(${uri.host}${uri.hasPort ? ':${uri.port}' : ''})에 연결하지 못했어요. '
-        '인터넷 연결이나 서버가 켜져 있는지 확인해 주세요.',
+        '중계 서버(${uri.host}${uri.hasPort ? ':${uri.port}' : ''})에 연결하지 못했다. '
+        '인터넷 연결이나 서버가 켜져 있는지 확인이 필요하다.',
       );
     }
 
@@ -119,15 +119,15 @@ class RankingApiClient {
       try {
         return parse(jsonDecode(response.body));
       } on FormatException catch (e) {
-        throw RankingApiException(status, '응답 형식이 올바르지 않아요: ${e.message}');
+        throw RankingApiException(status, '응답 형식이 올바르지 않다: ${e.message}');
       }
     }
     throw RankingApiException(status, _messageFor(status, response.body));
   }
 
   String _messageFor(int status, String body) {
-    if (status == 429) return '요청이 너무 많아요. 잠시 뒤 다시 시도해 주세요.';
-    if (status == 503) return '서비스를 잠시 쓸 수 없어요. 잠시 뒤 다시 시도해 주세요.';
+    if (status == 429) return '요청이 너무 많다. 잠시 뒤 다시 시도하면 된다.';
+    if (status == 503) return '서비스를 잠시 쓸 수 없다. 잠시 뒤 다시 시도하면 된다.';
     try {
       final decoded = jsonDecode(body);
       if (decoded is Map && decoded['error'] is String) {
@@ -136,6 +136,6 @@ class RankingApiClient {
     } on FormatException {
       // 본문이 JSON 이 아니면 기본 문구를 쓴다.
     }
-    return '랭킹을 불러오지 못했어요 (상태 $status).';
+    return '랭킹을 불러오지 못했다 (상태 $status).';
   }
 }

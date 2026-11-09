@@ -13,7 +13,7 @@ Color? _changeColor(WidgetTester tester) => tester
 
 void main() {
   group('RankingListTile', () {
-    testWidgets('순위·이름·source·installs 를 보여 준다', (tester) async {
+    testWidgets('순위·이름·짧은 개요·installs 를 보여 주고 source 는 숨긴다', (tester) async {
       await tester.pumpWidget(
         _wrap(
           const RankingListTile(
@@ -21,13 +21,21 @@ void main() {
             name: 'fake-skill',
             source: 'fake/source',
             installs: 1234,
+            summary: '가짜 짧은 개요',
           ),
         ),
       );
 
       expect(find.text('3'), findsOneWidget);
       expect(find.text('fake-skill'), findsOneWidget);
-      expect(find.text('fake/source'), findsOneWidget);
+      expect(find.text('가짜 짧은 개요'), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('ranking-tile-summary')))
+            .maxLines,
+        1,
+      );
+      expect(find.text('fake/source'), findsNothing);
       expect(find.text('설치 1,234'), findsOneWidget);
       expect(find.byKey(const Key('ranking-tile-change')), findsNothing);
       expect(find.byKey(const Key('ranking-tile-installed')), findsNothing);
@@ -69,6 +77,15 @@ void main() {
       );
       expect(find.byKey(const Key('ranking-tile-category')), findsOneWidget);
       expect(find.text('백엔드'), findsOneWidget);
+      // 오른쪽 설치 수 바로 왼쪽, 같은 줄에 있다.
+      final badge = tester.getRect(find.text('백엔드'));
+      final installs = tester.getRect(find.text('설치 1'));
+      expect(badge.center.dy, closeTo(installs.center.dy, 4));
+      expect(badge.right, lessThan(installs.left));
+      final name = tester.getRect(find.text('a'));
+      expect(badge.left, greaterThan(name.right));
+      // 이름과 같은 줄에 있다.
+      expect(badge.center.dy, closeTo(name.center.dy, 4));
     });
 
     testWidgets('installed 면 설치됨 배지를 붙인다', (tester) async {
@@ -175,7 +192,7 @@ void main() {
     testWidgets('빈 상태', (tester) async {
       await tester.pumpWidget(_wrap(const RankingStateView.empty()));
       expect(find.byKey(const Key('ranking-state-empty')), findsOneWidget);
-      expect(find.text('표시할 스킬이 없습니다'), findsOneWidget);
+      expect(find.text('표시할 스킬이 없다'), findsOneWidget);
       expect(find.byKey(const Key('ranking-state-loading')), findsNothing);
     });
   });

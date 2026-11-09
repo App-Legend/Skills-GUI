@@ -36,7 +36,7 @@ void main() {
     for (final tab in ['업데이트 필요', '랭킹']) {
       await t.tap(find.text(tab));
       await t.pump();
-      expect(find.text('아직 준비 중입니다'), findsOneWidget, reason: tab);
+      expect(find.text('아직 준비 중이다'), findsOneWidget, reason: tab);
       expect(find.text('alpha'), findsNothing, reason: tab);
     }
   });
@@ -134,6 +134,19 @@ void main() {
   testWidgets('상세에서 내 스킬 탭을 누르면 목록으로', (t) async {
     await _pump(t);
     await t.tap(find.text('alpha'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('내 스킬').first);
+    await t.pumpAndSettle();
+    expect(find.byType(SkillDetailPage), findsNothing);
+    expect(find.text('alpha'), findsOneWidget);
+  });
+
+  testWidgets('상세에서 다른 탭에 갔다가 내 스킬로 오면 목록', (t) async {
+    await _pump(t);
+    await t.tap(find.text('alpha'));
+    await t.pumpAndSettle();
+    expect(find.byType(SkillDetailPage), findsOneWidget);
+    await t.tap(find.text('랭킹'));
     await t.pumpAndSettle();
     await t.tap(find.text('내 스킬').first);
     await t.pumpAndSettle();

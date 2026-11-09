@@ -97,7 +97,7 @@ void main() {
     await _pump(t, _FakeCli(), found: const []);
     await t.tap(find.text('업데이트 확인'));
     await t.pumpAndSettle();
-    expect(find.text('모든 플러그인이 최신입니다'), findsOneWidget);
+    expect(find.text('모든 플러그인이 최신이다'), findsOneWidget);
   });
 
   testWidgets('확인할 수 없음 묶음', (t) async {
@@ -118,7 +118,7 @@ void main() {
     await t.tap(find.widgetWithText(FilledButton, '업데이트'));
     await t.pumpAndSettle();
     expect(
-      find.text('p@m을(를) 1.0 → 1.1(으)로 업데이트합니다. Claude Code를 다시 시작해야 적용됩니다.'),
+      find.text('p@m을(를) 1.0 → 1.1(으)로 업데이트한다. Claude Code를 다시 시작해야 적용된다.'),
       findsOneWidget,
     );
     await t.tap(find.text('취소'));
@@ -151,7 +151,7 @@ void main() {
     await _pump(t, _FakeCli(missing: true));
     await t.tap(find.text('업데이트 확인'));
     await t.pumpAndSettle();
-    expect(find.text('Claude Code 명령(claude)을 찾지 못했습니다'), findsOneWidget);
+    expect(find.text('Claude Code 명령(claude)을 찾지 못했다'), findsOneWidget);
   });
 
   testWidgets('추가 확인이 필요한 플러그인은 직접 업데이트 안내', (t) async {
@@ -167,7 +167,7 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('업데이트')));
     await t.pumpAndSettle();
-    expect(find.text('Claude Code에서 직접 업데이트해 주세요'), findsOneWidget);
+    expect(find.text('Claude Code에서 직접 업데이트해야 한다'), findsOneWidget);
   });
 
   testWidgets('확인·업데이트 결과를 알린다', (t) async {

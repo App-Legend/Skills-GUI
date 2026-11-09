@@ -12,7 +12,7 @@ const _ink = Color(0xFF101828);
 const _sub = Color(0xFF3A4658);
 
 const _notReady = Center(
-  child: Text('아직 준비 중입니다', style: TextStyle(color: _sub)),
+  child: Text('아직 준비 중이다', style: TextStyle(color: _sub)),
 );
 
 enum AppTab {
@@ -76,8 +76,8 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _onTab(AppTab t) => setState(() {
-    // 내 스킬 탭을 다시 누르면 목록으로 돌아간다.
-    if (t == AppTab.mine && _tab == AppTab.mine) _detail = null;
+    // 내 스킬 탭을 누르면 언제나 목록으로 돌아간다(다른 탭에 갔다 와도).
+    if (t == AppTab.mine) _detail = null;
     _tab = t;
   });
 
@@ -129,6 +129,7 @@ class _AppShellState extends State<AppShell> {
                               child: SkillDetailPage(
                                 skill: s,
                                 analysisStore: _analysis,
+                                onDeleted: widget.onRescan,
                               ),
                             ),
                         ],

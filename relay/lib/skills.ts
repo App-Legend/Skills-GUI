@@ -29,7 +29,7 @@ export async function proxySkills(
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     });
   } catch {
-    return json({ error: "skills.sh 호출에 실패했습니다." }, 502);
+    return json({ error: "skills.sh 호출에 실패했다." }, 502);
   }
 
   if (response.status === 200) {
@@ -50,7 +50,7 @@ export async function proxySkills(
     const headers: Record<string, string> = {};
     const retryAfter = response.headers.get("Retry-After");
     if (retryAfter !== null) headers["Retry-After"] = retryAfter;
-    return json({ error: `skills.sh 가 ${response.status} 를 반환했습니다.` }, response.status, headers);
+    return json({ error: `skills.sh 가 ${response.status} 를 반환했다.` }, response.status, headers);
   }
 
   return json({ error: `skills.sh 응답 오류 (${response.status})` }, 502);

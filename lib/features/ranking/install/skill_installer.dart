@@ -68,10 +68,10 @@ class SkillInstaller {
   String targetPath(InstallTarget target, String slug) {
     final base = home;
     if (base == null) {
-      throw const SkillInstallException('홈 폴더를 찾지 못해 설치할 수 없습니다.');
+      throw const SkillInstallException('홈 폴더를 찾지 못해 설치할 수 없다.');
     }
     if (!_segment.hasMatch(slug) || slug == '.' || slug == '..') {
-      throw SkillInstallException('스킬 이름이 폴더 이름으로 쓸 수 없는 형식입니다: $slug');
+      throw SkillInstallException('스킬 이름이 폴더 이름으로 쓸 수 없는 형식이다: $slug');
     }
     return [base, ...target.homeParts, slug].join(_sep);
   }
@@ -88,11 +88,11 @@ class SkillInstaller {
   }) async {
     final dest = Directory(targetPath(target, detail.slug));
     if (detail.skillMd == null) {
-      throw const SkillInstallException('SKILL.md 가 없어 설치할 수 없습니다.');
+      throw const SkillInstallException('SKILL.md 가 없어 설치할 수 없다.');
     }
     if (await dest.exists() && !overwrite) {
       throw SkillInstallException(
-        '${target.displayPath(detail.slug)} 에 같은 이름의 스킬이 이미 있습니다.',
+        '${target.displayPath(detail.slug)} 에 같은 이름의 스킬이 이미 있다.',
       );
     }
 
@@ -127,7 +127,7 @@ class SkillInstaller {
       }
     } on FileSystemException catch (e) {
       if (await temp.exists()) await temp.delete(recursive: true);
-      throw SkillInstallException('파일을 쓰지 못했습니다: ${e.message} (${e.path})');
+      throw SkillInstallException('파일을 쓰지 못했다: ${e.message} (${e.path})');
     }
 
     return SkillInstallResult(
@@ -146,7 +146,7 @@ class SkillInstaller {
         parts.isEmpty ||
         parts.any((p) => p == '..' || p == '.' || p.contains(':'));
     if (bad) {
-      throw SkillInstallException('안전하지 않은 파일 경로가 있어 설치를 멈췄습니다: $path');
+      throw SkillInstallException('안전하지 않은 파일 경로가 있어 설치를 멈췄다: $path');
     }
     return parts;
   }

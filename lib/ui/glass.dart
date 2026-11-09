@@ -91,12 +91,16 @@ class GlassTap extends StatelessWidget {
   final Color? color;
   final EdgeInsets padding;
 
+  /// 누름 영역의 최소 높이. 작은 버튼만 줄여 쓴다.
+  final double minHeight;
+
   const GlassTap({
     super.key,
     required this.onTap,
     required this.child,
     this.color,
     this.padding = const EdgeInsets.symmetric(horizontal: 14),
+    this.minHeight = 44,
   });
 
   @override
@@ -107,7 +111,7 @@ class GlassTap extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       onTap: onTap,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 44),
+        constraints: BoxConstraints(minHeight: minHeight),
         child: Padding(
           padding: padding,
           child: Align(

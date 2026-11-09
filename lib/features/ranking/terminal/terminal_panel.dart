@@ -90,7 +90,7 @@ class TerminalPanelState extends State<TerminalPanel> {
     try {
       proc = await widget.runner.start(command);
     } on Object catch (e) {
-      _add(_Kind.error, '실행하지 못했습니다: $e');
+      _add(_Kind.error, '실행하지 못했다: $e');
       return false;
     }
     if (!mounted) {
@@ -113,7 +113,7 @@ class TerminalPanelState extends State<TerminalPanel> {
     setState(() => _running = null);
     _add(
       code == 0 ? _Kind.ok : _Kind.error,
-      code == 0 ? '완료했습니다 (종료 코드 0)' : '실패했습니다 (종료 코드 $code)',
+      code == 0 ? '완료했다 (종료 코드 0)' : '실패했다 (종료 코드 $code)',
     );
     widget.onFinished?.call(command, code);
     return true;
@@ -122,7 +122,7 @@ class TerminalPanelState extends State<TerminalPanel> {
   Future<void> _stop() async {
     final proc = _running;
     if (proc == null) return;
-    _add(_Kind.error, '중지합니다');
+    _add(_Kind.error, '중지한다');
     await proc.stop();
   }
 
@@ -190,7 +190,7 @@ class TerminalPanelState extends State<TerminalPanel> {
           child: _lines.isEmpty
               ? Center(
                   child: Text(
-                    '위 명령의 실행 버튼을 누르거나, 아래에 명령을 입력하세요.',
+                    '위 명령의 실행 버튼을 누르거나, 아래에 명령을 입력한다.',
                     style: _mono.copyWith(color: _dim),
                   ),
                 )

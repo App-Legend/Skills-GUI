@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../ui/app_checkbox.dart';
+import '../../../ui/glass.dart';
 import '../skill_categories.dart';
 
 /// 카테고리 체크박스 목록. 전체 카테고리를 사이트 순서로 보여 주고, 옆에 내 스킬 수를 붙인다.
@@ -44,9 +45,13 @@ class CategoryFilterPanel extends StatelessWidget {
               maintainState: true,
               maintainSemantics: false,
               maintainInteractivity: false,
-              child: TextButton(
-                onPressed: () => onChanged({}),
-                child: const Text('선택 해제'),
+              child: GlassTap(
+                onTap: () => onChanged({}),
+                color: const Color(0xB3FFFFFF),
+                child: const Text(
+                  '선택 해제',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],

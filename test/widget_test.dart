@@ -36,7 +36,7 @@ void main() {
       SkillGuiApp(claudeDir: null, scan: _scan, reduceTransparency: _noReduce),
     );
     await tester.pumpAndSettle();
-    expect(find.text('스캔하지 못했습니다'), findsOneWidget);
+    expect(find.text('스캔하지 못했다'), findsOneWidget);
   });
 
   testWidgets('스캔이 던지면 다시 스캔 버튼이 보인다', (tester) async {
@@ -48,7 +48,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('스캔하지 못했습니다'), findsOneWidget);
+    expect(find.text('스캔하지 못했다'), findsOneWidget);
     expect(find.text('다시 스캔'), findsOneWidget);
   });
 
