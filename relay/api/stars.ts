@@ -1,4 +1,4 @@
-import { json } from "../lib/skills";
+import { json } from "../lib/skills.js";
 
 const MAX_REPOS = 60;
 const REPO_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
