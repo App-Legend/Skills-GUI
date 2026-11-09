@@ -5,6 +5,7 @@ import 'package:skill_gui/features/skill_analysis/skill_analysis_cache.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_client.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_store.dart';
 import 'package:skill_gui/scan/skill.dart';
+import 'package:skill_gui/ui/app_checkbox.dart';
 import 'package:skill_gui/ui/glass.dart';
 import 'package:skill_gui/ui/skill_list_page.dart';
 
@@ -246,7 +247,7 @@ void main() {
 
     await t.tap(find.byIcon(Icons.filter_list));
     await t.pump();
-    expect(find.byType(Checkbox), findsNWidgets(61));
+    expect(find.byType(AppCheckbox), findsNWidgets(61));
     await t.tap(find.bySemanticsLabel('테스트'));
     await t.pump();
     expect(find.text('x'), findsNothing);

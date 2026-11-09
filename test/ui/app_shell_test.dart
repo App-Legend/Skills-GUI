@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/scan/skill.dart';
 import 'package:skill_gui/ui/app_shell.dart';
+import 'package:skill_gui/ui/skill_detail_page.dart';
 
 const _skill = Skill(name: 'alpha', source: SkillSource.global, path: '/a');
 
@@ -119,14 +120,14 @@ void main() {
     await _pump(t);
     await t.tap(find.text('alpha'));
     await t.pumpAndSettle();
-    expect(find.text('경로'), findsOneWidget); // 상세
+    expect(find.byType(SkillDetailPage), findsOneWidget); // 상세
     expect(find.text('업데이트 필요'), findsOneWidget); // 사이드바 그대로
     final h = t.ensureSemantics();
     expect(find.bySemanticsLabel('업데이트 필요'), findsOneWidget); // 화면 낭독에도 남는다
     h.dispose();
     await t.tap(find.byIcon(Icons.chevron_left));
     await t.pumpAndSettle();
-    expect(find.text('경로'), findsNothing);
+    expect(find.byType(SkillDetailPage), findsNothing);
     expect(find.text('alpha'), findsOneWidget);
   });
 
@@ -136,7 +137,7 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.text('내 스킬').first);
     await t.pumpAndSettle();
-    expect(find.text('경로'), findsNothing);
+    expect(find.byType(SkillDetailPage), findsNothing);
     expect(find.text('alpha'), findsOneWidget);
   });
 
