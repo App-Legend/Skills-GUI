@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/features/ranking/data/ranking_api_client.dart';
+import 'package:skill_gui/features/ranking/install/install_history.dart';
 import 'package:skill_gui/features/ranking/install/skill_installer.dart';
 import 'package:skill_gui/features/ranking/models/ranking_models.dart';
 import 'package:skill_gui/features/ranking/ranking_detail_page.dart';
@@ -99,6 +100,8 @@ void main() {
     VoidCallback? onBack,
     VoidCallback? onInstalled,
     FakeRunner? runner,
+    InstallHistory? history,
+    bool installed = false,
   }) async {
     tester.view.physicalSize = const Size(1200, 1600);
     tester.view.devicePixelRatio = 1;
@@ -113,6 +116,8 @@ void main() {
             onBack: onBack ?? () {},
             onInstalled: onInstalled,
             runner: runner ?? FakeRunner(),
+            history: history,
+            installed: installed,
           ),
         ),
       ),
@@ -231,8 +236,14 @@ void main() {
 
   testWidgets('지금 운영체제 명령의 실행 버튼이 터미널에서 설치 명령을 돌린다', (tester) async {
     final runner = FakeRunner();
+    final history = InstallHistory();
     var installed = 0;
-    await pumpDetail(tester, runner: runner, onInstalled: () => installed++);
+    await pumpDetail(
+      tester,
+      runner: runner,
+      history: history,
+      onInstalled: () => installed++,
+    );
     await tester.tap(find.byKey(const Key('ranking-direct-install')));
     await tester.pumpAndSettle();
 
@@ -262,10 +273,47 @@ void main() {
       '$npx skills add fake/repo --skill fake-skill -a claude-code -g',
     ]);
 
+    expect(history.records.single.status, InstallStatus.running);
+    expect(history.records.single.method, InstallMethod.cli);
+
     runner.commands.single.finish(0);
     await tester.pumpAndSettle();
+    expect(history.records.single.status, InstallStatus.done);
     expect(installed, 1);
     expect(find.byKey(const Key('ranking-detail-installed')), findsOneWidget);
+  });
+
+  testWidgets('이미 설치된 스킬은 그 설치할 곳에서 설치 버튼을 숨긴다', (tester) async {
+    await pumpDetail(tester, installed: true);
+    expect(find.byKey(const Key('ranking-already-installed')), findsOneWidget);
+    expect(find.byKey(const Key('ranking-install')), findsNothing);
+    expect(find.byKey(const Key('ranking-direct-install')), findsNothing);
+
+    // 내 스킬 스캔은 Claude Code 만 보므로 Codex 에는 설치할 수 있다.
+    await tester.tap(find.byKey(const Key('ranking-target-codex')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('ranking-install')), findsOneWidget);
+  });
+
+  testWidgets('설치할 곳에 같은 이름 폴더가 있으면 설치된 것으로 본다', (tester) async {
+    Directory(
+      [
+        home.path,
+        '.agents',
+        'skills',
+        'fake-skill',
+      ].join(Platform.pathSeparator),
+    ).createSync(recursive: true);
+    await tester.runAsync(() async {
+      await pumpDetail(tester);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pumpAndSettle();
+    // Claude Code 에는 없으므로 버튼이 보인다.
+    expect(find.byKey(const Key('ranking-install')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('ranking-target-codex')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('ranking-already-installed')), findsOneWidget);
   });
 
   testWidgets('뒤로 버튼과 Esc 가 onBack 을 부른다', (tester) async {

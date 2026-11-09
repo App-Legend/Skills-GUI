@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../features/ranking/install/install_history.dart';
+import '../features/ranking/widgets/install_history_view.dart';
 import '../features/skill_analysis/skill_analysis_store.dart';
 import '../scan/skill.dart';
 import 'glass.dart';
@@ -40,6 +42,9 @@ class AppShell extends StatefulWidget {
   /// null이면 기본 분석 서버와 캐시를 쓴다.
   final SkillAnalysisStore? analysisStore;
 
+  /// 랭킹에서 하는 설치 기록. 설치 중이면 사이드바 랭킹 탭에 "설치 중"을 띄운다.
+  final InstallHistory? installHistory;
+
   const AppShell({
     super.key,
     required this.result,
@@ -49,6 +54,7 @@ class AppShell extends StatefulWidget {
     this.scanning = false,
     this.updateCount = 0,
     this.analysisStore,
+    this.installHistory,
   });
 
   @override
@@ -95,6 +101,7 @@ class _AppShellState extends State<AppShell> {
                     AppTab.updates: widget.updateCount,
                   },
                   onTab: _onTab,
+                  installHistory: widget.installHistory,
                 ),
               ),
               const SizedBox(width: 16),
@@ -134,6 +141,23 @@ class _AppShellState extends State<AppShell> {
                   ],
                 ),
               ),
+              // 오른쪽 사이드바: 설치 기록. 열려 있을 때만 보이고 어느 탭에서든 남는다.
+              if (widget.installHistory case final history?)
+                ValueListenableBuilder<bool>(
+                  valueListenable: history.panelOpen,
+                  builder: (context, open, _) => Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: open
+                        ? SizedBox(
+                            width: 300,
+                            child: InstallHistoryPanel(history: history),
+                          )
+                        : Align(
+                            alignment: Alignment.topCenter,
+                            child: InstallHistoryRail(history: history),
+                          ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -146,12 +170,49 @@ class _Sidebar extends StatelessWidget {
   final AppTab tab;
   final Map<AppTab, int> counts;
   final ValueChanged<AppTab> onTab;
+  final InstallHistory? installHistory;
 
   const _Sidebar({
     required this.tab,
     required this.counts,
     required this.onTab,
+    this.installHistory,
   });
+
+  /// 랭킹 탭 오른쪽의 "설치 중 n" 표시. 설치가 없으면 아무것도 안 그린다.
+  Widget _installing() {
+    final history = installHistory;
+    if (history == null) return const SizedBox.shrink();
+    return ListenableBuilder(
+      listenable: history,
+      builder: (context, _) {
+        final n = history.runningCount;
+        if (n == 0) return const SizedBox.shrink();
+        return GestureDetector(
+          onTap: () => history.panelOpen.value = true,
+          child: Row(
+            key: const Key('sidebar-installing'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color(0xFF0064D1),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '설치 중 $n',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF0064D1)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _item(AppTab t) => Semantics(
     selected: t == tab,
@@ -171,6 +232,7 @@ class _Sidebar extends StatelessWidget {
               ),
             ),
           ),
+          if (t == AppTab.ranking) _installing(),
           if ((counts[t] ?? 0) > 0)
             Text(
               '${counts[t]}',

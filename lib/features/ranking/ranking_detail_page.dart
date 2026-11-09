@@ -7,11 +7,13 @@ import '../../ui/glass.dart';
 import '../../ui/skill_badges.dart';
 import 'data/ranking_api_client.dart';
 import 'install/install_commands.dart';
+import 'install/install_history.dart';
 import 'install/skill_installer.dart';
 import 'models/ranking_models.dart';
 import 'terminal/command_runner.dart';
 import 'terminal/terminal_panel.dart';
 import 'widgets/command_block.dart';
+import 'widgets/install_confirm_dialog.dart';
 import 'widgets/ranking_list_tile.dart';
 
 const _ink = Color(0xFF101828);
@@ -37,6 +39,7 @@ class RankingDetailPage extends StatefulWidget {
     this.installed = false,
     this.onInstalled,
     this.runner,
+    this.history,
   });
 
   final SkillRankItem item;
@@ -53,6 +56,9 @@ class RankingDetailPage extends StatefulWidget {
   /// 터미널 패널이 쓰는 실행기. 없으면 실제 셸을 쓴다.
   final CommandRunner? runner;
 
+  /// 설치 기록. 있으면 앱 설치와 터미널 skills 설치를 여기에 남긴다.
+  final InstallHistory? history;
+
   @override
   State<RankingDetailPage> createState() => _RankingDetailPageState();
 }
@@ -62,6 +68,9 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
   late final CommandRunner _runner =
       widget.runner ?? const ShellCommandRunner();
   final GlobalKey<TerminalPanelState> _terminal = GlobalKey();
+
+  /// 터미널에서 돌고 있는 skills 설치 명령 → 그 설치 기록.
+  final Map<String, InstallRecord> _cliRecords = {};
 
   /// 지금 컴퓨터의 운영체제. 이 운영체제의 명령만 앱에서 실행할 수 있다.
   static final InstallOs? _hostOs = Platform.isWindows
@@ -80,9 +89,38 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
   InstallOs _os = Platform.isMacOS ? InstallOs.macos : InstallOs.windows;
 
   bool _installing = false;
+
+  /// 이 화면에서 설치 중이거나, 화면을 나갔다 오기 전에 시작한 설치가 아직 진행 중인지.
+  bool get _busy =>
+      _installing || (widget.history?.isRunning(widget.item.name) ?? false);
+
+  void _onHistoryChanged() {
+    if (mounted) setState(() {});
+  }
+
   String? _installMessage;
   bool _installFailed = false;
   late bool _installed = widget.installed;
+
+  /// 설치할 곳마다 같은 이름의 스킬 폴더가 이미 있는지 (파일 시스템 확인 결과).
+  final Map<InstallTarget, bool> _present = {};
+
+  /// 고른 설치할 곳에 이미 설치돼 있으면 설치 버튼을 숨긴다.
+  /// Claude Code 는 내 스킬 스캔 결과(이름)도 함께 본다.
+  bool get _alreadyInstalled =>
+      (_target == InstallTarget.claude && _installed) ||
+      (_present[_target] ?? false);
+
+  Future<void> _checkPresent() async {
+    for (final target in InstallTarget.values) {
+      try {
+        final exists = await _installer.exists(target, widget.item.slug);
+        if (mounted) setState(() => _present[target] = exists);
+      } on SkillInstallException {
+        // 홈 폴더를 못 찾거나 이름이 폴더로 쓸 수 없으면 확인을 건너뛴다.
+      }
+    }
+  }
 
   bool get _cliSupported => InstallCommands.supports(
     widget.item.source,
@@ -95,6 +133,18 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
     super.initState();
     _loadDetail();
     _loadAudits();
+    _checkPresent();
+    widget.history?.addListener(_onHistoryChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.history?.removeListener(_onHistoryChanged);
+    // 상세를 닫으면 터미널 명령도 멈추므로, 진행 중이던 터미널 설치는 중지로 남긴다.
+    for (final record in _cliRecords.values) {
+      widget.history?.finish(record, ok: false, message: '상세 화면을 닫아 중지했습니다');
+    }
+    super.dispose();
   }
 
   Future<void> _loadDetail() async {
@@ -118,7 +168,7 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
 
   Future<void> _install() async {
     final detail = _detail;
-    if (detail == null || _installing) return;
+    if (detail == null || _busy) return;
 
     final bool exists;
     try {
@@ -135,6 +185,12 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
       _installing = true;
       _installMessage = null;
     });
+    final record = widget.history?.start(
+      name: widget.item.name,
+      source: widget.item.source,
+      target: _target.label,
+      method: InstallMethod.app,
+    );
     try {
       final result = await _installer.install(
         detail,
@@ -147,9 +203,24 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
       _showResult(
         '${_target.displayPath(detail.slug)} 에 파일 ${result.written}개를 설치했습니다.$skipped',
       );
-      if (_target == InstallTarget.claude) setState(() => _installed = true);
+      if (record != null) {
+        widget.history?.finish(
+          record,
+          ok: true,
+          message: _target.displayPath(detail.slug),
+        );
+      }
+      if (mounted) {
+        setState(() {
+          _present[_target] = true;
+          if (_target == InstallTarget.claude) _installed = true;
+        });
+      }
       widget.onInstalled?.call();
     } on SkillInstallException catch (e) {
+      if (record != null) {
+        widget.history?.finish(record, ok: false, message: e.message);
+      }
       _showResult(e.message, failed: true);
     }
   }
@@ -157,9 +228,33 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
   /// 직접 설치 명령을 터미널 패널에서 실행한다.
   void _run(String command) => _terminal.currentState?.run(command);
 
+  /// 터미널에서 skills 설치 명령을 시작하면 설치 기록에 남긴다.
+  void _onCommandStarted(String command) {
+    final history = widget.history;
+    if (history == null || !command.contains('skills add')) return;
+    final target = command.contains('-a ${InstallTarget.codex.cliAgent}')
+        ? InstallTarget.codex
+        : InstallTarget.claude;
+    _cliRecords[command] = history.start(
+      name: widget.item.name,
+      source: widget.item.source,
+      target: target.label,
+      method: InstallMethod.cli,
+    );
+  }
+
   /// 터미널에서 skills CLI 설치가 성공하면 앱 설치와 똑같이 다시 스캔한다.
   void _onCommandFinished(String command, int exitCode) {
+    final record = _cliRecords.remove(command);
+    if (record != null) {
+      widget.history?.finish(
+        record,
+        ok: exitCode == 0,
+        message: exitCode == 0 ? null : '종료 코드 $exitCode',
+      );
+    }
     if (exitCode != 0 || !command.contains('skills add')) return;
+    _checkPresent();
     if (command.contains('-a ${InstallTarget.claude.cliAgent}')) {
       setState(() => _installed = true);
     }
@@ -178,56 +273,26 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
   Future<bool?> _confirm(SkillDetail detail, bool exists) {
     final audits = _audits;
     final notPassed = audits?.where((a) => !a.passed).length ?? 0;
-    final auditLine = audits == null
-        ? '보안 점검 결과를 아직 받지 못했습니다.'
+    final (String text, AuditTone tone) = audits == null
+        ? ('보안 점검 결과를 아직 받지 못했습니다.', AuditTone.none)
         : audits.isEmpty
-        ? '아직 보안 점검 기록이 없는 스킬입니다.'
+        ? ('아직 보안 점검 기록이 없는 스킬입니다.', AuditTone.none)
         : notPassed == 0
-        ? '보안 점검 ${audits.length}곳 모두 통과했습니다.'
-        : '보안 점검 ${audits.length}곳 중 $notPassed곳이 통과가 아닙니다. 아래 내용을 확인하세요.';
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(exists ? '이미 있는 스킬을 바꿀까요?' : '스킬을 설치할까요?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${detail.source} / ${detail.slug}'),
-            const SizedBox(height: 8),
-            Text('설치 위치: ${_target.displayPath(detail.slug)}'),
-            Text('파일 ${detail.files.length}개'),
-            const SizedBox(height: 8),
-            Text(
-              auditLine,
-              style: TextStyle(color: notPassed > 0 ? _red : _sub),
-            ),
-            if (exists) ...[
-              const SizedBox(height: 8),
-              const Text(
-                '같은 이름의 폴더를 새 파일로 바꿉니다. 그 폴더에서 고친 내용은 사라집니다.',
-                style: TextStyle(color: _red),
-              ),
-            ],
-            const SizedBox(height: 8),
-            const Text(
-              '스킬은 에이전트에게 주는 지시문입니다. 믿을 수 있는 출처인지 확인하세요.',
-              style: TextStyle(fontSize: 12, color: _sub),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
-          ),
-          FilledButton(
-            key: const Key('ranking-install-confirm'),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(exists ? '바꾸기' : '설치'),
-          ),
-        ],
-      ),
+        ? ('보안 점검 ${audits.length}곳 모두 통과했습니다.', AuditTone.passed)
+        : (
+            '보안 점검 ${audits.length}곳 중 $notPassed곳이 통과가 아닙니다. 상세의 보안 점검을 확인하세요.',
+            AuditTone.warning,
+          );
+    return showInstallConfirm(
+      context,
+      name: detail.slug,
+      source: detail.source,
+      target: _target.label,
+      path: _target.displayPath(detail.slug),
+      fileCount: detail.files.length,
+      auditText: text,
+      auditTone: tone,
+      replacing: exists,
     );
   }
 
@@ -248,7 +313,10 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
                 key: const PageStorageKey<String>('ranking-detail'),
                 children: [
                   _installCard(),
-                  if (_showGuide) ...[const SizedBox(height: 12), _guideCard()],
+                  if (_showGuide && !_alreadyInstalled) ...[
+                    const SizedBox(height: 12),
+                    _guideCard(),
+                  ],
                   const SizedBox(height: 12),
                   _auditCard(),
                   const SizedBox(height: 12),
@@ -383,7 +451,7 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
   );
 
   Widget _installCard() {
-    final ready = _detail != null && !_installing;
+    final ready = _detail != null && !_busy;
     return _cardBox(
       key: const Key('ranking-install-card'),
       child: Column(
@@ -408,54 +476,72 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
             ],
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              GlassTap(
-                key: const Key('ranking-install'),
-                onTap: ready ? _install : () {},
-                color: ready ? _blue : const Color(0x660064D1),
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: _installing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        '설치',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-              ),
-              GlassTap(
-                key: const Key('ranking-direct-install'),
-                onTap: () => setState(() => _showGuide = !_showGuide),
-                color: const Color(0xFFE8EEF8),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      '직접 설치',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+          if (_alreadyInstalled && !_busy)
+            Row(
+              key: const Key('ranking-already-installed'),
+              children: [
+                const Icon(Icons.check_circle, size: 20, color: _green),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${_target.label}에 이미 설치되어 있습니다.',
+                    style: const TextStyle(
+                      color: _green,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      _showGuide ? Icons.expand_less : Icons.expand_more,
-                      size: 18,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                GlassTap(
+                  key: const Key('ranking-install'),
+                  onTap: ready ? _install : () {},
+                  color: ready ? _blue : const Color(0x660064D1),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          '설치',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+                GlassTap(
+                  key: const Key('ranking-direct-install'),
+                  onTap: () => setState(() => _showGuide = !_showGuide),
+                  color: const Color(0xFFE8EEF8),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        '직접 설치',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _showGuide ? Icons.expand_less : Icons.expand_more,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 10),
           Text(
             '설치 위치: ${_target.displayPath(widget.item.slug)}',
@@ -586,6 +672,7 @@ class _RankingDetailPageState extends State<RankingDetailPage> {
           TerminalPanel(
             key: _terminal,
             runner: _runner,
+            onStarted: _onCommandStarted,
             onFinished: _onCommandFinished,
           ),
         ],
