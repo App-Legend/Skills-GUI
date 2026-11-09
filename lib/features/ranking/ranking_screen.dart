@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../ui/glass.dart';
 import 'category/skill_category.dart';
 import 'data/ranking_api_client.dart';
+import 'install/install_history.dart';
 import 'install/skill_installer.dart';
 import 'models/ranking_models.dart';
 import 'ranking_config.dart';
@@ -94,6 +95,7 @@ class RankingScreen extends StatefulWidget {
     this.installed = const {},
     this.installer,
     this.onInstalled,
+    this.history,
   });
 
   final RankingApiClient? client;
@@ -103,6 +105,9 @@ class RankingScreen extends StatefulWidget {
 
   /// 상세 화면에서 설치를 마친 뒤 부른다.
   final VoidCallback? onInstalled;
+
+  /// 설치 기록. 앱 전체에서 하나를 같이 쓴다 (사이드바 "설치 중" 표시용).
+  final InstallHistory? history;
 
   /// 내 스킬 이름들. 랭킹 항목과 이름이 같으면 "설치됨"으로 표시한다.
   final Set<String> installed;
@@ -397,6 +402,7 @@ class _RankingScreenState extends State<RankingScreen> {
         installed: widget.installed.contains(detail.name),
         onBack: () => setState(() => _detail = null),
         onInstalled: widget.onInstalled,
+        history: widget.history,
       );
     }
     final loading = _searching ? _search.loading : _states[_view]!.loading;
