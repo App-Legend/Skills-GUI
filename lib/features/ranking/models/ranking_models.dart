@@ -31,6 +31,7 @@ class SkillRankItem {
   final String source;
   final int installs;
   final String sourceType;
+
   /// well-known 출처 스킬은 null 로 온다.
   final String? installUrl;
   final String url;
@@ -100,6 +101,140 @@ class RankingPage {
       items: data.map(SkillRankItem.fromJson).toList(growable: false),
       pagination: RankingPagination.fromJson(map['pagination']),
     );
+  }
+}
+
+/// 검색 응답. skills.sh 검색은 페이지 없이 최대 limit 개를 돌려준다.
+class SearchResult {
+  const SearchResult({required this.query, required this.items});
+
+  final String query;
+  final List<SkillRankItem> items;
+
+  factory SearchResult.fromJson(Object? json) {
+    final map = _asMap(json, '검색 응답');
+    final data = map['data'];
+    if (data is! List) {
+      throw const FormatException('data 는 목록이어야 해요.');
+    }
+    final query = map['query'];
+    return SearchResult(
+      query: query is String ? query : '',
+      items: data.map(SkillRankItem.fromJson).toList(growable: false),
+    );
+  }
+}
+
+/// 스타 응답. 값이 null 이면 그 저장소는 조회하지 못한 것이다.
+class StarsResult {
+  const StarsResult({required this.stars, required this.limited});
+
+  final Map<String, int?> stars;
+
+  /// GitHub 요청 한도에 걸려 일부를 못 가져왔으면 true.
+  final bool limited;
+
+  factory StarsResult.fromJson(Object? json) {
+    final map = _asMap(json, '스타 응답');
+    final raw = _asMap(map['stars'], 'stars');
+    return StarsResult(
+      stars: {
+        for (final entry in raw.entries)
+          entry.key: entry.value is int ? entry.value as int : null,
+      },
+      limited: map['limited'] == true,
+    );
+  }
+}
+
+/// 스킬에 든 파일 하나. [contents] 가 null 이면 skills.sh 가 내용을 주지 않은 파일(그림 등)이다.
+class SkillFile {
+  const SkillFile({required this.path, required this.contents});
+
+  final String path;
+  final String? contents;
+
+  factory SkillFile.fromJson(Object? json) {
+    final map = _asMap(json, '파일');
+    return SkillFile(
+      path: _string(map, 'path'),
+      contents: _optString(map, 'contents'),
+    );
+  }
+}
+
+/// 스킬 상세. skills.sh `/api/v1/skills/{source}/{slug}` 응답.
+class SkillDetail {
+  const SkillDetail({
+    required this.id,
+    required this.source,
+    required this.slug,
+    required this.installs,
+    required this.files,
+  });
+
+  final String id;
+  final String source;
+  final String slug;
+  final int installs;
+  final List<SkillFile> files;
+
+  /// SKILL.md 본문. 없으면 null.
+  String? get skillMd {
+    for (final file in files) {
+      if (file.path.toLowerCase() == 'skill.md') return file.contents;
+    }
+    return null;
+  }
+
+  factory SkillDetail.fromJson(Object? json) {
+    final map = _asMap(json, '상세 응답');
+    final files = map['files'];
+    return SkillDetail(
+      id: _string(map, 'id'),
+      source: _string(map, 'source'),
+      slug: _string(map, 'slug'),
+      installs: _int(map, 'installs'),
+      files: files is List
+          ? files.map(SkillFile.fromJson).toList(growable: false)
+          : const [],
+    );
+  }
+}
+
+/// 보안 점검 결과 하나.
+class SkillAudit {
+  const SkillAudit({
+    required this.provider,
+    required this.status,
+    required this.summary,
+    this.riskLevel,
+  });
+
+  final String provider;
+
+  /// pass / warn / fail 등. skills.sh 가 준 값을 그대로 쓴다.
+  final String status;
+  final String summary;
+  final String? riskLevel;
+
+  bool get passed => status.toLowerCase() == 'pass';
+
+  factory SkillAudit.fromJson(Object? json) {
+    final map = _asMap(json, '점검 결과');
+    final summary = map['summary'];
+    return SkillAudit(
+      provider: _string(map, 'provider'),
+      status: _string(map, 'status'),
+      summary: summary is String ? summary : '',
+      riskLevel: _optString(map, 'riskLevel'),
+    );
+  }
+
+  static List<SkillAudit> listFromJson(Object? json) {
+    final audits = _asMap(json, '점검 응답')['audits'];
+    if (audits is! List) throw const FormatException('audits 는 목록이어야 해요.');
+    return audits.map(SkillAudit.fromJson).toList(growable: false);
   }
 }
 

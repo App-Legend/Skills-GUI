@@ -16,7 +16,6 @@ const _notReady = Center(
 enum AppTab {
   mine('내 스킬'),
   updates('업데이트 필요'),
-  search('검색'),
   ranking('랭킹');
 
   final String label;
@@ -130,7 +129,6 @@ class _AppShellState extends State<AppShell> {
                       ),
                     ),
                     widget.updates ?? _notReady,
-                    _notReady,
                     widget.ranking ?? _notReady,
                   ],
                 ),
@@ -186,7 +184,25 @@ class _Sidebar extends StatelessWidget {
   Widget build(BuildContext context) => GlassPanel(
     child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
-      child: ListView(children: [for (final t in AppTab.values) _item(t)]),
+      child: ListView(
+        children: [
+          // 앱 로고. 원본은 저장소 밖 로고 키트(검정 가로형)에서 PNG 로 뽑았다.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 6, 14, 20),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Image.asset(
+                'assets/logo/skillgui-logo.png',
+                key: const Key('app-logo'),
+                height: 30,
+                semanticLabel: 'Skill-GUI',
+                filterQuality: FilterQuality.medium,
+              ),
+            ),
+          ),
+          for (final t in AppTab.values) _item(t),
+        ],
+      ),
     ),
   );
 }

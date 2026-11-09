@@ -5,11 +5,14 @@ import '../../../ui/skill_badges.dart';
 const _sub = Color(0xFF3A4658);
 const _green = Color(0xFF067647);
 const _red = Color(0xFFB42318);
+const _star = Color(0xFF8A5A00);
 
 /// 랭킹 항목 한 줄. 값만 받아 그린다.
 ///
 /// [showChange] 가 true 이면 [change] 를 +/− 로 표시한다 (핫 뷰용).
 /// [change] 가 null 이면 변화량 자리에 '-' 를 보인다.
+/// [stars] 는 GitHub 저장소 스타 수. null 이면 스타 줄을 그리지 않는다.
+/// [category] 가 있으면 출처 옆에 카테고리 배지를 붙인다.
 class RankingListTile extends StatelessWidget {
   const RankingListTile({
     super.key,
@@ -20,6 +23,9 @@ class RankingListTile extends StatelessWidget {
     this.change,
     this.showChange = false,
     this.installed = false,
+    this.stars,
+    this.category,
+    this.onTap,
   });
 
   final int rank;
@@ -31,6 +37,12 @@ class RankingListTile extends StatelessWidget {
 
   /// 내 스킬에 같은 이름이 있으면 "설치됨" 배지를 붙인다.
   final bool installed;
+
+  final int? stars;
+  final String? category;
+
+  /// 누르면 상세로 간다. null 이면 누를 수 없다.
+  final VoidCallback? onTap;
 
   /// 1234567 -> 1,234,567
   static String formatCount(int value) {
@@ -64,80 +76,106 @@ class RankingListTile extends StatelessWidget {
     child: Material(
       color: const Color(0xDBFFFFFF), // 흰색 0.86
       borderRadius: BorderRadius.circular(22),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 48,
-              child: Text(
-                '$rank',
-                key: const Key('ranking-tile-rank'),
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: rank <= 3 ? const Color(0xFF0064D1) : _sub,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 48,
+                child: Text(
+                  '$rank',
+                  key: const Key('ranking-tile-rank'),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: rank <= 3 ? const Color(0xFF0064D1) : _sub,
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          name,
-                          key: const Key('ranking-tile-name'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            name,
+                            key: const Key('ranking-tile-name'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
-                      if (installed) ...[
-                        const SizedBox(width: 8),
-                        const SkillBadge(
-                          '설치됨',
-                          key: Key('ranking-tile-installed'),
-                          bg: Color(0x1F067647),
-                          fg: _green,
-                        ),
+                        if (installed) ...[
+                          const SizedBox(width: 8),
+                          const SkillBadge(
+                            '설치됨',
+                            key: Key('ranking-tile-installed'),
+                            bg: Color(0x1F067647),
+                            fg: _green,
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            source,
+                            key: const Key('ranking-tile-source'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12, color: _sub),
+                          ),
+                        ),
+                        if (category != null) ...[
+                          const SizedBox(width: 8),
+                          SkillBadge(
+                            category!,
+                            key: const Key('ranking-tile-category'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
                   Text(
-                    source,
-                    key: const Key('ranking-tile-source'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: _sub),
+                    '설치 ${formatCount(installs)}',
+                    key: const Key('ranking-tile-installs'),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
+                  if (stars != null)
+                    Text(
+                      '★ ${formatCount(stars!)}',
+                      key: const Key('ranking-tile-stars'),
+                      style: const TextStyle(fontSize: 12, color: _star),
+                    ),
+                  if (showChange)
+                    Text(
+                      formatChange(change),
+                      key: const Key('ranking-tile-change'),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _changeColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                 ],
               ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '설치 ${formatCount(installs)}',
-                  key: const Key('ranking-tile-installs'),
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                if (showChange)
-                  Text(
-                    formatChange(change),
-                    key: const Key('ranking-tile-change'),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _changeColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),
