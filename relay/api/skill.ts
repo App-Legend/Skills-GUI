@@ -1,4 +1,4 @@
-import { json, proxySkills, skillPath } from "../lib/skills";
+import { json, proxySkills, skillPath } from "../lib/skills.js";
 
 /**
  * 스킬 하나의 상세와 파일 내용. `id=source/slug` (예: anthropics/skills/frontend-design).

@@ -1,4 +1,4 @@
-import { json, parseInteger, proxySkills } from "../lib/skills";
+import { json, parseInteger, proxySkills } from "../lib/skills.js";
 
 const UPSTREAM_URL = "https://skills.sh/api/v1/skills";
 const VIEWS = ["all-time", "trending", "hot"] as const;

@@ -1,4 +1,4 @@
-import { json, proxySkills, skillPath } from "../lib/skills";
+import { json, proxySkills, skillPath } from "../lib/skills.js";
 
 /**
  * 스킬 보안 점검 결과. `id=source/slug`.
