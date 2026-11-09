@@ -228,8 +228,8 @@ class PanelToggleIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
     key: const Key('panel-toggle-icon'),
-    width: 16,
-    height: 20,
+    width: 17,
+    height: 19,
     child: CustomPaint(painter: _PanelIconPainter(busy: busy)),
   );
 }
@@ -245,7 +245,7 @@ class _PanelIconPainter extends CustomPainter {
       ..color = _ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
-    // 세로로 긴 사각형 (가로 12 × 세로 16).
+    // 살짝 세로로 긴 사각형 (가로 13 × 세로 15).
     final box = Rect.fromLTWH(2, 2, size.width - 4, size.height - 4);
     canvas.drawRRect(
       RRect.fromRectAndRadius(box, const Radius.circular(3)),
