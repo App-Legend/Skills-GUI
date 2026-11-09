@@ -47,6 +47,8 @@ class InstallHistoryPanel extends StatelessWidget {
                     key: const Key('install-history-close'),
                     tooltip: '설치 기록 접기',
                     icon: const PanelToggleIcon(),
+                    visualDensity: VisualDensity.compact,
+                    iconSize: 20,
                     onPressed: () => history.panelOpen.value = false,
                   ),
                 ],
@@ -197,17 +199,17 @@ class InstallHistoryRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GlassPanel(
     key: const Key('install-history-rail'),
-    radius: 16,
+    radius: 12,
     child: ListenableBuilder(
       listenable: history,
       builder: (context, _) => InkWell(
         key: const Key('install-history-open'),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         onTap: () => history.panelOpen.value = true,
         child: Tooltip(
           message: history.anyRunning ? '설치 중 · 설치 기록 펼치기' : '설치 기록 펼치기',
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             child: PanelToggleIcon(busy: history.anyRunning),
           ),
         ),
@@ -226,8 +228,8 @@ class PanelToggleIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
     key: const Key('panel-toggle-icon'),
-    width: 20,
-    height: 26,
+    width: 16,
+    height: 20,
     child: CustomPaint(painter: _PanelIconPainter(busy: busy)),
   );
 }
@@ -242,26 +244,22 @@ class _PanelIconPainter extends CustomPainter {
     final stroke = Paint()
       ..color = _ink
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8;
-    // 세로로 긴 사각형 (가로 14 × 세로 22).
-    final box = Rect.fromLTWH(3, 2, size.width - 6, size.height - 4);
+      ..strokeWidth = 1.5;
+    // 세로로 긴 사각형 (가로 12 × 세로 16).
+    final box = Rect.fromLTWH(2, 2, size.width - 4, size.height - 4);
     canvas.drawRRect(
-      RRect.fromRectAndRadius(box, const Radius.circular(4)),
+      RRect.fromRectAndRadius(box, const Radius.circular(3)),
       stroke,
     );
     // 패널 자리를 뜻하는 세로 막대 (오른쪽 패널이라 오른쪽에 둔다).
-    final barX = box.right - 4;
+    final barX = box.right - 3.5;
     canvas.drawLine(
-      Offset(barX, box.top + 4),
-      Offset(barX, box.bottom - 4),
+      Offset(barX, box.top + 3),
+      Offset(barX, box.bottom - 3),
       stroke..strokeCap = StrokeCap.round,
     );
     if (busy) {
-      canvas.drawCircle(
-        Offset(box.right, box.top),
-        3.6,
-        Paint()..color = _blue,
-      );
+      canvas.drawCircle(Offset(box.right, box.top), 3, Paint()..color = _blue);
     }
   }
 

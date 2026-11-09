@@ -153,10 +153,7 @@ class _AppShellState extends State<AppShell> {
                           )
                         : Align(
                             alignment: Alignment.topCenter,
-                            child: SizedBox(
-                              width: 52,
-                              child: InstallHistoryRail(history: history),
-                            ),
+                            child: InstallHistoryRail(history: history),
                           ),
                   ),
                 ),
