@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -7,10 +8,13 @@ import 'package:skill_gui/features/ranking/data/ranking_api_client.dart';
 import 'package:skill_gui/features/ranking/install/install_history.dart';
 import 'package:skill_gui/features/ranking/install/skill_installer.dart';
 import 'package:skill_gui/features/ranking/models/ranking_models.dart';
+import 'package:skill_gui/features/ranking/ranking_detail_page.dart';
 import 'package:skill_gui/features/ranking/ranking_screen.dart';
 import 'package:skill_gui/features/ranking/widgets/install_history_view.dart';
 import 'package:skill_gui/scan/skill.dart';
 import 'package:skill_gui/ui/app_shell.dart';
+
+import 'terminal_panel_test.dart' show FakeRunner;
 
 /// 테스트가 끝내라고 할 때까지 설치를 붙잡고 있는 가짜 설치기. 파일은 쓰지 않는다.
 class _SlowInstaller extends SkillInstaller {
@@ -238,5 +242,77 @@ void main() {
     final record = history.records.single;
     expect(record.status, InstallStatus.failed);
     expect(record.message, '가짜 실패');
+  });
+
+  testWidgets('터미널 설치 중에 상세를 닫아도 오류 없이 실패 기록으로 남는다', (t) async {
+    t.view.physicalSize = const Size(1400, 1100);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final history = InstallHistory();
+    final runner = FakeRunner();
+    const item = SkillRankItem(
+      id: 'fake/repo/fake-skill',
+      slug: 'fake-skill',
+      name: 'fake-skill',
+      source: 'fake/repo',
+      installs: 1,
+      sourceType: 'github',
+      installUrl: null,
+      url: 'https://example.test',
+    );
+    var open = true;
+    late StateSetter setOuter;
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              setOuter = setState;
+              return Row(
+                children: [
+                  // 기록을 듣는 다른 위젯 (사이드바·오른쪽 패널 흉내).
+                  SizedBox(
+                    width: 300,
+                    child: InstallHistoryPanel(history: history),
+                  ),
+                  Expanded(
+                    child: open
+                        ? RankingDetailPage(
+                            item: item,
+                            client: _client(),
+                            onBack: () {},
+                            history: history,
+                            runner: runner,
+                          )
+                        : const SizedBox(),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('ranking-direct-install')));
+    await t.pumpAndSettle();
+    final host = Platform.isWindows ? 'windows' : 'macos';
+    final run = find.descendant(
+      of: find.byKey(Key('ranking-command-$host')),
+      matching: find.byKey(const Key('command-run')),
+    );
+    await t.ensureVisible(run);
+    await t.tap(run);
+    await t.pump();
+    expect(history.records.single.status, InstallStatus.running);
+
+    // 설치 중에 상세를 닫는다.
+    setOuter(() => open = false);
+    await t.pumpAndSettle();
+    expect(t.takeException(), isNull);
+    expect(history.records.single.status, InstallStatus.failed);
+    expect(history.records.single.message, '상세 화면을 닫아 중지했습니다');
+    // 멈춘 명령의 남은 출력을 기다리는 2초 타이머가 끝나게 둔다.
+    await t.pump(const Duration(seconds: 3));
   });
 }
