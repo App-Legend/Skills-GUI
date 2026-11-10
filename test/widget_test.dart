@@ -31,15 +31,15 @@ void main() {
     expect(find.text('hello-skill'), findsOneWidget);
   });
 
-  testWidgets('홈 폴더를 모르면 다시 스캔 버튼이 보인다', (tester) async {
+  testWidgets('홈 폴더를 모르면 다시 스캔 버튼이 보입니다', (tester) async {
     await tester.pumpWidget(
       SkillGuiApp(claudeDir: null, scan: _scan, reduceTransparency: _noReduce),
     );
     await tester.pumpAndSettle();
-    expect(find.text('스캔하지 못했다'), findsOneWidget);
+    expect(find.text('스캔하지 못했습니다'), findsOneWidget);
   });
 
-  testWidgets('스캔이 던지면 다시 스캔 버튼이 보인다', (tester) async {
+  testWidgets('스캔이 던지면 다시 스캔 버튼이 보입니다', (tester) async {
     await tester.pumpWidget(
       SkillGuiApp(
         claudeDir: Directory.systemTemp,
@@ -48,7 +48,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('스캔하지 못했다'), findsOneWidget);
+    expect(find.text('스캔하지 못했습니다'), findsOneWidget);
     expect(find.text('다시 스캔'), findsOneWidget);
   });
 
@@ -80,7 +80,7 @@ void main() {
     expect(find.text('skill-1'), findsOneWidget);
   });
 
-  testWidgets('다시 스캔해도 고른 필터가 남는다', (tester) async {
+  testWidgets('다시 스캔해도 고른 필터가 남습니다', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);

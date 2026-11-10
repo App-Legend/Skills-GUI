@@ -4,19 +4,25 @@ import 'package:flutter/material.dart';
 
 import 'access/folder_access.dart';
 import 'features/ranking/install/install_history.dart';
+import 'features/ranking/data/ranking_api_client.dart';
+import 'features/ranking/install/skill_installer.dart';
+import 'features/ranking/ranking_config.dart';
 import 'features/ranking/ranking_screen.dart';
+import 'scan/agent.dart';
 import 'scan/skill.dart';
 import 'scan/skill_scanner.dart';
 import 'ui/glass.dart';
 import 'ui/app_shell.dart';
 import 'ui/update_page.dart';
 import 'update/claude_cli.dart';
+import 'update/app_install_updates.dart';
+import 'update/skills_cli.dart';
 import 'update/update_check.dart';
 
 void main() => runApp(
   SkillGuiApp(
     claudeDir: claudeHomeDir(),
-    scan: scanClaude,
+    scan: scanAllAgents,
     reduceTransparency: reduceTransparency,
   ),
 );
@@ -116,7 +122,7 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('스캔하지 못했다'),
+                const Text('스캔하지 못했습니다'),
                 const SizedBox(height: 12),
                 FilledButton(onPressed: _rescan, child: const Text('다시 스캔')),
               ],
@@ -137,9 +143,23 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
         check: widget.findUpdates,
         onUpdated: _rescan,
         onChecked: (l) => setState(() => _updateCount = _needed(l)),
+        sources: [
+          if (widget.claudeDir?.parent.path case final home?) ...[
+            SkillsCli(home: home),
+            if (RankingConfig.isConfigured)
+              AppInstallUpdater(
+                installer: SkillInstaller(home: home),
+                fetchDetail: RankingApiClient(RankingConfig.apiBase).fetchDetail,
+              ),
+          ],
+        ],
       ),
       ranking: RankingScreen(
         installed: {for (final s in r.skills) s.name},
+        installedClaude: {
+          for (final s in r.skills)
+            if (s.agents.contains(Agent.claude)) s.name,
+        },
         onInstalled: _rescan,
         history: _installs,
       ),

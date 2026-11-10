@@ -101,7 +101,7 @@ void main() {
     expect(find.byType(BackdropFilter), findsNothing);
   });
 
-  testWidgets('긴 이름과 긴 플러그인 id는 넘치지 않는다', (t) async {
+  testWidgets('긴 이름과 긴 플러그인 id는 넘치지 않습니다', (t) async {
     t.view.physicalSize = const Size(1280, 820);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
@@ -129,18 +129,19 @@ void main() {
     expect(find.text('꺼짐'), findsNWidgets(2));
   });
 
-  testWidgets('에이전트 필터: Codex는 준비 중, Claude Code는 목록', (t) async {
+  testWidgets('에이전트 필터: 그 에이전트가 읽는 스킬만 보입니다', (t) async {
     await _pump(t);
     await t.tap(find.text('Codex'));
     await t.pump();
-    expect(find.text('아직 준비 중이다'), findsOneWidget);
+    // 테스트 스킬은 모두 Claude Code 것이라 Codex에는 없다.
+    expect(find.text('해당하는 스킬이 없습니다'), findsOneWidget);
     expect(find.text('a'), findsNothing);
     await t.tap(find.text('Claude Code'));
     await t.pump();
     expect(find.text('a'), findsOneWidget);
   });
 
-  testWidgets('선택된 필터가 접근성에 알려진다', (t) async {
+  testWidgets('선택된 필터가 접근성에 알려집니다', (t) async {
     await _pump(t);
     final h = t.ensureSemantics();
     Matcher node(String label, bool selected) => matchesSemantics(
@@ -186,17 +187,17 @@ void main() {
     );
     await t.tap(find.text('꺼짐'));
     await t.pump();
-    expect(find.text('해당하는 스킬이 없다'), findsOneWidget);
+    expect(find.text('해당하는 스킬이 없습니다'), findsOneWidget);
     await _pump(t, skills: const []);
     await t.pump();
-    expect(find.text('스킬을 찾지 못했다'), findsOneWidget);
+    expect(find.text('스킬을 찾지 못했습니다'), findsOneWidget);
   });
 
   testWidgets('한국어 요약과 카테고리, 카테고리 필터', (t) async {
     final store = SkillAnalysisStore(
       client: SkillAnalysisApiClient(
         'https://relay.example.test',
-        httpPost: (_, _) async => throw StateError('캐시만 써야 한다'),
+        httpPost: (_, _) async => throw StateError('캐시만 써야 합니다'),
       ),
       cache: _MapCache({
         '/x': const SkillAnalysis(

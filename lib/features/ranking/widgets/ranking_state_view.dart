@@ -11,13 +11,13 @@ enum _RankingStateKind { loading, error, empty }
 class RankingStateView extends StatelessWidget {
   const RankingStateView.loading({super.key})
       : _kind = _RankingStateKind.loading,
-        message = '불러오는 중이다',
+        message = '불러오는 중입니다',
         onRetry = null;
 
   const RankingStateView.error({super.key, required this.message, this.onRetry})
       : _kind = _RankingStateKind.error;
 
-  const RankingStateView.empty({super.key, this.message = '표시할 스킬이 없다'})
+  const RankingStateView.empty({super.key, this.message = '표시할 스킬이 없습니다'})
       : _kind = _RankingStateKind.empty,
         onRetry = null;
 

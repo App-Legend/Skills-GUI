@@ -29,7 +29,7 @@ void main() {
     expect((await cache.load(skill))?.overview, analysis.overview);
   });
 
-  test('원문이 달라지면 기존 분석을 쓰지 않는다', () async {
+  test('원문이 달라지면 기존 분석을 쓰지 않습니다', () async {
     final directory = await Directory.systemTemp.createTemp(
       'skill-analysis-test-',
     );
@@ -46,7 +46,7 @@ void main() {
     expect(await cache.load(changed), isNull);
   });
 
-  test('카테고리가 없던 이전 형식 캐시는 다시 분석한다', () async {
+  test('카테고리가 없던 이전 형식 캐시는 다시 분석합니다', () async {
     final directory = await Directory.systemTemp.createTemp(
       'skill-analysis-test-',
     );
@@ -62,7 +62,7 @@ void main() {
     expect(await cache.load(skill), isNull);
   });
 
-  test('카테고리가 빈 결과는 다시 분석한다', () async {
+  test('카테고리가 빈 결과는 다시 분석합니다', () async {
     final directory = await Directory.systemTemp.createTemp(
       'skill-analysis-test-',
     );

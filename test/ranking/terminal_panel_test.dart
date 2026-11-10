@@ -88,19 +88,19 @@ void main() {
 
     runner.commands.single.finish(0);
     await tester.pumpAndSettle();
-    expect(find.text('완료했다 (종료 코드 0)'), findsOneWidget);
+    expect(find.text('완료했습니다 (종료 코드 0)'), findsOneWidget);
     expect(find.byKey(const Key('terminal-stop')), findsNothing);
     expect(finished, [('echo 안녕', 0)]);
   });
 
-  testWidgets('실패하면 종료 코드를 보인다', (tester) async {
+  testWidgets('실패하면 종료 코드를 보입니다', (tester) async {
     final runner = FakeRunner();
     final key = await _pump(tester, runner);
     key.currentState!.run('bad');
     await tester.pump();
     runner.commands.single.finish(2);
     await tester.pumpAndSettle();
-    expect(find.text('실패했다 (종료 코드 2)'), findsOneWidget);
+    expect(find.text('실패했습니다 (종료 코드 2)'), findsOneWidget);
   });
 
   testWidgets('입력 줄: 쉬고 있으면 명령 실행, 실행 중이면 표준 입력으로', (tester) async {
@@ -133,7 +133,7 @@ void main() {
     await tester.tap(find.byKey(const Key('terminal-stop')));
     await tester.pumpAndSettle();
     expect(runner.commands.single.stopped, isTrue);
-    expect(find.text('실패했다 (종료 코드 1)'), findsOneWidget);
+    expect(find.text('실패했습니다 (종료 코드 1)'), findsOneWidget);
   });
 
   test('실제 셸에서 명령을 실행하고 한글 출력을 읽는다', () async {

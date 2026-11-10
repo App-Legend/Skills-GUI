@@ -1,4 +1,6 @@
-enum SkillSource { global, synced, plugin }
+import 'agent.dart';
+
+enum SkillSource { global, synced, plugin, project }
 
 enum ProblemKind {
   noSkillMd,
@@ -29,7 +31,10 @@ class Skill {
   /// 플러그인만: true 켜짐, false 꺼짐, null 모름.
   final bool? pluginEnabled;
 
-  /// 프로젝트 범위 플러그인만.
+  /// 이 스킬을 읽는 에이전트. 프로젝트 `.agents/skills`처럼 여럿이 함께 읽기도 한다.
+  final List<Agent> agents;
+
+  /// 프로젝트 스킬과 프로젝트 범위 플러그인만.
   final String? projectPath;
   final String path;
   final String? linkTarget;
@@ -44,6 +49,7 @@ class Skill {
     this.plugin,
     this.pluginVersion,
     this.pluginEnabled,
+    this.agents = const [Agent.claude],
     this.projectPath,
     required this.path,
     this.linkTarget,

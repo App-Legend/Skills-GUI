@@ -16,6 +16,9 @@ class UpdatePage extends StatefulWidget {
   final Future<List<PluginUpdate>> Function(Directory) check;
   final Future<void> Function() onUpdated;
 
+  /// 스킬 업데이트를 확인하는 곳(npx skills, 앱 설치 기록). 비면 플러그인만 확인한다.
+  final List<SkillUpdateSource> sources;
+
   /// 확인하거나 업데이트해서 목록이 바뀔 때마다 알린다(사이드바 개수용).
   final void Function(List<PluginUpdate>) onChecked;
 
@@ -26,6 +29,7 @@ class UpdatePage extends StatefulWidget {
     required this.check,
     required this.onUpdated,
     required this.onChecked,
+    this.sources = const [],
   });
 
   @override
@@ -37,9 +41,9 @@ class _UpdatePageState extends State<UpdatePage> {
   DateTime? _checkedAt;
   bool _busy = false;
   String? _error;
-  final _failed = <String, String>{}; // id → 실패 이유
+  final _failed = <String, String>{}; // PluginUpdate.key → 실패 이유
 
-  static const _noCli = 'Claude Code 명령(claude)을 찾지 못했다';
+  static const _noCli = 'Claude Code 명령(claude)을 찾지 못했습니다';
 
   String _why(CmdResult r) {
     final msg = [r.stderr, r.stdout].map((s) => s.trim()).firstWhere(
@@ -57,16 +61,23 @@ class _UpdatePageState extends State<UpdatePage> {
       _error = null;
       _failed.clear();
     });
+    // 플러그인과 스킬 확인을 함께 돌린다. npx는 처음에 받느라 오래 걸릴 수 있다.
+    final skillChecks = Future.wait([for (final s in widget.sources) s.check()]);
     final r = await widget.cli.run(['plugin', 'marketplace', 'update']);
-    String? error;
+    final errors = <String>[];
     List<PluginUpdate>? found;
     if (r == null) {
-      error = _noCli;
+      errors.add(_noCli);
     } else {
       // 마켓 갱신이 실패해도 갖고 있는 복사본으로 비교는 한다.
-      if (r.exitCode != 0) error = '최신 정보를 받지 못했다: ${_why(r)}';
+      if (r.exitCode != 0) errors.add('최신 정보를 받지 못했습니다: ${_why(r)}');
       found = await widget.check(dir);
     }
+    for (final s in await skillChecks) {
+      found = [...?found, ...s.found];
+      errors.addAll(s.errors);
+    }
+    final error = errors.isEmpty ? null : errors.join('\n');
     if (!mounted) return;
     setState(() {
       _busy = false;
@@ -80,11 +91,15 @@ class _UpdatePageState extends State<UpdatePage> {
   }
 
   Future<void> _update(PluginUpdate p) async {
+    final source = widget.sources.where((s) => s.kind == p.kind).firstOrNull;
+    final isSkill = p.kind != UpdateKind.plugin;
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         content: Text(
-          '${p.id}을(를) ${p.current} → ${p.latest}(으)로 업데이트한다. Claude Code를 다시 시작해야 적용된다.',
+          isSkill
+              ? '${_title(p)} 스킬을 원본 최신 내용으로 바꿉니다(${p.agent?.label ?? p.projectPath ?? '전역'}). 이 스킬 폴더를 직접 고쳤다면 그 내용은 사라집니다.'
+              : '${p.id}을(를) ${p.current} → ${p.latest}(으)로 업데이트합니다. Claude Code를 다시 시작해야 적용됩니다.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('취소')),
@@ -94,27 +109,48 @@ class _UpdatePageState extends State<UpdatePage> {
     );
     if (ok != true || !mounted) return;
     setState(() => _busy = true);
+    if (source != null) {
+      final why = await source.update(p);
+      if (!mounted) return;
+      if (why != null) {
+        setState(() {
+          _busy = false;
+          _failed[p.key] = why;
+        });
+        return;
+      }
+      await _done(p);
+      return;
+    }
     final r = await widget.cli.run(['plugin', 'update', p.id, '--scope', p.scope, '--json']);
     if (!mounted) return;
     if (r == null || r.exitCode != 0) {
       setState(() {
         _busy = false;
-        _failed[p.id] = r == null
+        _failed[p.key] = r == null
             ? _noCli
             // 명령형 설치는 사람이 명령을 확인해야 해서 앱에서 대신 승인하지 않는다.
             : '${r.stdout}${r.stderr}'.contains('shownCommand')
-            ? 'Claude Code에서 직접 업데이트해야 한다'
-            : '업데이트하지 못했다: ${_why(r)}';
+            ? 'Claude Code에서 직접 업데이트해야 합니다'
+            : '업데이트하지 못했습니다: ${_why(r)}';
       });
       return;
     }
+    await _done(p);
+  }
+
+  Future<void> _done(PluginUpdate p) async {
     setState(() {
       _busy = false;
-      _found = _found?.where((x) => x.id != p.id).toList();
+      _found = _found?.where((x) => x.key != p.key).toList();
     });
     widget.onChecked(_found ?? []);
     await widget.onUpdated();
   }
+
+  /// 앱 설치 항목의 id는 `source/slug`라 이름(slug)만 보인다.
+  static String _title(PluginUpdate p) =>
+      p.kind == UpdateKind.app ? p.id.split('/').last : p.id;
 
   Widget _row(PluginUpdate p) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
@@ -130,17 +166,36 @@ class _UpdatePageState extends State<UpdatePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    p.id,
+                    _title(p),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
+                  if (p.kind != UpdateKind.plugin)
+                    Text(
+                      p.agent != null
+                          ? '${p.agent!.label} · 새 내용 있음'
+                          : p.projectPath == null
+                          ? '전역 스킬 · 새 내용 있음'
+                          : '프로젝트 스킬 · 새 내용 있음',
+                      style: const TextStyle(color: _sub),
+                    )
+                  else
+                    Text(
+                      p.latest == null ? '현재 ${p.current}' : '${p.current} → ${p.latest}',
+                      style: const TextStyle(color: _sub),
+                    ),
                   Text(
-                    p.latest == null ? '현재 ${p.current}' : '${p.current} → ${p.latest}',
-                    style: const TextStyle(color: _sub),
+                    switch (p.kind) {
+                      UpdateKind.skill => p.projectPath ?? 'npx skills로 설치',
+                      UpdateKind.app => '앱으로 설치 · ${p.id}',
+                      UpdateKind.plugin => '스킬 ${p.skillCount}개',
+                    },
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: _sub),
                   ),
-                  Text('스킬 ${p.skillCount}개', style: const TextStyle(fontSize: 12, color: _sub)),
-                  if (_failed[p.id] case final why?)
+                  if (_failed[p.key] case final why?)
                     Text(why, style: const TextStyle(color: _red)),
                 ],
               ),
@@ -210,7 +265,7 @@ class _UpdatePageState extends State<UpdatePage> {
         const Padding(
           padding: EdgeInsets.only(top: 12, left: 8),
           child: Text(
-            '플러그인만 확인한다. 전역 스킬은 버전 정보가 없어 빠진다.',
+            'Claude Code 플러그인, npx skills와 이 앱의 설치 버튼으로 설치한 스킬을 확인합니다. 손으로 넣은 스킬은 설치 기록이 없어 빠집니다.',
             style: TextStyle(fontSize: 12, color: _sub),
           ),
         ),
@@ -225,14 +280,14 @@ class _UpdatePageState extends State<UpdatePage> {
               ? const Center(child: CircularProgressIndicator())
               : found == null
               ? const Center(
-                  child: Text('업데이트 확인을 누르면 된다', style: TextStyle(color: _sub)),
+                  child: Text('업데이트 확인을 누르면 됩니다', style: TextStyle(color: _sub)),
                 )
               : ListView(
                   children: [
                     if (needed.isEmpty)
                       const Padding(
                         padding: EdgeInsets.all(8),
-                        child: Text('모든 플러그인이 최신이다', style: TextStyle(color: _sub)),
+                        child: Text('모두 최신입니다', style: TextStyle(color: _sub)),
                       ),
                     for (final p in needed) _row(p),
                     if (unknown.isNotEmpty) ...[

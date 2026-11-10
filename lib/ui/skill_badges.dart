@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
 
+import '../scan/agent.dart';
 import '../scan/skill.dart';
 
-String sourceTag(Skill s) => switch (s.source) {
-  SkillSource.global => '전역',
-  SkillSource.synced => '동기화',
-  SkillSource.plugin => s.plugin ?? '플러그인',
-};
+/// 에이전트 이름. 여럿이 함께 읽으면 개수로 줄인다.
+String agentTag(Skill s) => s.agents.length == 1
+    ? s.agents.single.label
+    : '에이전트 ${s.agents.length}개 공용';
+
+String sourceTag(Skill s) {
+  // Claude Code 하나만 쓰는 스킬은 예전처럼 범위만 쓴다.
+  final prefix = s.agents.length == 1 && s.agents.single == Agent.claude
+      ? ''
+      : '${agentTag(s)} ';
+  return switch (s.source) {
+    SkillSource.global => '$prefix전역',
+    SkillSource.project => '$prefix프로젝트',
+    SkillSource.synced => '동기화',
+    SkillSource.plugin => s.plugin ?? '플러그인',
+  };
+}
 
 /// 카드용: 플러그인은 버전까지.
 String cardTag(Skill s) => s.pluginVersion == null

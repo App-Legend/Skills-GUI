@@ -66,7 +66,7 @@ void main() {
     );
   });
 
-  test('이미 있으면 overwrite 없이는 멈추고, overwrite 면 통째로 바꾼다', () async {
+  test('이미 있으면 overwrite 없이는 멈추고, overwrite 면 통째로 바꿉니다', () async {
     await installer.install(
       _detail([_md, const SkillFile(path: 'old.md', contents: '옛')]),
       InstallTarget.claude,
@@ -96,7 +96,7 @@ void main() {
     expect(left, ['fake-skill']);
   });
 
-  test('폴더 밖으로 나가는 경로는 아무것도 쓰지 않고 거절한다', () async {
+  test('폴더 밖으로 나가는 경로는 아무것도 쓰지 않고 거절합니다', () async {
     for (final bad in ['../evil.md', '/etc/x', 'a/../../x', r'C:\x.md']) {
       await expectLater(
         installer.install(
@@ -110,14 +110,14 @@ void main() {
     expect(Directory([home.path, '.claude'].join(sep)).existsSync(), isFalse);
   });
 
-  test('폴더 이름으로 못 쓰는 slug 는 거절한다', () {
+  test('폴더 이름으로 못 쓰는 slug 는 거절합니다', () {
     expect(
       () => installer.targetPath(InstallTarget.claude, '../x'),
       throwsA(isA<SkillInstallException>()),
     );
   });
 
-  test('SKILL.md 가 없으면 설치하지 않는다', () async {
+  test('SKILL.md 가 없으면 설치하지 않습니다', () async {
     await expectLater(
       installer.install(
         _detail([const SkillFile(path: 'README.md', contents: 'x')]),
@@ -167,7 +167,7 @@ void main() {
       );
     });
 
-    test('GitHub 저장소 출처만 CLI 를 안내한다', () {
+    test('GitHub 저장소 출처만 CLI 를 안내합니다', () {
       expect(
         InstallCommands.supports('anthropics/skills', 'github', 'pdf'),
         isTrue,
@@ -178,7 +178,7 @@ void main() {
       );
     });
 
-    test('셸에 끼어들 수 있는 스킬 이름은 CLI 를 안내하지 않는다', () {
+    test('셸에 끼어들 수 있는 스킬 이름은 CLI 를 안내하지 않습니다', () {
       expect(InstallCommands.supports('a/b', 'github', 'x; echo hi'), isFalse);
       expect(InstallCommands.supports('a/b', 'github', r'x$(id)'), isFalse);
     });

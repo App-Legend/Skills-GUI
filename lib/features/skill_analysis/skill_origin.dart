@@ -67,10 +67,11 @@ Future<SkillOrigin?> _fromLockFile(
   return SkillOrigin(
     // 저장소 메인(README가 보이는 첫 화면)으로 보낸다.
     githubUrl: 'https://github.com/$repo',
-    note: projectDir == null ? null : '$projectDir 폴더에서 실행한다.',
+    note: projectDir == null ? null : '$projectDir 폴더에서 실행합니다.',
     commands: [
       'npx skills add $source --skill $name '
-          '${projectDir == null ? '-g ' : ''}-a claude-code',
+          // 프로젝트 `.agents/skills`는 여러 에이전트가 같은 폴더라 첫 에이전트로 충분하다.
+          '${projectDir == null ? '-g ' : ''}-a ${s.agents.first.cliAgent}',
     ],
   );
 }
@@ -129,13 +130,20 @@ Future<SkillOrigin> resolveSkillOrigin(Skill s, Directory? claudeDir) async {
     if (await _fromProjectLock(s, folder, home) case final origin?) {
       return origin;
     }
-    return SkillOrigin(
-      note: '출처 정보가 없는 스킬이다. 스킬 폴더를 아래 위치에 복사하면 설치된다.',
-      commands: [
-        Platform.isWindows
-            ? '%USERPROFILE%\\.claude\\skills\\$folder'
-            : '~/.claude/skills/$folder',
+    final agent = s.agents.first;
+    final project = s.projectPath;
+    final sep = Platform.isWindows ? '\\' : '/';
+    final parts = [
+      if (project != null) ...[project, ...agent.projectParts]
+      else ...[
+        Platform.isWindows ? '%USERPROFILE%' : '~',
+        ...agent.homeParts,
       ],
+      folder,
+    ];
+    return SkillOrigin(
+      note: '출처 정보가 없는 스킬입니다. 스킬 폴더를 아래 위치에 복사하면 설치됩니다.',
+      commands: [parts.join(sep)],
     );
   }
   final id = s.plugin!;

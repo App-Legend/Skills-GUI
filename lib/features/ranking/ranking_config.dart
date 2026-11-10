@@ -14,5 +14,5 @@ class RankingConfig {
   static bool get isConfigured => apiBase.trim().isNotEmpty;
 
   static const String missingMessage =
-      '중계 서버 주소가 비어 있다. --dart-define=RANKING_API_BASE=<주소> 로 실행해야 한다.';
+      '중계 서버 주소가 비어 있습니다. --dart-define=RANKING_API_BASE=<주소> 로 실행해야 합니다.';
 }

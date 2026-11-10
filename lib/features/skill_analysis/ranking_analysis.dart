@@ -47,7 +47,7 @@ class RankingAnalysis extends ChangeNotifier {
     if (_fetchErrors[item.id] case final e?) return e;
     final s = _skills[item.id];
     if (s == null) return null;
-    if (!SkillAnalysisStore.canAnalyze(s)) return 'SKILL.md가 없어 분석하지 못했다.';
+    if (!SkillAnalysisStore.canAnalyze(s)) return 'SKILL.md가 없어 분석하지 못했습니다.';
     return store.errorOf(s);
   }
 
@@ -110,7 +110,7 @@ class RankingAnalysis extends ChangeNotifier {
       final s = _skills[item.id] = skillOf(item, detail);
       store.request([s]);
     } catch (_) {
-      _fetchErrors[item.id] = '스킬 내용을 불러오지 못했다.';
+      _fetchErrors[item.id] = '스킬 내용을 불러오지 못했습니다.';
     }
     _fetching.remove(item.id);
     _notify();

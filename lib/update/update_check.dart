@@ -1,7 +1,24 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../scan/agent.dart';
+
 enum UpdateState { needed, unknown }
+
+/// plugin: Claude Code 플러그인, skill: skills CLI(`npx skills`)로 설치한 스킬,
+/// app: 이 앱의 설치 버튼으로 설치한 스킬.
+enum UpdateKind { plugin, skill, app }
+
+/// 플러그인 말고 스킬 업데이트를 확인·실행하는 곳.
+abstract class SkillUpdateSource {
+  UpdateKind get kind;
+
+  /// 업데이트가 있는 항목과, 확인하지 못한 곳의 이유.
+  Future<({List<PluginUpdate> found, List<String> errors})> check();
+
+  /// 성공하면 null, 실패하면 이유.
+  Future<String?> update(PluginUpdate u);
+}
 
 class PluginUpdate {
   final String id;
@@ -10,6 +27,13 @@ class PluginUpdate {
   final String? latest;
   final int skillCount;
   final UpdateState state;
+  final UpdateKind kind;
+
+  /// 프로젝트 스킬만: 그 프로젝트 폴더.
+  final String? projectPath;
+
+  /// 앱으로 설치한 스킬만: 설치한 에이전트.
+  final Agent? agent;
 
   const PluginUpdate({
     required this.id,
@@ -18,7 +42,14 @@ class PluginUpdate {
     required this.latest,
     required this.skillCount,
     required this.state,
+    this.kind = UpdateKind.plugin,
+    this.projectPath,
+    this.agent,
   });
+
+  /// 화면에서 항목을 구분하는 값. 같은 스킬이 여러 프로젝트·에이전트에 있을 수 있다.
+  String get key =>
+      '${kind.name}|${projectPath ?? ''}|${agent?.name ?? ''}|$id';
 }
 
 String _sep(String p) => p.replaceAll('/', Platform.pathSeparator);

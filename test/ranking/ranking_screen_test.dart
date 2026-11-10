@@ -70,7 +70,7 @@ Future<void> _pump(WidgetTester tester, RankingApiClient? client) async {
 }
 
 void main() {
-  testWidgets('처음에 전체 보기 0페이지를 불러온다', (tester) async {
+  testWidgets('처음에 전체 보기 0페이지를 불러옵니다', (tester) async {
     final log = <Uri>[];
     await _pump(
       tester,
@@ -89,7 +89,7 @@ void main() {
     expect(find.byKey(const Key('ranking-tile-change')), findsNothing);
   });
 
-  testWidgets('탭을 바꿀 때마다 해당 view 로 불러온다', (tester) async {
+  testWidgets('탭을 바꿀 때마다 해당 view 로 불러옵니다', (tester) async {
     final log = <Uri>[];
     await _pump(
       tester,
@@ -163,7 +163,7 @@ void main() {
     expect(find.text('★ 900'), findsOneWidget);
   });
 
-  testWidgets('스타 탭은 정렬할 범위를 넓히려 누적 설치를 3페이지까지 불러온다', (tester) async {
+  testWidgets('스타 탭은 정렬할 범위를 넓히려 누적 설치를 3페이지까지 불러옵니다', (tester) async {
     final log = <Uri>[];
     await _pump(
       tester,
@@ -181,7 +181,7 @@ void main() {
     expect(log.map((u) => u.queryParameters['page']), ['0', '1', '2']);
   });
 
-  testWidgets('다음 페이지 버튼이 page 를 1 올려 목록을 이어 붙인다', (tester) async {
+  testWidgets('다음 페이지 버튼이 page 를 1 올려 목록을 이어 붙입니다', (tester) async {
     final log = <Uri>[];
     await _pump(
       tester,
@@ -203,7 +203,7 @@ void main() {
     expect(find.byKey(const Key('ranking-next-page')), findsNothing);
   });
 
-  testWidgets('호출이 실패하면 오류 메시지를 그대로 보인다', (tester) async {
+  testWidgets('호출이 실패하면 오류 메시지를 그대로 보입니다', (tester) async {
     await _pump(
       tester,
       _client(
@@ -215,7 +215,7 @@ void main() {
     expect(find.byKey(const Key('ranking-state-retry')), findsOneWidget);
   });
 
-  testWidgets('오류 뒤 다시 시도하면 불러온다', (tester) async {
+  testWidgets('오류 뒤 다시 시도하면 불러옵니다', (tester) async {
     var calls = 0;
     await _pump(
       tester,
@@ -234,7 +234,7 @@ void main() {
     expect(find.text('가짜A'), findsOneWidget);
   });
 
-  testWidgets('목록이 비면 빈 상태를 보인다', (tester) async {
+  testWidgets('목록이 비면 빈 상태를 보입니다', (tester) async {
     await _pump(
       tester,
       _client(
@@ -245,7 +245,7 @@ void main() {
     expect(find.byKey(const Key('ranking-state-empty')), findsOneWidget);
   });
 
-  testWidgets('다음 페이지 호출이 실패하면 기존 목록을 두고 오류를 보인다', (tester) async {
+  testWidgets('다음 페이지 호출이 실패하면 기존 목록을 두고 오류를 보입니다', (tester) async {
     await _pump(
       tester,
       _client((uri) {
@@ -264,7 +264,7 @@ void main() {
     expect(find.text('가짜 오류'), findsOneWidget);
   });
 
-  testWidgets('GitHub 저장소 스타 수를 가져와 타일에 보인다', (tester) async {
+  testWidgets('GitHub 저장소 스타 수를 가져와 타일에 보입니다', (tester) async {
     final starsLog = <Uri>[];
     await _pump(
       tester,
@@ -285,7 +285,7 @@ void main() {
     expect(find.text('★ 1,234'), findsNWidgets(2));
   });
 
-  testWidgets('검색창에 입력하면 검색 결과로 바뀌고 돌아갈 수 있다', (tester) async {
+  testWidgets('검색창에 입력하면 검색 결과로 바뀌고 돌아갈 수 있습니다', (tester) async {
     final log = <Uri>[];
     await _pump(
       tester,
@@ -328,7 +328,7 @@ void main() {
     expect(find.text('검색된-react'), findsNothing);
   });
 
-  testWidgets('검색어가 1자면 검색하지 않는다', (tester) async {
+  testWidgets('검색어가 1자면 검색하지 않습니다', (tester) async {
     final log = <Uri>[];
     await _pump(
       tester,
@@ -379,7 +379,7 @@ void main() {
     expect(find.text('react-tips'), findsOneWidget);
   });
 
-  testWidgets('카테고리 결과가 적으면 다음 페이지를 자동으로 더 불러온다', (tester) async {
+  testWidgets('카테고리 결과가 적으면 다음 페이지를 자동으로 더 불러옵니다', (tester) async {
     final log = <Uri>[];
     await _pump(
       tester,
@@ -401,7 +401,7 @@ void main() {
     expect(find.text('postgres-2'), findsOneWidget);
   });
 
-  testWidgets('서버 주소 설정이 없으면 설정 누락 오류를 보인다', (tester) async {
+  testWidgets('서버 주소 설정이 없으면 설정 누락 오류를 보입니다', (tester) async {
     // dart-define 없이 테스트를 돌릴 때만 해당한다.
     if (RankingConfig.isConfigured) return;
     await _pump(tester, null);

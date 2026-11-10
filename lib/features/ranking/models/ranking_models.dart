@@ -73,7 +73,7 @@ class RankingPagination {
     final map = _asMap(json, 'pagination');
     final hasMore = map['hasMore'];
     if (hasMore is! bool) {
-      throw const FormatException('hasMore 는 true/false 여야 한다.');
+      throw const FormatException('hasMore 는 true/false 여야 합니다.');
     }
     return RankingPagination(
       page: _int(map, 'page'),
@@ -95,7 +95,7 @@ class RankingPage {
     final map = _asMap(json, '응답');
     final data = map['data'];
     if (data is! List) {
-      throw const FormatException('data 는 목록이어야 한다.');
+      throw const FormatException('data 는 목록이어야 합니다.');
     }
     return RankingPage(
       items: data.map(SkillRankItem.fromJson).toList(growable: false),
@@ -115,7 +115,7 @@ class SearchResult {
     final map = _asMap(json, '검색 응답');
     final data = map['data'];
     if (data is! List) {
-      throw const FormatException('data 는 목록이어야 한다.');
+      throw const FormatException('data 는 목록이어야 합니다.');
     }
     final query = map['query'];
     return SearchResult(
@@ -171,6 +171,7 @@ class SkillDetail {
     required this.slug,
     required this.installs,
     required this.files,
+    this.hash,
   });
 
   final String id;
@@ -178,6 +179,9 @@ class SkillDetail {
   final String slug;
   final int installs;
   final List<SkillFile> files;
+
+  /// skills.sh가 주는 스킬 내용 해시. 내용이 바뀌면 달라진다. 없으면 null.
+  final String? hash;
 
   /// SKILL.md 본문. 없으면 null.
   String? get skillMd {
@@ -195,6 +199,7 @@ class SkillDetail {
       source: _string(map, 'source'),
       slug: _string(map, 'slug'),
       installs: _int(map, 'installs'),
+      hash: _optString(map, 'hash'),
       files: files is List
           ? files.map(SkillFile.fromJson).toList(growable: false)
           : const [],
@@ -233,14 +238,14 @@ class SkillAudit {
 
   static List<SkillAudit> listFromJson(Object? json) {
     final audits = _asMap(json, '점검 응답')['audits'];
-    if (audits is! List) throw const FormatException('audits 는 목록이어야 한다.');
+    if (audits is! List) throw const FormatException('audits 는 목록이어야 합니다.');
     return audits.map(SkillAudit.fromJson).toList(growable: false);
   }
 }
 
 Map<String, Object?> _asMap(Object? json, String label) {
   if (json is! Map<String, Object?>) {
-    throw FormatException('$label 형식이 올바르지 않다.');
+    throw FormatException('$label 형식이 올바르지 않습니다.');
   }
   return json;
 }
@@ -248,7 +253,7 @@ Map<String, Object?> _asMap(Object? json, String label) {
 String _string(Map<String, Object?> map, String key) {
   final value = map[key];
   if (value is! String) {
-    throw FormatException('$key 는 문자열이어야 한다.');
+    throw FormatException('$key 는 문자열이어야 합니다.');
   }
   return value;
 }
@@ -256,7 +261,7 @@ String _string(Map<String, Object?> map, String key) {
 int _int(Map<String, Object?> map, String key) {
   final value = map[key];
   if (value is! int) {
-    throw FormatException('$key 는 정수여야 한다.');
+    throw FormatException('$key 는 정수여야 합니다.');
   }
   return value;
 }
@@ -265,7 +270,7 @@ String? _optString(Map<String, Object?> map, String key) {
   final value = map[key];
   if (value == null) return null;
   if (value is! String) {
-    throw FormatException('$key 는 문자열이어야 한다.');
+    throw FormatException('$key 는 문자열이어야 합니다.');
   }
   return value;
 }
@@ -274,7 +279,7 @@ int? _optInt(Map<String, Object?> map, String key) {
   final value = map[key];
   if (value == null) return null;
   if (value is! int) {
-    throw FormatException('$key 는 정수여야 한다.');
+    throw FormatException('$key 는 정수여야 합니다.');
   }
   return value;
 }
