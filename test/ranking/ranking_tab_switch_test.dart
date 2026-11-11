@@ -63,7 +63,14 @@ class _Host extends StatefulWidget {
 
 class _HostState extends State<_Host> {
   int scans = 0;
+  final reset = ValueNotifier(0);
   void rescan() => setState(() => scans++);
+
+  @override
+  void dispose() {
+    reset.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => AppShell(
@@ -73,7 +80,14 @@ class _HostState extends State<_Host> {
       ],
     ),
     onRescan: () async => rescan(),
-    ranking: RankingScreen(client: widget.client, onInstalled: rescan),
+    onTabSelected: (tab) {
+      if (tab == AppTab.ranking) reset.value++;
+    },
+    ranking: RankingScreen(
+      client: widget.client,
+      onInstalled: rescan,
+      reset: reset,
+    ),
   );
 }
 
@@ -91,13 +105,13 @@ void main() {
     expect(find.byType(RankingDetailPage), findsOneWidget);
   }
 
-  testWidgets('다른 탭에 갔다 와도 랭킹 상세가 그대로다', (t) async {
+  testWidgets('랭킹 탭을 다시 누르면 상세를 닫고 첫 탭으로 돌아간다', (t) async {
     await openDetail(t);
     await t.tap(find.text('내 스킬'));
     await t.pumpAndSettle();
     await t.tap(find.text('랭킹'));
     await t.pumpAndSettle();
-    expect(find.byType(RankingDetailPage), findsOneWidget);
+    expect(find.byType(RankingDetailPage), findsNothing);
   });
 
   testWidgets('다시 스캔(설치 완료 후)이 일어나도 랭킹 상세가 그대로다', (t) async {
