@@ -13,8 +13,8 @@ enum UpdateKind { plugin, skill, app }
 abstract class SkillUpdateSource {
   UpdateKind get kind;
 
-  /// 업데이트가 있는 항목과, 확인하지 못한 곳의 이유.
-  Future<({List<PluginUpdate> found, List<String> errors})> check();
+  /// 업데이트가 있는 항목과, 확인하지 못한 곳의 이유. 확인을 마친 곳부터 하나씩 낸다.
+  Stream<({List<PluginUpdate> found, List<String> errors})> check();
 
   /// 성공하면 null, 실패하면 이유.
   Future<String?> update(PluginUpdate u);

@@ -84,20 +84,17 @@ class SkillsCli implements SkillUpdateSource {
   }
 
   /// 전역과 기록이 있는 프로젝트를 모두 확인한다. 실패한 곳은 [errors]에 남긴다.
+  /// 스킬이 많은 프로젝트는 오래 걸려서 끝난 곳부터 낸다.
   @override
-  Future<({List<PluginUpdate> found, List<String> errors})> check() async {
+  Stream<({List<PluginUpdate> found, List<String> errors})> check() async* {
     final projects = [
       for (final p in await knownProjects(home))
         if (File('$p${Platform.pathSeparator}skills-lock.json').existsSync()) p,
     ];
-    final results = await Future.wait([
+    yield* Stream.fromFutures([
       _checkOne(null),
       for (final p in projects) _checkOne(p),
-    ]);
-    return (
-      found: [for (final r in results) ...r.$1],
-      errors: [for (final r in results) ?r.$2],
-    );
+    ]).map((r) => (found: r.$1, errors: [?r.$2]));
   }
 
   Future<(List<PluginUpdate>, String?)> _checkOne(String? project) async {

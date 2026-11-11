@@ -41,6 +41,17 @@ const _real =
     '\r\x1B[K\x1B[38;5;145m↑ agent-browser has an update\x1B[0m\n'
     '\x1B[38;5;145m1 skill(s) can be updated; run \x1B[1mnpx skills update\x1B[0m\n';
 
+/// 확인 결과 스트림을 한 결과로 모은다.
+Future<({List<PluginUpdate> found, List<String> errors})> _all(
+  Stream<({List<PluginUpdate> found, List<String> errors})> s,
+) async {
+  final parts = await s.toList();
+  return (
+    found: [for (final p in parts) ...p.found],
+    errors: [for (final p in parts) ...p.errors],
+  );
+}
+
 void main() {
   test('parseSkillsCheck: 색상 코드를 지우고 이름을 뽑는다', () {
     expect(parseSkillsCheck(_real), ['agent-browser']);
@@ -79,14 +90,14 @@ void main() {
       );
       final cli = SkillsCli(home: home.path, runner: runner, windows: false);
 
-      final r = await cli.check();
+      final r = await _all(cli.check());
 
       expect(runner.commands, hasLength(2));
       expect(r.errors, isEmpty);
-      expect(r.found.map((u) => (u.id, u.projectPath, u.kind)), [
+      expect(r.found.map((u) => (u.id, u.projectPath, u.kind)), unorderedEquals([
         ('agent-browser', null, UpdateKind.skill),
         ('local-one', withLock, UpdateKind.skill),
-      ]);
+      ]));
     });
 
     test('npx가 없으면 실패를 숨기지 않고 남긴다', () async {
@@ -95,7 +106,7 @@ void main() {
         runner: _Runner((_) => (127, 'zsh: command not found: npx')),
         windows: false,
       );
-      final r = await cli.check();
+      final r = await _all(cli.check());
       expect(r.found, isEmpty);
       expect(r.errors.single, contains('command not found'));
     });
