@@ -97,7 +97,10 @@ class SkillInstaller {
 
     await dest.parent.create(recursive: true);
     final stamp = DateTime.now().microsecondsSinceEpoch;
-    final temp = Directory('${dest.path}.installing-$stamp');
+    // 임시 폴더는 '.'으로 시작해 스캔에서 스킬로 잡히지 않게 한다.
+    String hidden(String kind) =>
+        [dest.parent.path, '.${detail.slug}.$kind-$stamp'].join(_sep);
+    final temp = Directory(hidden('installing'));
     try {
       for (final (parts, contents) in files) {
         final out = File([temp.path, ...parts].join(_sep));
@@ -105,10 +108,21 @@ class SkillInstaller {
         await out.writeAsString(contents);
       }
       if (await dest.exists()) {
-        final old = Directory('${dest.path}.old-$stamp');
+        final old = Directory(hidden('old'));
         await dest.rename(old.path);
-        await temp.rename(dest.path);
-        await old.delete(recursive: true);
+        try {
+          await temp.rename(dest.path);
+        } on FileSystemException {
+          // 새 폴더를 못 옮겼으면 옛 스킬을 제자리에 되돌린다.
+          await old.rename(dest.path);
+          rethrow;
+        }
+        // 교체는 끝났다. 옛 폴더를 못 지워도 숨김 폴더로 남을 뿐이라 실패로 보지 않는다.
+        try {
+          await old.delete(recursive: true);
+        } on FileSystemException {
+          // 무시
+        }
       } else {
         await temp.rename(dest.path);
       }

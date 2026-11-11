@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:skill_gui/features/scan/agent.dart';
 import 'package:skill_gui/features/skill_analysis/skill_origin.dart';
 import 'package:skill_gui/features/scan/skill.dart';
 
@@ -166,6 +167,34 @@ void main() {
         'npx skills add a/taste --skill taste -a claude-code',
       ]);
       expect(o.note, contains(project.path));
+    });
+
+    test('프로젝트 스킬은 이름이 같은 전역 설치 기록보다 프로젝트 기록을 쓴다', () async {
+      Directory('${home.path}/.agents').createSync();
+      File('${home.path}/.agents/.skill-lock.json').writeAsStringSync(
+        jsonEncode({
+          'version': 3,
+          'skills': {
+            'taste': {'source': 'g/taste', 'sourceType': 'github'},
+          },
+        }),
+      );
+      final project = Directory('${home.path}/proj')..createSync();
+      final skillDir = Directory('${project.path}/.agents/skills/taste')
+        ..createSync(recursive: true);
+      writeLock(project.path, 'taste', 'a/taste');
+      final o = await resolveSkillOrigin(
+        Skill(
+          name: 'taste',
+          source: SkillSource.project,
+          path: skillDir.path,
+          agents: const [Agent.codex],
+          projectPath: project.path,
+        ),
+        claude,
+      );
+      expect(o.githubUrl, 'https://github.com/a/taste');
+      expect(o.commands.single, isNot(contains(' -g')));
     });
 
     test('홈에서 -g 없이 설치한 기록은 전역 명령으로 보여준다', () async {

@@ -126,4 +126,30 @@ void main() {
   test('noInstalledJson', () async {
     expect(await checkUpdates(claude), isEmpty);
   });
+
+  test('같은 전역 스킬이 CLI와 앱 설치 기록에 다 있으면 CLI 항목만 남긴다', () {
+    PluginUpdate u(String id, UpdateKind kind, {String? project}) => PluginUpdate(
+      id: id,
+      scope: 'user',
+      current: '',
+      latest: null,
+      skillCount: 1,
+      state: UpdateState.needed,
+      kind: kind,
+      projectPath: project,
+    );
+    final out = withoutDuplicateApp([
+      u('foo', UpdateKind.skill),
+      u('owner/repo/foo', UpdateKind.app),
+      u('owner/repo/bar', UpdateKind.app),
+      u('baz', UpdateKind.skill, project: '/p'),
+      u('owner/repo/baz', UpdateKind.app),
+    ]);
+    expect(out.map((p) => p.id), [
+      'foo',
+      'owner/repo/bar',
+      'baz',
+      'owner/repo/baz',
+    ]);
+  });
 }
