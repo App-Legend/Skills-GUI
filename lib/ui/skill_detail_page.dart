@@ -11,6 +11,7 @@ import '../features/skill_analysis/widgets/analysis_sections.dart';
 import '../features/skill_analysis/widgets/install_commands.dart';
 import '../features/skill_delete/skill_deleter.dart';
 import '../features/skill_delete/widgets/delete_confirm_dialog.dart';
+import '../features/skill_toggle/skill_toggle.dart';
 import '../access/folder_access.dart';
 import '../features/scan/skill.dart';
 import 'glass.dart';
@@ -37,6 +38,9 @@ class SkillDetailPage extends StatefulWidget {
   /// 실제로 지우는 함수. 테스트에서 바꿔 끼운다.
   final Future<void> Function(SkillDeletePlan plan) deleter;
 
+  /// 스킬 끄고 켜기. null이면 홈 폴더 기준으로 만든다.
+  final SkillToggle? toggle;
+
   const SkillDetailPage({
     super.key,
     required this.skill,
@@ -46,6 +50,7 @@ class SkillDetailPage extends StatefulWidget {
     this.resolveOrigin,
     this.onDeleted,
     this.deleter = deleteSkill,
+    this.toggle,
   });
 
   @override
@@ -61,6 +66,9 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
         cache: widget.analysisCache,
       ));
   SkillOrigin? _origin;
+  late final SkillToggle _toggle = widget.toggle ?? SkillToggle();
+  bool? _off; // null: 아직 읽는 중이거나 읽지 못함
+  bool _toggling = false;
 
   SkillAnalysis? get _analysis => _store.analysisOf(widget.skill);
   String? get _analysisError => _store.errorOf(widget.skill);
@@ -72,6 +80,57 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
     _store.addListener(_changed);
     _store.request([widget.skill], first: true);
     _loadOrigin();
+    _loadOff();
+  }
+
+  Future<void> _loadOff() async {
+    bool? off;
+    try {
+      off = await _toggle.isOff(widget.skill);
+    } on Object {
+      off = null; // 설정 파일을 읽지 못하면 토글을 막아 덮어쓰지 않는다.
+    }
+    if (mounted) setState(() => _off = off);
+  }
+
+  Future<void> _setOff(bool off) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    setState(() => _toggling = true);
+    try {
+      await _toggle.set(widget.skill, off: off);
+      if (mounted) setState(() => _off = off);
+      messenger?.showSnackBar(SnackBar(
+        content: Text(off
+            ? '${widget.skill.name}을 껐습니다. 새로 연 세션부터 반영됩니다.'
+            : '${widget.skill.name}을 켰습니다. 새로 연 세션부터 반영됩니다.'),
+      ));
+    } on Object catch (e) {
+      messenger?.showSnackBar(SnackBar(content: Text('설정을 바꾸지 못했습니다: $e')));
+    } finally {
+      if (mounted) setState(() => _toggling = false);
+    }
+  }
+
+  /// 오른쪽 위 사용 토글. 끌 수 없는 스킬이면 흐리게 두고 이유를 툴팁으로 보인다.
+  Widget _toggleSwitch() {
+    final why = _toggle.blockedReason(widget.skill);
+    final off = _off;
+    final enabled = why == null && off != null && !_toggling;
+    final row = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          off == true ? '꺼짐' : '사용',
+          style: const TextStyle(fontSize: 13, color: _sub),
+        ),
+        const SizedBox(width: 6),
+        Switch.adaptive(
+          value: why == null && off == false,
+          onChanged: enabled ? (on) => _setOff(!on) : null,
+        ),
+      ],
+    );
+    return why == null ? row : Tooltip(message: why, child: row);
   }
 
   @override
@@ -263,16 +322,19 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
                 radius: 30,
                 child: Padding(
                   padding: const EdgeInsets.all(8),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () => Navigator.maybePop(context),
-                      style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF101828),
+                  child: Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => Navigator.maybePop(context),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF101828),
+                        ),
+                        icon: const Icon(Icons.chevron_left),
+                        label: const Text('내 스킬'),
                       ),
-                      icon: const Icon(Icons.chevron_left),
-                      label: const Text('내 스킬'),
-                    ),
+                      const Spacer(),
+                      _toggleSwitch(),
+                    ],
                   ),
                 ),
               ),

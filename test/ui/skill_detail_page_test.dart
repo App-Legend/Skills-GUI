@@ -7,6 +7,7 @@ import 'package:skill_gui/features/skill_analysis/skill_analysis_client.dart';
 import 'package:skill_gui/features/skill_analysis/skill_origin.dart';
 import 'package:skill_gui/features/skill_delete/skill_deleter.dart';
 import 'package:skill_gui/features/scan/skill.dart';
+import 'package:skill_gui/features/skill_toggle/skill_toggle.dart';
 import 'package:skill_gui/ui/glass.dart';
 import 'package:skill_gui/ui/skill_detail_page.dart';
 
@@ -22,7 +23,19 @@ class _MemoryCache implements SkillAnalysisCache {
   }
 }
 
-Future<void> _pump(WidgetTester t, Skill s) async {
+/// 파일 대신 메모리에서 끄고 켠다.
+class _FakeToggle extends SkillToggle {
+  _FakeToggle() : super(home: '/h');
+  bool off = false;
+
+  @override
+  Future<bool> isOff(Skill s) async => off;
+
+  @override
+  Future<void> set(Skill s, {required bool off}) async => this.off = off;
+}
+
+Future<void> _pump(WidgetTester t, Skill s, {SkillToggle? toggle}) async {
   t.view.physicalSize = const Size(1200, 900);
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
@@ -32,6 +45,7 @@ Future<void> _pump(WidgetTester t, Skill s) async {
         skill: s,
         analysisCache: _readyCache(),
         resolveOrigin: _origin,
+        toggle: toggle ?? _FakeToggle(),
       ),
     ),
   );
@@ -105,7 +119,7 @@ void main() {
               c,
               MaterialPageRoute(
                 builder: (_) =>
-                    SkillDetailPage(skill: full, analysisCache: _readyCache()),
+                    SkillDetailPage(toggle: _FakeToggle(), skill: full, analysisCache: _readyCache()),
               ),
             ),
             child: const Text('go'),
@@ -129,7 +143,7 @@ void main() {
               c,
               MaterialPageRoute(
                 builder: (_) =>
-                    SkillDetailPage(skill: full, analysisCache: _readyCache()),
+                    SkillDetailPage(toggle: _FakeToggle(), skill: full, analysisCache: _readyCache()),
               ),
             ),
             child: const Text('go'),
@@ -173,6 +187,7 @@ void main() {
     await t.pumpWidget(
       MaterialApp(
         home: SkillDetailPage(
+          toggle: _FakeToggle(),
           skill: full,
           analysisClient: client,
           analysisCache: _MemoryCache(),
@@ -230,6 +245,7 @@ void main() {
     await t.pumpWidget(
       MaterialApp(
         home: SkillDetailPage(
+          toggle: _FakeToggle(),
           skill: full,
           analysisCache: _readyCache(),
           resolveOrigin: (_) async => const SkillOrigin(),
@@ -257,6 +273,7 @@ void main() {
     await t.pumpWidget(
       MaterialApp(
         home: SkillDetailPage(
+          toggle: _FakeToggle(),
           skill: full,
           analysisCache: _MemoryCache()
             ..value = const SkillAnalysis(
@@ -294,6 +311,7 @@ void main() {
     await t.pumpWidget(
       MaterialApp(
         home: SkillDetailPage(
+          toggle: _FakeToggle(),
           skill: full,
           analysisCache: _readyCache(),
           resolveOrigin: _origin,
@@ -319,6 +337,20 @@ void main() {
     expect(rescans, 1);
   });
 
+  testWidgets('오른쪽 위 토글로 끄고 켠다', (t) async {
+    final toggle = _FakeToggle();
+    await _pump(t, full, toggle: toggle);
+    await t.pump();
+    expect(find.text('사용'), findsOneWidget);
+    await t.tap(find.byType(Switch));
+    await t.pump();
+    expect(toggle.off, isTrue);
+    expect(find.text('꺼짐'), findsOneWidget);
+    await t.tap(find.byType(Switch));
+    await t.pump();
+    expect(toggle.off, isFalse);
+  });
+
   testWidgets('플러그인 스킬은 삭제 대신 안내', (t) async {
     var called = false;
     t.view.physicalSize = const Size(1200, 900);
@@ -327,6 +359,7 @@ void main() {
     await t.pumpWidget(
       MaterialApp(
         home: SkillDetailPage(
+          toggle: _FakeToggle(),
           skill: const Skill(
             name: 'p',
             source: SkillSource.plugin,

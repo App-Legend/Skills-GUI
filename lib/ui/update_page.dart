@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -43,6 +44,8 @@ class _UpdatePageState extends State<UpdatePage> {
   DateTime? _checkedAt;
   bool _busy = false;
   bool _checking = false; // 업데이트 실행이 아닌 확인 중
+  bool _slow = false; // 확인이 10초를 넘김
+  Timer? _slowTimer;
   String? _error;
   final _failed = <String, String>{}; // PluginUpdate.key → 실패 이유
 
@@ -62,15 +65,27 @@ class _UpdatePageState extends State<UpdatePage> {
     Future.microtask(_check);
   }
 
+  @override
+  void dispose() {
+    _slowTimer?.cancel();
+    super.dispose();
+  }
+
+  String get _waitText => _slow ? '스킬이 많아 시간이 조금 더 걸리고 있습니다' : '나머지를 확인하는 중입니다';
+
   Future<void> _check() async {
     final dir = widget.claudeDir;
     if (_busy || dir == null) return;
     setState(() {
       _busy = true;
       _checking = true;
+      _slow = false;
       _found = null;
       _error = null;
       _failed.clear();
+    });
+    _slowTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted) setState(() => _slow = true);
     });
     final errors = <String>[];
     // 끝난 곳부터 목록에 더한다. found가 null이면 확인 자체를 못 한 것.
@@ -88,6 +103,7 @@ class _UpdatePageState extends State<UpdatePage> {
       _checkPlugins(dir).then((r) => add(r.found, r.errors)),
       for (final s in widget.sources) s.check().forEach((r) => add(r.found, r.errors)),
     ]);
+    _slowTimer?.cancel();
     if (!mounted) return;
     setState(() {
       _busy = false;
@@ -312,7 +328,7 @@ class _UpdatePageState extends State<UpdatePage> {
         const SizedBox(height: 16),
         Expanded(
           child: _checking && found == null
-              ? const _Skeleton()
+              ? _Skeleton(message: _slow ? _waitText : '최신 정보를 받는 중입니다')
               : found == null
               ? const Center(
                   child: Text('업데이트 확인을 누르면 됩니다', style: TextStyle(color: _sub)),
@@ -333,17 +349,17 @@ class _UpdatePageState extends State<UpdatePage> {
                       for (final p in unknown) _row(p),
                     ],
                     if (_checking)
-                      const Padding(
-                        padding: EdgeInsets.all(8),
+                      Padding(
+                        padding: const EdgeInsets.all(8),
                         child: Row(
                           spacing: 10,
                           children: [
-                            SizedBox(
+                            const SizedBox(
                               width: 14,
                               height: 14,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             ),
-                            Text('나머지를 확인하는 중입니다', style: TextStyle(color: _sub)),
+                            Text(_waitText, style: const TextStyle(color: _sub)),
                           ],
                         ),
                       ),
@@ -357,7 +373,9 @@ class _UpdatePageState extends State<UpdatePage> {
 
 /// 확인 중 자리표시. 목록 행과 같은 모양 위로 빛이 왼쪽에서 오른쪽으로 지나간다.
 class _Skeleton extends StatefulWidget {
-  const _Skeleton();
+  final String message;
+
+  const _Skeleton({required this.message});
 
   @override
   State<_Skeleton> createState() => _SkeletonState();
@@ -428,9 +446,9 @@ class _SkeletonState extends State<_Skeleton> with SingleTickerProviderStateMixi
     if (MediaQuery.disableAnimationsOf(context)) _sweep.value = 0;
     return ListView(
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(8, 0, 8, 12),
-          child: Text('최신 정보를 받는 중입니다', style: TextStyle(color: _sub)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+          child: Text(widget.message, style: const TextStyle(color: _sub)),
         ),
         for (var i = 0; i < 3; i++) _card(),
       ],
