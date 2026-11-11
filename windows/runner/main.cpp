@@ -1,4 +1,4 @@
-#include <flutter/dart_project.h>
+﻿#include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
 #include <flutter_windows.h>
 #include <windows.h>
@@ -40,7 +40,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   Win32Window::Point origin(
       static_cast<int>(area.left / scale) + (area_w - size.width) / 2,
       static_cast<int>(area.top / scale) + (area_h - size.height) / 2);
-  if (!window.Create(L"skill_gui", origin, size)) {
+  if (!window.Create(L"MgrS", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

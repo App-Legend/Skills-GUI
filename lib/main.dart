@@ -178,7 +178,7 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
   Widget build(BuildContext context) => ReduceTransparency(
     value: _reduce,
     child: MaterialApp(
-      title: 'Skill-GUI',
+      title: 'MgrS',
       debugShowCheckedModeBanner: false,
       home: _body(),
     ),
