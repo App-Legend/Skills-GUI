@@ -59,6 +59,7 @@ Future<void> _pump(
           claudeDir: Directory.systemTemp,
           cli: cli,
           check: (_) async => found,
+          markets: (_) async => ['m'],
           onUpdated: onUpdated ?? () async {},
           onChecked: onChecked ?? (_) {},
         ),
@@ -68,24 +69,39 @@ Future<void> _pump(
 }
 
 void main() {
-  testWidgets('확인하면 마켓을 새로 받고 목록을 보여준다', (t) async {
+  testWidgets('열면 바로 쓰는 마켓만 새로 받고 목록을 보여준다', (t) async {
     final cli = _FakeCli();
     await _pump(t, cli);
-    expect(find.text('p@m'), findsNothing);
-    await t.tap(find.text('업데이트 확인'));
     await t.pumpAndSettle();
-    expect(cli.calls.single, ['plugin', 'marketplace', 'update']);
+    expect(cli.calls.single, ['plugin', 'marketplace', 'update', 'm']);
+    expect(find.text('다시 조회'), findsOneWidget);
     expect(find.text('p@m'), findsOneWidget);
     expect(find.text('1.0 → 1.1'), findsOneWidget);
     expect(find.text('스킬 3개'), findsOneWidget);
   });
 
+  testWidgets('다시 조회하면 다시 받는다', (t) async {
+    final cli = _FakeCli();
+    await _pump(t, cli);
+    await t.pumpAndSettle();
+    await t.tap(find.text('다시 조회'));
+    await t.pumpAndSettle();
+    expect(cli.calls, hasLength(2));
+  });
+
+  testWidgets('마켓 갱신 실패는 이름과 이유를 보이고 목록은 보여준다', (t) async {
+    await _pump(t, _FakeCli(answer: (_) => const CmdResult(1, '', 'offline')));
+    await t.pumpAndSettle();
+    expect(find.text('최신 정보를 받지 못했습니다: m(offline)'), findsOneWidget);
+    expect(find.text('p@m'), findsOneWidget);
+  });
+
   testWidgets('확인 중 다시 눌러도 한 번만 실행', (t) async {
     final cli = _FakeCli()..gate = Completer<void>();
     await _pump(t, cli);
-    await t.tap(find.text('업데이트 확인'));
     await t.pump();
-    expect(find.byType(CircularProgressIndicator), findsWidgets); // 진행 중 링
+    expect(find.byType(CircularProgressIndicator), findsOneWidget); // 버튼의 링
+    expect(find.text('최신 정보를 받는 중입니다'), findsOneWidget); // 스켈레톤
     await t.tap(find.byType(GlassTap)); // 링이 돈다고 다시 눌러도
     await t.pump();
     cli.gate!.complete();
@@ -95,14 +111,12 @@ void main() {
 
   testWidgets('모두 최신', (t) async {
     await _pump(t, _FakeCli(), found: const []);
-    await t.tap(find.text('업데이트 확인'));
     await t.pumpAndSettle();
     expect(find.text('모두 최신입니다'), findsOneWidget);
   });
 
   testWidgets('확인할 수 없음 묶음', (t) async {
     await _pump(t, _FakeCli(), found: const [_needed, _unknown]);
-    await t.tap(find.text('업데이트 확인'));
     await t.pumpAndSettle();
     expect(find.text('확인할 수 없음'), findsOneWidget);
     expect(find.text('q@n'), findsOneWidget);
@@ -113,7 +127,6 @@ void main() {
     final cli = _FakeCli();
     var updated = 0;
     await _pump(t, cli, onUpdated: () async => updated++);
-    await t.tap(find.text('업데이트 확인'));
     await t.pumpAndSettle();
     await t.tap(find.widgetWithText(FilledButton, '업데이트'));
     await t.pumpAndSettle();
@@ -138,7 +151,6 @@ void main() {
       answer: (a) => a[1] == 'update' ? const CmdResult(1, '', 'boom') : const CmdResult(0, '', ''),
     );
     await _pump(t, cli);
-    await t.tap(find.text('업데이트 확인'));
     await t.pumpAndSettle();
     await t.tap(find.widgetWithText(FilledButton, '업데이트'));
     await t.pumpAndSettle();
@@ -149,7 +161,6 @@ void main() {
 
   testWidgets('claude 명령이 없으면 안내', (t) async {
     await _pump(t, _FakeCli(missing: true));
-    await t.tap(find.text('업데이트 확인'));
     await t.pumpAndSettle();
     expect(find.text('Claude Code 명령(claude)을 찾지 못했습니다'), findsOneWidget);
   });
@@ -161,7 +172,6 @@ void main() {
           : const CmdResult(0, '', ''),
     );
     await _pump(t, cli);
-    await t.tap(find.text('업데이트 확인'));
     await t.pumpAndSettle();
     await t.tap(find.widgetWithText(FilledButton, '업데이트'));
     await t.pumpAndSettle();
@@ -173,7 +183,6 @@ void main() {
   testWidgets('확인·업데이트 결과를 알린다', (t) async {
     final seen = <int>[];
     await _pump(t, _FakeCli(), onChecked: (l) => seen.add(l.length));
-    await t.tap(find.text('업데이트 확인'));
     await t.pumpAndSettle();
     await t.tap(find.widgetWithText(FilledButton, '업데이트'));
     await t.pumpAndSettle();

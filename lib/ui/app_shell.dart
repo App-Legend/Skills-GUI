@@ -68,6 +68,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   AppTab _tab = AppTab.mine;
   Skill? _detail; // 내 스킬 탭에서 연 상세. 사이드바 오른쪽에만 뜬다.
+  bool _updatesOpened = false;
 
   // 목록 카드와 상세가 같은 분석 결과를 쓴다.
   late final SkillAnalysisStore _analysis =
@@ -84,6 +85,7 @@ class _AppShellState extends State<AppShell> {
       // 내 스킬 탭을 누르면 언제나 목록으로 돌아간다(다른 탭에 갔다 와도).
       if (t == AppTab.mine) _detail = null;
       _tab = t;
+      if (t == AppTab.updates) _updatesOpened = true;
     });
     widget.onTabSelected?.call(t);
   }
@@ -143,7 +145,8 @@ class _AppShellState extends State<AppShell> {
                         onDidRemovePage: (_) => setState(() => _detail = null),
                       ),
                     ),
-                    widget.updates ?? _notReady,
+                    // 업데이트 화면은 처음 열 때 만들어져 바로 확인한다.
+                    _updatesOpened ? widget.updates ?? _notReady : const SizedBox(),
                     widget.ranking ?? _notReady,
                   ],
                 ),

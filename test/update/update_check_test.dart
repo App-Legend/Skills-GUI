@@ -152,4 +152,11 @@ void main() {
       'owner/repo/baz',
     ]);
   });
+
+  test('설치된 플러그인이 쓰는 마켓만 한 번씩', () async {
+    _install('a@m2', '1');
+    _install('b@m1', '1');
+    _install('c@m2', '1');
+    expect(await installedMarkets(claude), ['m1', 'm2']);
+  });
 }
