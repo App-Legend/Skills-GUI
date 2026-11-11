@@ -162,7 +162,7 @@ void main() {
     }
   });
 
-  testWidgets('상세 진입 시 한국어 분석을 표시한다', (t) async {
+  testWidgets('상세 진입 시 한국어 분석을 표시합니다', (t) async {
     final client = SkillAnalysisApiClient(
       'https://relay.example.test',
       httpPost: (_, _) async => const SkillAnalysisHttpResponse(
@@ -237,7 +237,7 @@ void main() {
       ),
     );
     await t.pump();
-    expect(find.text('GitHub 주소를 찾지 못했다'), findsOneWidget);
+    expect(find.text('GitHub 주소를 찾지 못했습니다'), findsOneWidget);
     final gate = t.widget<IgnorePointer>(
       find
           .ancestor(

@@ -39,14 +39,14 @@ RankingApiClient clientWith(
 }
 
 void main() {
-  test('200 응답을 파싱한다', () async {
+  test('200 응답을 파싱합니다', () async {
     final client = clientWith((_) => RankingHttpResponse(200, _okBody));
     final page = await client.fetchPage(RankingView.allTime, 2, 1);
     expect(page.items.single.name, '가짜 스킬');
     expect(page.pagination.page, 2);
   });
 
-  test('쿼리 파라미터를 구성한다', () async {
+  test('쿼리 파라미터를 구성합니다', () async {
     final log = <Uri>[];
     final client = clientWith(
       (_) => RankingHttpResponse(200, _okBody),
@@ -59,7 +59,7 @@ void main() {
     expect(uri.queryParameters, {'view': 'hot', 'page': '3', 'per_page': '50'});
   });
 
-  test('기준 주소 끝의 슬래시를 처리한다', () {
+  test('기준 주소 끝의 슬래시를 처리합니다', () {
     final client = clientWith(
       (_) => RankingHttpResponse(200, _okBody),
       base: 'https://relay.example.test/',
@@ -119,7 +119,7 @@ void main() {
     );
   });
 
-  test('검색은 /api/search 에 q·limit 를 보내고 결과를 파싱한다', () async {
+  test('검색은 /api/search 에 q·limit 를 보내고 결과를 파싱합니다', () async {
     final log = <Uri>[];
     final client = clientWith(
       (_) => RankingHttpResponse(

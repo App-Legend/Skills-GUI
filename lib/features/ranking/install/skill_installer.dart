@@ -1,25 +1,12 @@
 import 'dart:io';
 
+import '../../../scan/agent.dart';
 import '../models/ranking_models.dart';
+import 'app_install_records.dart';
 
 /// 스킬을 설치할 에이전트. 폴더는 skills CLI(`npx skills add -g`)와 같은 곳을 쓴다.
-enum InstallTarget {
-  claude('Claude Code', ['.claude', 'skills'], 'claude-code'),
-  codex('Codex', ['.agents', 'skills'], 'codex');
-
-  const InstallTarget(this.label, this.homeParts, this.cliAgent);
-
-  final String label;
-
-  /// 홈 폴더 아래 경로 조각.
-  final List<String> homeParts;
-
-  /// skills CLI `-a` 값.
-  final String cliAgent;
-
-  /// 화면에 보이는 경로 (예: ~/.claude/skills/<이름>).
-  String displayPath(String slug) => '~/${homeParts.join('/')}/$slug';
-}
+/// 에이전트 목록은 스캔과 같은 표([Agent])를 쓴다.
+typedef InstallTarget = Agent;
 
 /// 설치를 막는 문제. [message] 를 그대로 화면에 보인다.
 class SkillInstallException implements Exception {
@@ -68,10 +55,10 @@ class SkillInstaller {
   String targetPath(InstallTarget target, String slug) {
     final base = home;
     if (base == null) {
-      throw const SkillInstallException('홈 폴더를 찾지 못해 설치할 수 없다.');
+      throw const SkillInstallException('홈 폴더를 찾지 못해 설치할 수 없습니다.');
     }
     if (!_segment.hasMatch(slug) || slug == '.' || slug == '..') {
-      throw SkillInstallException('스킬 이름이 폴더 이름으로 쓸 수 없는 형식이다: $slug');
+      throw SkillInstallException('스킬 이름이 폴더 이름으로 쓸 수 없는 형식입니다: $slug');
     }
     return [base, ...target.homeParts, slug].join(_sep);
   }
@@ -88,11 +75,11 @@ class SkillInstaller {
   }) async {
     final dest = Directory(targetPath(target, detail.slug));
     if (detail.skillMd == null) {
-      throw const SkillInstallException('SKILL.md 가 없어 설치할 수 없다.');
+      throw const SkillInstallException('SKILL.md 가 없어 설치할 수 없습니다.');
     }
     if (await dest.exists() && !overwrite) {
       throw SkillInstallException(
-        '${target.displayPath(detail.slug)} 에 같은 이름의 스킬이 이미 있다.',
+        '${target.displayPath(detail.slug)} 에 같은 이름의 스킬이 이미 있습니다.',
       );
     }
 
@@ -127,7 +114,21 @@ class SkillInstaller {
       }
     } on FileSystemException catch (e) {
       if (await temp.exists()) await temp.delete(recursive: true);
-      throw SkillInstallException('파일을 쓰지 못했다: ${e.message} (${e.path})');
+      throw SkillInstallException('파일을 쓰지 못했습니다: ${e.message} (${e.path})');
+    }
+
+    // 업데이트 확인용 기록. 실패해도 설치는 끝났으니 설치를 실패로 돌리지 않는다.
+    try {
+      await AppInstallRecords.forHome(home!).put(
+        AppInstallRecord(
+          id: detail.id,
+          slug: detail.slug,
+          agent: target,
+          hash: detail.hash,
+        ),
+      );
+    } on Object {
+      // 기록이 없으면 이 스킬은 업데이트 목록에 안 나올 뿐이다.
     }
 
     return SkillInstallResult(
@@ -146,7 +147,7 @@ class SkillInstaller {
         parts.isEmpty ||
         parts.any((p) => p == '..' || p == '.' || p.contains(':'));
     if (bad) {
-      throw SkillInstallException('안전하지 않은 파일 경로가 있어 설치를 멈췄다: $path');
+      throw SkillInstallException('안전하지 않은 파일 경로가 있어 설치를 멈췄습니다: $path');
     }
     return parts;
   }

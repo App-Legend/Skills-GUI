@@ -119,7 +119,7 @@ void main() {
       expect(a.status, InstallStatus.done);
     });
 
-    test('끝난 기록만 지운다', () {
+    test('끝난 기록만 지웁니다', () {
       final h = InstallHistory();
       final a = h.start(
         name: 'a',
@@ -134,7 +134,7 @@ void main() {
     });
   });
 
-  testWidgets('설치 중에 다른 탭에 가도 사이드바에 "설치 중"이 보이고, 끝나면 기록에 남는다', (t) async {
+  testWidgets('설치 중에 다른 탭에 가도 사이드바에 "설치 중"이 보이고, 끝나면 기록에 남습니다', (t) async {
     t.view.physicalSize = const Size(1400, 1100);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
@@ -211,7 +211,7 @@ void main() {
     expect(history.records, isEmpty);
   });
 
-  testWidgets('설치가 실패하면 기록에 실패와 이유가 남는다', (t) async {
+  testWidgets('설치가 실패하면 기록에 실패와 이유가 남습니다', (t) async {
     t.view.physicalSize = const Size(1400, 1100);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
@@ -244,7 +244,7 @@ void main() {
     expect(record.message, '가짜 실패');
   });
 
-  testWidgets('터미널 설치 중에 상세를 닫아도 오류 없이 실패 기록으로 남는다', (t) async {
+  testWidgets('터미널 설치 중에 상세를 닫아도 오류 없이 실패 기록으로 남습니다', (t) async {
     t.view.physicalSize = const Size(1400, 1100);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);

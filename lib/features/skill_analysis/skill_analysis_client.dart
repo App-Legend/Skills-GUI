@@ -62,7 +62,7 @@ class SkillAnalysisApiClient {
   Future<SkillAnalysis> analyze(Skill skill) async {
     final skillMd = skill.skillMd;
     if (skillMd == null || skillMd.trim().isEmpty) {
-      throw const SkillAnalysisApiException('분석할 SKILL.md 내용이 없다.');
+      throw const SkillAnalysisApiException('분석할 SKILL.md 내용이 없습니다.');
     }
     final response = await _request({
       'name': skill.name,
@@ -83,7 +83,7 @@ class SkillAnalysisApiClient {
       }
       return analysis;
     } on FormatException {
-      throw const SkillAnalysisApiException('분석 결과 형식을 읽지 못했다.');
+      throw const SkillAnalysisApiException('분석 결과 형식을 읽지 못했습니다.');
     }
   }
 
@@ -98,10 +98,10 @@ class SkillAnalysisApiClient {
       rethrow;
     } on TimeoutException {
       throw const SkillAnalysisApiException(
-        '분석 응답이 늦어지고 있다. 잠시 후 다시 열면 된다.',
+        '분석 응답이 늦어지고 있습니다. 잠시 후 다시 열면 됩니다.',
       );
     } on IOException {
-      throw const SkillAnalysisApiException('분석 서버에 연결하지 못했다.');
+      throw const SkillAnalysisApiException('분석 서버에 연결하지 못했습니다.');
     }
   }
 
@@ -115,7 +115,7 @@ class SkillAnalysisApiClient {
       // JSON 오류 본문이 아니면 상태별 기본 문구를 쓴다.
     }
     return response.statusCode == 429
-        ? '분석 요청이 많다. 잠시 후 다시 열면 된다.'
-        : '한국어 분석을 만들지 못했다.';
+        ? '분석 요청이 많습니다. 잠시 후 다시 열면 됩니다.'
+        : '한국어 분석을 만들지 못했습니다.';
   }
 }

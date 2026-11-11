@@ -14,7 +14,7 @@ void main() {
     files: ['SKILL.md', 'references/checklist.md'],
   );
 
-  test('분석 요청은 SKILL.md와 파일 목록을 전송한다', () async {
+  test('분석 요청은 SKILL.md와 파일 목록을 전송합니다', () async {
     Uri? requested;
     Map<String, dynamic>? sent;
     final client = SkillAnalysisApiClient(
@@ -47,7 +47,7 @@ void main() {
     expect(analysis.whenToUse, ['변경 사항을 검토할 때']);
   });
 
-  test('분석 결과에 설명문이 없으면 실패한다', () async {
+  test('분석 결과에 설명문이 없으면 실패합니다', () async {
     final client = SkillAnalysisApiClient(
       'https://relay.example.test',
       httpPost: (_, _) async =>

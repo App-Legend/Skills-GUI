@@ -28,7 +28,7 @@ void main() {
     expect(RankingView.hot.apiValue, 'hot');
   });
 
-  test('정상 응답을 파싱한다', () {
+  test('정상 응답을 파싱합니다', () {
     final page = RankingPage.fromJson({
       'data': [fakeItem(change: -3), fakeItem()],
       'pagination': fakePagination(),
@@ -42,7 +42,7 @@ void main() {
     expect(page.pagination.hasMore, isTrue);
   });
 
-  test('installUrl 이 null 인 항목도 파싱한다 (well-known 출처)', () {
+  test('installUrl 이 null 인 항목도 파싱합니다 (well-known 출처)', () {
     final item = SkillRankItem.fromJson({...fakeItem(), 'installUrl': null});
     expect(item.installUrl, isNull);
   });

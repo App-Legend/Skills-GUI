@@ -4,6 +4,7 @@ import '../features/skill_analysis/skill_analysis.dart';
 import '../features/skill_analysis/skill_analysis_store.dart';
 import '../features/skill_analysis/widgets/category_badges.dart';
 import '../features/skill_analysis/widgets/category_filter_panel.dart';
+import '../scan/agent.dart';
 import '../scan/skill.dart';
 import 'glass.dart';
 import 'skill_badges.dart';
@@ -11,6 +12,7 @@ import 'skill_badges.dart';
 enum SourceFilter {
   all('전체'),
   global('전역'),
+  project('프로젝트'),
   plugin('플러그인'),
   disabled('꺼짐');
 
@@ -19,21 +21,15 @@ enum SourceFilter {
 
   bool matches(Skill s) => switch (this) {
     all => true,
-    global => s.source != SkillSource.plugin,
+    global => s.source == SkillSource.global || s.source == SkillSource.synced,
+    project => s.source == SkillSource.project,
     plugin => s.source == SkillSource.plugin,
     disabled => s.pluginEnabled == false,
   };
 }
 
-/// 에이전트 필터. 지금은 Claude Code 스킬만 스캔한다.
-enum AgentFilter {
-  all('전체'),
-  claude('Claude Code'),
-  codex('Codex');
-
-  final String label;
-  const AgentFilter(this.label);
-}
+/// 에이전트 필터. null은 전체.
+String _agentLabel(Agent? a) => a?.label ?? '전체';
 
 const _ink = Color(0xFF101828);
 const _sub = Color(0xFF3A4658);
@@ -64,7 +60,7 @@ class SkillListPage extends StatefulWidget {
 
 class _SkillListPageState extends State<SkillListPage> {
   SourceFilter _filter = SourceFilter.all;
-  AgentFilter _agent = AgentFilter.all;
+  Agent? _agent;
   Set<String> _categories = {};
   bool _categoryOpen = false;
 
@@ -107,18 +103,15 @@ class _SkillListPageState extends State<SkillListPage> {
         counts[c] = (counts[c] ?? 0) + 1;
       }
     }
-    // shortcut: Codex 스캔 전이라 Codex 필터는 빈 목록, Codex 스캔을 만들면 Skill에 에이전트 구분 추가.
-    final shown = _agent == AgentFilter.codex
-        ? <Skill>[]
-        : widget.result.skills
-              .where(_filter.matches)
-              .where(
-                (s) =>
-                    _categories.isEmpty ||
-                    (analysisOf(s)?.categories.any(_categories.contains) ??
-                        false),
-              )
-              .toList();
+    final shown = widget.result.skills
+        .where((s) => _agent == null || s.agents.contains(_agent))
+        .where(_filter.matches)
+        .where(
+          (s) =>
+              _categories.isEmpty ||
+              (analysisOf(s)?.categories.any(_categories.contains) ?? false),
+        )
+        .toList();
     return _Main(
       shown: shown,
       widget: widget,
@@ -145,8 +138,8 @@ class _Main extends StatelessWidget {
   final SkillListPage widget;
   final SourceFilter filter;
   final ValueChanged<SourceFilter> onFilter;
-  final AgentFilter agent;
-  final ValueChanged<AgentFilter> onAgent;
+  final Agent? agent;
+  final ValueChanged<Agent?> onAgent;
   final SkillAnalysis? Function(Skill) analysisOf;
   final bool categoryOpen;
   final VoidCallback onCategoryOpen;
@@ -266,9 +259,10 @@ class _Main extends StatelessWidget {
         padding: const EdgeInsets.only(top: 12),
         child: Wrap(
           spacing: 6,
+          runSpacing: 6, // 에이전트가 많아 창이 좁으면 줄을 바꾼다.
           children: [
-            for (final a in AgentFilter.values)
-              _chip(a.label, a == agent, () => onAgent(a)),
+            for (final a in [null, ...Agent.values])
+              _chip(_agentLabel(a), a == agent, () => onAgent(a)),
           ],
         ),
       ),
@@ -292,11 +286,9 @@ class _Main extends StatelessWidget {
         child: shown.isEmpty
             ? Center(
                 child: Text(
-                  agent == AgentFilter.codex
-                      ? '아직 준비 중이다'
-                      : widget.result.skills.isEmpty
-                      ? '스킬을 찾지 못했다'
-                      : '해당하는 스킬이 없다',
+                  widget.result.skills.isEmpty
+                      ? '스킬을 찾지 못했습니다'
+                      : '해당하는 스킬이 없습니다',
                   style: const TextStyle(color: _sub),
                 ),
               )

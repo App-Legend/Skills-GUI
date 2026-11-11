@@ -133,7 +133,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('개요·분석 항목·보안 점검을 보여 주고 SKILL.md 원문은 없다', (tester) async {
+  testWidgets('개요·분석 항목·보안 점검을 보여 주고 SKILL.md 원문은 없습니다', (tester) async {
     final log = <Uri>[];
     final client = _client(log: log);
     final store = SkillAnalysisStore(
@@ -186,10 +186,10 @@ void main() {
 
   testWidgets('점검 기록이 없으면(404) 없다고 알린다', (tester) async {
     await pumpDetail(tester, client: _client(auditStatus: 404));
-    expect(find.text('아직 보안 점검 기록이 없다.'), findsOneWidget);
+    expect(find.text('아직 보안 점검 기록이 없습니다.'), findsOneWidget);
   });
 
-  testWidgets('직접 설치를 누르면 운영체제별 CLI 명령이 보이고 복사된다', (tester) async {
+  testWidgets('직접 설치를 누르면 운영체제별 CLI 명령이 보이고 복사됩니다', (tester) async {
     final copied = <String>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.platform,
@@ -247,7 +247,7 @@ void main() {
     await pumpDetail(tester, onInstalled: () => installed++);
 
     await _tapWithIo(tester, find.byKey(const Key('ranking-install')));
-    expect(find.text('스킬을 설치할까?'), findsOneWidget);
+    expect(find.text('스킬을 설치할까요?'), findsOneWidget);
 
     await tester.runAsync(() async {
       await tester.tap(find.byKey(const Key('ranking-install-confirm')));
@@ -272,7 +272,7 @@ void main() {
     expect(find.byKey(const Key('ranking-detail-installed')), findsOneWidget);
   });
 
-  testWidgets('설치 확인에서 취소하면 아무것도 쓰지 않는다', (tester) async {
+  testWidgets('설치 확인에서 취소하면 아무것도 쓰지 않습니다', (tester) async {
     await pumpDetail(tester);
     await _tapWithIo(tester, find.byKey(const Key('ranking-install')));
     await tester.tap(find.text('취소'));
@@ -370,7 +370,7 @@ void main() {
     expect(back, 2);
   });
 
-  testWidgets('랭킹 타일을 누르면 상세로 가고 뒤로 오면 목록이다', (tester) async {
+  testWidgets('랭킹 타일을 누르면 상세로 가고 뒤로 오면 목록입니다', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(body: RankingScreen(client: _client())),

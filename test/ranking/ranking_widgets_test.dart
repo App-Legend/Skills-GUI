@@ -41,7 +41,7 @@ void main() {
       expect(find.byKey(const Key('ranking-tile-installed')), findsNothing);
     });
 
-    testWidgets('stars 가 있으면 ★ 스타 수를, 없으면 아무것도 보이지 않는다', (tester) async {
+    testWidgets('stars 가 있으면 ★ 스타 수를, 없으면 아무것도 보이지 않습니다', (tester) async {
       await tester.pumpWidget(
         _wrap(
           const RankingListTile(
@@ -63,7 +63,7 @@ void main() {
       expect(find.byKey(const Key('ranking-tile-stars')), findsNothing);
     });
 
-    testWidgets('category 가 있으면 카테고리 배지를 붙인다', (tester) async {
+    testWidgets('category 가 있으면 카테고리 배지를 붙입니다', (tester) async {
       await tester.pumpWidget(
         _wrap(
           const RankingListTile(
@@ -88,7 +88,7 @@ void main() {
       expect(badge.center.dy, closeTo(name.center.dy, 4));
     });
 
-    testWidgets('installed 면 맨 오른쪽에 설치됨 체크를 붙인다', (tester) async {
+    testWidgets('installed 면 맨 오른쪽에 설치됨 체크를 붙입니다', (tester) async {
       await tester.pumpWidget(
         _wrap(
           const RankingListTile(
@@ -216,7 +216,7 @@ void main() {
       expect(retried, 1);
     });
 
-    testWidgets('onRetry 가 없으면 다시 시도 버튼이 없다', (tester) async {
+    testWidgets('onRetry 가 없으면 다시 시도 버튼이 없습니다', (tester) async {
       await tester.pumpWidget(
         _wrap(const RankingStateView.error(message: '오류')),
       );
@@ -226,7 +226,7 @@ void main() {
     testWidgets('빈 상태', (tester) async {
       await tester.pumpWidget(_wrap(const RankingStateView.empty()));
       expect(find.byKey(const Key('ranking-state-empty')), findsOneWidget);
-      expect(find.text('표시할 스킬이 없다'), findsOneWidget);
+      expect(find.text('표시할 스킬이 없습니다'), findsOneWidget);
       expect(find.byKey(const Key('ranking-state-loading')), findsNothing);
     });
   });

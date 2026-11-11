@@ -9,7 +9,7 @@ void main() {
   setUp(() async => root = await Directory.systemTemp.createTemp('skill-del-'));
   tearDown(() => root.delete(recursive: true));
 
-  test('플러그인·동기화 스킬은 지울 수 없다', () {
+  test('플러그인·동기화 스킬은 지울 수 없습니다', () {
     final plugin = planSkillDelete(
       const Skill(
         name: 'p',
@@ -28,14 +28,14 @@ void main() {
     );
   });
 
-  test('skills 폴더 밖이면 지우지 않는다', () {
+  test('skills 폴더 밖이면 지우지 않습니다', () {
     final plan = planSkillDelete(
       const Skill(name: 'x', source: SkillSource.global, path: '/home/x'),
     );
     expect(plan.canDelete, isFalse);
   });
 
-  test('전역 스킬 폴더를 통째로 지운다', () async {
+  test('전역 스킬 폴더를 통째로 지웁니다', () async {
     final dir = Directory('${root.path}/skills/alpha')
       ..createSync(recursive: true);
     File('${dir.path}/SKILL.md').writeAsStringSync('x');

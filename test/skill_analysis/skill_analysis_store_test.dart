@@ -20,7 +20,7 @@ Skill _skill(String name, {String md = 'body'}) =>
     Skill(name: name, source: SkillSource.global, path: '/$name', skillMd: md);
 
 void main() {
-  test('동시에 정해진 수만 요청하고, 결과를 캐시에 저장한다', () async {
+  test('동시에 정해진 수만 요청하고, 결과를 캐시에 저장합니다', () async {
     var running = 0;
     var peak = 0;
     var calls = 0;
@@ -68,7 +68,7 @@ void main() {
     expect(calls, 4);
   });
 
-  test('문제가 있거나 원문이 없는 스킬은 분석하지 않는다', () {
+  test('문제가 있거나 원문이 없는 스킬은 분석하지 않습니다', () {
     expect(
       SkillAnalysisStore.canAnalyze(
         const Skill(name: 'a', source: SkillSource.synced, path: '/a'),

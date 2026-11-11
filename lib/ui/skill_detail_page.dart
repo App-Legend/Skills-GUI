@@ -95,7 +95,7 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
   Future<void> _openGithub(String url) async {
     if (await openExternalUrl(url) || !mounted) return;
     ScaffoldMessenger.maybeOf(context)
-        ?.showSnackBar(SnackBar(content: Text('브라우저를 열지 못했다: $url')));
+        ?.showSnackBar(SnackBar(content: Text('브라우저를 열지 못했습니다: $url')));
   }
 
   Widget _githubButton() {
@@ -124,7 +124,7 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text(
-          'GitHub 주소를 찾지 못했다',
+          'GitHub 주소를 찾지 못했습니다',
           maxLines: 1,
           style: TextStyle(fontSize: 12, color: _sub),
         ),
@@ -148,10 +148,10 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
     try {
       await widget.deleter(plan);
     } on Object catch (e) {
-      messenger?.showSnackBar(SnackBar(content: Text('삭제하지 못했다: $e')));
+      messenger?.showSnackBar(SnackBar(content: Text('삭제하지 못했습니다: $e')));
       return;
     }
-    messenger?.showSnackBar(SnackBar(content: Text('${s.name}을 삭제했다.')));
+    messenger?.showSnackBar(SnackBar(content: Text('${s.name}을 삭제했습니다.')));
     if (mounted) Navigator.maybePop(context);
     await widget.onDeleted?.call();
   }
@@ -211,7 +211,7 @@ class _SkillDetailPageState extends State<SkillDetailPage> {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           SizedBox(width: 8),
-          Expanded(child: Text('SKILL.md와 파일 목록을 바탕으로 분석하고 있다.')),
+          Expanded(child: Text('SKILL.md와 파일 목록을 바탕으로 분석하고 있습니다.')),
         ],
       );
     }
