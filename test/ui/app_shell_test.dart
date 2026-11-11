@@ -111,6 +111,7 @@ void main() {
         ),
       ),
     );
+    expect(find.text('업데이트 화면', skipOffstage: false), findsNothing); // 열기 전엔 만들지 않는다
     await t.tap(find.text('업데이트 필요'));
     await t.pump();
     expect(find.text('업데이트 화면'), findsOneWidget);

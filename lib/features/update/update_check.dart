@@ -82,6 +82,16 @@ String _short(String sha) => sha.length > 7 ? sha.substring(0, 7) : sha;
 
 /// 마켓 복사본과 설치 기록을 비교해 업데이트가 필요하거나 확인할 수 없는 플러그인만 id 순으로 돌려준다.
 /// 마켓 복사본은 `claude plugin marketplace update`로 미리 새로 받아 둔다.
+/// 설치된 플러그인이 쓰는 마켓 이름. 전체 갱신은 매번 1분 가까이 걸려 이 마켓만 이름으로 갱신한다.
+Future<List<String>> installedMarkets(Directory claudeDir) async {
+  final installed = (await _json('${claudeDir.path}/plugins/installed_plugins.json'))?['plugins'];
+  if (installed is! Map) return [];
+  return {
+    for (final id in installed.keys.whereType<String>())
+      if (id.lastIndexOf('@') case final at when at >= 0) id.substring(at + 1),
+  }.toList()..sort();
+}
+
 Future<List<PluginUpdate>> checkUpdates(Directory claudeDir) async {
   final root = '${claudeDir.path}/plugins';
   final installed = (await _json('$root/installed_plugins.json'))?['plugins'];

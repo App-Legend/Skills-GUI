@@ -9,11 +9,12 @@ import 'glass.dart';
 const _sub = Color(0xFF3A4658);
 const _red = Color(0xFFB42318);
 
-/// "업데이트 필요" 탭. 버튼을 눌러야 확인하고, 업데이트는 확인 창 뒤에만 실행한다.
+/// "업데이트 필요" 탭. 처음 열릴 때 바로 확인하고, 업데이트는 확인 창 뒤에만 실행한다.
 class UpdatePage extends StatefulWidget {
   final Directory? claudeDir;
   final ClaudeCli cli;
   final Future<List<PluginUpdate>> Function(Directory) check;
+  final Future<List<String>> Function(Directory) markets;
   final Future<void> Function() onUpdated;
 
   /// 스킬 업데이트를 확인하는 곳(npx skills, 앱 설치 기록). 비면 플러그인만 확인한다.
@@ -27,6 +28,7 @@ class UpdatePage extends StatefulWidget {
     required this.claudeDir,
     required this.cli,
     required this.check,
+    this.markets = installedMarkets,
     required this.onUpdated,
     required this.onChecked,
     this.sources = const [],
@@ -40,6 +42,7 @@ class _UpdatePageState extends State<UpdatePage> {
   List<PluginUpdate>? _found;
   DateTime? _checkedAt;
   bool _busy = false;
+  bool _checking = false; // 업데이트 실행이 아닌 확인 중일 때만 스켈레톤
   String? _error;
   final _failed = <String, String>{}; // PluginUpdate.key → 실패 이유
 
@@ -53,24 +56,40 @@ class _UpdatePageState extends State<UpdatePage> {
     return msg;
   }
 
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_check);
+  }
+
   Future<void> _check() async {
     final dir = widget.claudeDir;
     if (_busy || dir == null) return;
     setState(() {
       _busy = true;
+      _checking = true;
       _error = null;
       _failed.clear();
     });
     // 플러그인과 스킬 확인을 함께 돌린다. npx는 처음에 받느라 오래 걸릴 수 있다.
     final skillChecks = Future.wait([for (final s in widget.sources) s.check()]);
-    final r = await widget.cli.run(['plugin', 'marketplace', 'update']);
     final errors = <String>[];
+    final missed = <String>[];
+    var noCli = false;
+    for (final m in await widget.markets(dir)) {
+      final r = await widget.cli.run(['plugin', 'marketplace', 'update', m]);
+      if (r == null) {
+        noCli = true;
+        break;
+      }
+      if (r.exitCode != 0) missed.add('$m(${_why(r)})');
+    }
     List<PluginUpdate>? found;
-    if (r == null) {
+    if (noCli) {
       errors.add(_noCli);
     } else {
       // 마켓 갱신이 실패해도 갖고 있는 복사본으로 비교는 한다.
-      if (r.exitCode != 0) errors.add('최신 정보를 받지 못했습니다: ${_why(r)}');
+      if (missed.isNotEmpty) errors.add('최신 정보를 받지 못했습니다: ${missed.join(', ')}');
       found = await widget.check(dir);
     }
     for (final s in await skillChecks) {
@@ -82,6 +101,7 @@ class _UpdatePageState extends State<UpdatePage> {
     if (!mounted) return;
     setState(() {
       _busy = false;
+      _checking = false;
       _error = error;
       if (found != null) {
         _found = found;
@@ -248,14 +268,14 @@ class _UpdatePageState extends State<UpdatePage> {
                   onTap: _busy ? () {} : _check,
                   color: const Color(0xFF0064D1),
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _busy
+                  child: _checking
                       ? const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
-                      : const Text(
-                          '업데이트 확인',
+                      : Text(
+                          at == null ? '업데이트 확인' : '다시 조회',
                           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                         ),
                 ),
@@ -277,8 +297,8 @@ class _UpdatePageState extends State<UpdatePage> {
           ),
         const SizedBox(height: 16),
         Expanded(
-          child: _busy && found == null
-              ? const Center(child: CircularProgressIndicator())
+          child: _checking
+              ? const _Skeleton()
               : found == null
               ? const Center(
                   child: Text('업데이트 확인을 누르면 됩니다', style: TextStyle(color: _sub)),
@@ -300,6 +320,71 @@ class _UpdatePageState extends State<UpdatePage> {
                     ],
                   ],
                 ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 확인 중 자리표시. 카드 모양 회색 칸이 천천히 깜빡인다.
+class _Skeleton extends StatefulWidget {
+  const _Skeleton();
+
+  @override
+  State<_Skeleton> createState() => _SkeletonState();
+}
+
+class _SkeletonState extends State<_Skeleton> with SingleTickerProviderStateMixin {
+  late final _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+    lowerBound: 0.4,
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  Widget _bar(double width, double height) => Container(
+    width: width,
+    height: height,
+    decoration: BoxDecoration(
+      color: const Color(0x1F3A4658),
+      borderRadius: BorderRadius.circular(6),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.disableAnimationsOf(context)) _pulse.value = 1;
+    return ListView(
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(8, 0, 8, 12),
+          child: Text('최신 정보를 받는 중입니다', style: TextStyle(color: _sub)),
+        ),
+        FadeTransition(
+          opacity: _pulse,
+          child: Column(
+            children: [
+              for (var i = 0; i < 3; i++)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xDBFFFFFF),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 8,
+                    children: [_bar(200, 16), _bar(120, 12), _bar(64, 10)],
+                  ),
+                ),
+            ],
+          ),
         ),
       ],
     );
