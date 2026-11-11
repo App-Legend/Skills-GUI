@@ -101,9 +101,13 @@ class RankingScreen extends StatefulWidget {
     this.onInstalled,
     this.history,
     this.analysisStore,
+    this.reset,
   });
 
   final RankingApiClient? client;
+
+  /// 알림이 오면 열린 상세를 닫고 첫 탭(전체)으로 돌아간다. 사이드바에서 랭킹 탭을 누를 때 쓴다.
+  final Listenable? reset;
 
   /// 한국어 개요·분석. null이면 기본 분석 서버와 캐시로 만든다.
   final SkillAnalysisStore? analysisStore;
@@ -120,7 +124,7 @@ class RankingScreen extends StatefulWidget {
   /// 내 스킬 이름들(모든 에이전트). 랭킹 항목과 이름이 같으면 "설치됨"으로 표시한다.
   final Set<String> installed;
 
-  /// Claude Code가 읽는 스킬 이름들(플러그인 포함). 상세의 Claude Code 설치 여부에 쓴다.
+  /// `~/.claude/skills`의 스킬 이름들. 상세의 Claude Code 설치 여부에 쓴다.
   /// null이면 [installed]를 쓴다.
   final Set<String>? installedClaude;
 
@@ -161,9 +165,25 @@ class _RankingScreenState extends State<RankingScreen> {
     if (mounted) setState(() {});
   }
 
+  void _onReset() {
+    if (!mounted) return;
+    setState(() => _detail = null);
+    if (_tab != _Tab.allTime) _select(_Tab.allTime);
+  }
+
+  @override
+  void didUpdateWidget(RankingScreen old) {
+    super.didUpdateWidget(old);
+    if (old.reset != widget.reset) {
+      old.reset?.removeListener(_onReset);
+      widget.reset?.addListener(_onReset);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    widget.reset?.addListener(_onReset);
     _client =
         widget.client ??
         (RankingConfig.isConfigured
@@ -179,6 +199,7 @@ class _RankingScreenState extends State<RankingScreen> {
 
   @override
   void dispose() {
+    widget.reset?.removeListener(_onReset);
     _analysis
       ?..removeListener(_onAnalysis)
       ..dispose();

@@ -45,6 +45,9 @@ class AppShell extends StatefulWidget {
   /// 랭킹에서 하는 설치 기록. 설치 중이면 사이드바 랭킹 탭에 "설치 중"을 띄운다.
   final InstallHistory? installHistory;
 
+  /// 사이드바 탭을 누를 때마다 부른다. 바깥에서 넣은 탭 화면을 처음으로 돌릴 때 쓴다.
+  final ValueChanged<AppTab>? onTabSelected;
+
   const AppShell({
     super.key,
     required this.result,
@@ -55,6 +58,7 @@ class AppShell extends StatefulWidget {
     this.updateCount = 0,
     this.analysisStore,
     this.installHistory,
+    this.onTabSelected,
   });
 
   @override
@@ -75,11 +79,14 @@ class _AppShellState extends State<AppShell> {
     super.dispose();
   }
 
-  void _onTab(AppTab t) => setState(() {
-    // 내 스킬 탭을 누르면 언제나 목록으로 돌아간다(다른 탭에 갔다 와도).
-    if (t == AppTab.mine) _detail = null;
-    _tab = t;
-  });
+  void _onTab(AppTab t) {
+    setState(() {
+      // 내 스킬 탭을 누르면 언제나 목록으로 돌아간다(다른 탭에 갔다 와도).
+      if (t == AppTab.mine) _detail = null;
+      _tab = t;
+    });
+    widget.onTabSelected?.call(t);
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -106,7 +113,7 @@ class _AppShellState extends State<AppShell> {
               ),
               const SizedBox(width: 16),
               Expanded(
-                // 탭을 옮겨도 각 화면의 필터·확인 결과가 남도록 모두 유지한다.
+                // 탭을 옮겨도 각 화면의 필터·확인 결과가 남도록 모두 유지한다(열린 상세와 위쪽 탭은 탭을 누를 때 처음으로).
                 child: IndexedStack(
                   index: _tab.index,
                   children: [

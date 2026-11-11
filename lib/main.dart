@@ -53,10 +53,12 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
 
   /// 랭킹 설치 기록. 탭을 옮겨도, 다시 스캔해도 남도록 앱에 하나만 둔다.
   final InstallHistory _installs = InstallHistory();
+  final _rankingReset = ValueNotifier(0);
 
   @override
   void dispose() {
     _installs.dispose();
+    _rankingReset.dispose();
     super.dispose();
   }
 
@@ -133,6 +135,9 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
     }
     return AppShell(
       installHistory: _installs,
+      onTabSelected: (t) {
+        if (t == AppTab.ranking) _rankingReset.value++;
+      },
       result: r,
       onRescan: _rescan,
       scanning: _loading,
@@ -164,6 +169,7 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
         },
         onInstalled: _rescan,
         history: _installs,
+        reset: _rankingReset,
       ),
     );
   }
