@@ -58,10 +58,10 @@ async function lookup(repo: string, token: string | undefined): Promise<Lookup> 
 export async function GET(request: Request): Promise<Response> {
   const raw = new URL(request.url).searchParams.get("repos") ?? "";
   const repos = [...new Set(raw.split(",").map((s) => s.trim()).filter(Boolean))];
-  if (repos.length === 0) return json({ error: "repos가 필요하다." }, 400);
-  if (repos.length > MAX_REPOS) return json({ error: `repos는 최대 ${MAX_REPOS}개다.` }, 400);
+  if (repos.length === 0) return json({ error: "repos가 필요합니다." }, 400);
+  if (repos.length > MAX_REPOS) return json({ error: `repos는 최대 ${MAX_REPOS}개입니다.` }, 400);
   const bad = repos.find((r) => !REPO_PATTERN.test(r));
-  if (bad !== undefined) return json({ error: `저장소 형식이 올바르지 않다: ${bad}` }, 400);
+  if (bad !== undefined) return json({ error: `저장소 형식이 올바르지 않습니다: ${bad}` }, 400);
 
   const token = process.env.GITHUB_TOKEN || undefined;
   const results = await Promise.all(repos.map((repo) => lookup(repo, token)));

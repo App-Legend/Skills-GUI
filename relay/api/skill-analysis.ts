@@ -97,7 +97,7 @@ function parseJson(value: string): unknown {
 
 export async function POST(request: Request): Promise<Response> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return json({ error: "분석 서버에 Claude API 키가 설정되지 않았다." }, 503);
+  if (!apiKey) return json({ error: "분석 서버에 Claude API 키가 설정되어 있지 않습니다." }, 503);
 
   let body: Record<string, unknown>;
   try {
@@ -105,16 +105,16 @@ export async function POST(request: Request): Promise<Response> {
     if (typeof value !== "object" || value === null) throw new Error();
     body = value as Record<string, unknown>;
   } catch {
-    return json({ error: "분석 요청 형식이 올바르지 않다." }, 400);
+    return json({ error: "분석 요청 형식이 올바르지 않습니다." }, 400);
   }
 
   const name = text(body.name);
   const description = text(body.description);
   const skillMd = text(body.skill_md);
   const files = texts(body.files);
-  if (!name || !skillMd) return json({ error: "스킬 이름과 SKILL.md가 필요하다." }, 400);
+  if (!name || !skillMd) return json({ error: "스킬 이름과 SKILL.md가 필요합니다." }, 400);
   if (skillMd.length > MAX_SKILL_MD_LENGTH || files.length > MAX_FILE_COUNT) {
-    return json({ error: "분석할 스킬 내용이 너무 크다." }, 413);
+    return json({ error: "분석할 스킬 내용이 너무 큽니다." }, 413);
   }
 
   const prompt = [
@@ -147,25 +147,27 @@ export async function POST(request: Request): Promise<Response> {
       }),
     });
   } catch {
-    return json({ error: "Claude 분석 서버에 연결하지 못했다." }, 502);
+    return json({ error: "Claude 분석 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요." }, 502);
   }
 
   if (!upstream.ok) {
+    // 화면 문구로는 원인을 알 수 없어 서버 로그에 남긴다(Vercel 로그에서 확인).
+    console.error("skill-analysis upstream", upstream.status, (await upstream.text().catch(() => "")).slice(0, 500));
     const status = upstream.status === 429 ? 429 : 502;
-    return json({ error: status === 429 ? "분석 요청이 많다. 잠시 후 다시 열면 된다." : "Claude가 분석을 완료하지 못했다." }, status);
+    return json({ error: status === 429 ? "분석 요청이 많습니다. 잠시 후 다시 열어 주세요." : "Claude가 분석을 마치지 못했습니다. 잠시 후 다시 시도해 주세요." }, status);
   }
 
   try {
     const result = await upstream.json() as { stop_reason?: string; content?: Array<{ type?: string; text?: string }> };
     const responseText = result.content?.find((item) => item.type === "text")?.text;
     if (result.stop_reason === "max_tokens") {
-      return json({ error: "분석 결과가 너무 길어 끝까지 받지 못했다." }, 502);
+      return json({ error: "분석 결과가 너무 길어 끝까지 받지 못했습니다." }, 502);
     }
     if (!responseText) throw new Error();
     const analysis = analysisFrom(parseJson(responseText));
     if (!analysis) throw new Error();
     return json({ analysis });
   } catch {
-    return json({ error: "Claude 분석 결과 형식을 읽지 못했다." }, 502);
+    return json({ error: "Claude 분석 결과를 읽지 못했습니다. 다시 시도해 주세요." }, 502);
   }
 }

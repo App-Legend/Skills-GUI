@@ -11,7 +11,7 @@ export async function GET(request: Request): Promise<Response> {
 
   const q = (params.get("q") ?? "").trim();
   if (q.length < MIN_QUERY_LENGTH) {
-    return json({ error: `검색어는 ${MIN_QUERY_LENGTH}자 이상이어야 한다.` }, 400);
+    return json({ error: `검색어는 ${MIN_QUERY_LENGTH}자 이상 입력해 주세요.` }, 400);
   }
   upstream.searchParams.set("q", q);
 
@@ -19,7 +19,7 @@ export async function GET(request: Request): Promise<Response> {
   if (limit !== null) {
     const n = parseInteger(limit);
     if (n === null || n < 1 || n > MAX_LIMIT) {
-      return json({ error: `limit는 1~${MAX_LIMIT} 사이의 정수여야 한다.` }, 400);
+      return json({ error: `limit는 1~${MAX_LIMIT} 사이의 정수여야 합니다.` }, 400);
     }
     upstream.searchParams.set("limit", String(n));
   }
