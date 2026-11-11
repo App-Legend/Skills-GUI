@@ -18,16 +18,18 @@ class AppInstallUpdater implements SkillUpdateSource {
   UpdateKind get kind => UpdateKind.app;
 
   @override
-  Future<({List<PluginUpdate> found, List<String> errors})> check() async {
+  Stream<({List<PluginUpdate> found, List<String> errors})> check() async* {
     final home = installer.home;
-    if (home == null) return (found: <PluginUpdate>[], errors: <String>[]);
+    if (home == null) return;
     final records = await AppInstallRecords.forHome(home).load();
     final results = await Future.wait(records.map(_checkOne));
-    return (
+    yield (
       found: [for (final r in results) ?r.$1],
       errors: [for (final r in results) ?r.$2],
     );
   }
+
+  static String _short(String h) => h.length > 7 ? h.substring(0, 7) : h;
 
   Future<(PluginUpdate?, String?)> _checkOne(AppInstallRecord r) async {
     try {
@@ -39,8 +41,9 @@ class AppInstallUpdater implements SkillUpdateSource {
         PluginUpdate(
           id: r.id,
           scope: 'user',
-          current: '',
-          latest: null,
+          // 해시가 둘 다 있을 때만 버전처럼 앞 7자리를 보여 준다.
+          current: r.hash != null && latest.hash != null ? _short(r.hash!) : '',
+          latest: r.hash != null && latest.hash != null ? _short(latest.hash!) : null,
           skillCount: 1,
           state: UpdateState.needed,
           kind: UpdateKind.app,

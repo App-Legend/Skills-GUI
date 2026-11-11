@@ -25,6 +25,21 @@ class _FakeCli implements ClaudeCli {
   }
 }
 
+class _Source implements SkillUpdateSource {
+  final Stream<({List<PluginUpdate> found, List<String> errors})> stream;
+
+  _Source(this.stream);
+
+  @override
+  UpdateKind get kind => UpdateKind.skill;
+
+  @override
+  Stream<({List<PluginUpdate> found, List<String> errors})> check() => stream;
+
+  @override
+  Future<String?> update(PluginUpdate u) async => null;
+}
+
 const _needed = PluginUpdate(
   id: 'p@m',
   scope: 'user',
@@ -76,8 +91,8 @@ void main() {
     expect(cli.calls.single, ['plugin', 'marketplace', 'update', 'm']);
     expect(find.text('다시 조회'), findsOneWidget);
     expect(find.text('p@m'), findsOneWidget);
-    expect(find.text('1.0 → 1.1'), findsOneWidget);
-    expect(find.text('스킬 3개'), findsOneWidget);
+    expect(find.text('현재 버전 1.0 → 최신 버전 1.1'), findsOneWidget);
+    expect(find.text('Claude Code 플러그인 · 스킬 3개'), findsOneWidget);
   });
 
   testWidgets('다시 조회하면 다시 받는다', (t) async {
@@ -94,6 +109,37 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('최신 정보를 받지 못했습니다: m(offline)'), findsOneWidget);
     expect(find.text('p@m'), findsOneWidget);
+  });
+
+  testWidgets('끝난 곳부터 보여주고 남은 곳은 확인 중 한 줄', (t) async {
+    final slow = StreamController<({List<PluginUpdate> found, List<String> errors})>();
+    t.view.physicalSize = const Size(1280, 820);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: UpdatePage(
+            claudeDir: Directory.systemTemp,
+            cli: _FakeCli(),
+            check: (_) async => const [_needed],
+            markets: (_) async => ['m'],
+            onUpdated: () async {},
+            onChecked: (_) {},
+            sources: [_Source(slow.stream)],
+          ),
+        ),
+      ),
+    );
+    await t.pump();
+    await t.pump();
+    expect(find.text('p@m'), findsOneWidget); // 플러그인 결과 먼저
+    expect(find.text('나머지를 확인하는 중입니다'), findsOneWidget);
+    slow.add((found: const [_unknown], errors: const []));
+    await slow.close();
+    await t.pumpAndSettle();
+    expect(find.text('q@n'), findsOneWidget);
+    expect(find.text('나머지를 확인하는 중입니다'), findsNothing);
   });
 
   testWidgets('확인 중 다시 눌러도 한 번만 실행', (t) async {
@@ -120,6 +166,7 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('확인할 수 없음'), findsOneWidget);
     expect(find.text('q@n'), findsOneWidget);
+    expect(find.text('현재 버전 2.0 · 최신 버전 확인 불가'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, '업데이트'), findsOneWidget);
   });
 

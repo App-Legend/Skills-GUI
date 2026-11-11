@@ -42,7 +42,7 @@ class _UpdatePageState extends State<UpdatePage> {
   List<PluginUpdate>? _found;
   DateTime? _checkedAt;
   bool _busy = false;
-  bool _checking = false; // 업데이트 실행이 아닌 확인 중일 때만 스켈레톤
+  bool _checking = false; // 업데이트 실행이 아닌 확인 중
   String? _error;
   final _failed = <String, String>{}; // PluginUpdate.key → 실패 이유
 
@@ -68,47 +68,47 @@ class _UpdatePageState extends State<UpdatePage> {
     setState(() {
       _busy = true;
       _checking = true;
+      _found = null;
       _error = null;
       _failed.clear();
     });
-    // 플러그인과 스킬 확인을 함께 돌린다. npx는 처음에 받느라 오래 걸릴 수 있다.
-    final skillChecks = Future.wait([for (final s in widget.sources) s.check()]);
     final errors = <String>[];
-    final missed = <String>[];
-    var noCli = false;
-    for (final m in await widget.markets(dir)) {
-      final r = await widget.cli.run(['plugin', 'marketplace', 'update', m]);
-      if (r == null) {
-        noCli = true;
-        break;
-      }
-      if (r.exitCode != 0) missed.add('$m(${_why(r)})');
+    // 끝난 곳부터 목록에 더한다. found가 null이면 확인 자체를 못 한 것.
+    void add(List<PluginUpdate>? found, List<String> e) {
+      if (!mounted) return;
+      setState(() {
+        if (found != null) _found = withoutDuplicateApp([...?_found, ...found]);
+        errors.addAll(e);
+        _error = errors.isEmpty ? null : errors.join('\n');
+      });
     }
-    List<PluginUpdate>? found;
-    if (noCli) {
-      errors.add(_noCli);
-    } else {
-      // 마켓 갱신이 실패해도 갖고 있는 복사본으로 비교는 한다.
-      if (missed.isNotEmpty) errors.add('최신 정보를 받지 못했습니다: ${missed.join(', ')}');
-      found = await widget.check(dir);
-    }
-    for (final s in await skillChecks) {
-      found = [...?found, ...s.found];
-      errors.addAll(s.errors);
-    }
-    if (found != null) found = withoutDuplicateApp(found);
-    final error = errors.isEmpty ? null : errors.join('\n');
+
+    // 플러그인과 스킬 확인을 함께 돌린다. npx는 스킬이 많은 프로젝트에서 오래 걸린다.
+    await Future.wait([
+      _checkPlugins(dir).then((r) => add(r.found, r.errors)),
+      for (final s in widget.sources) s.check().forEach((r) => add(r.found, r.errors)),
+    ]);
     if (!mounted) return;
     setState(() {
       _busy = false;
       _checking = false;
-      _error = error;
-      if (found != null) {
-        _found = found;
-        _checkedAt = DateTime.now();
-      }
+      if (_found != null) _checkedAt = DateTime.now();
     });
-    if (found != null) widget.onChecked(found);
+    if (_found case final found?) widget.onChecked(found);
+  }
+
+  Future<({List<PluginUpdate>? found, List<String> errors})> _checkPlugins(Directory dir) async {
+    final missed = <String>[];
+    for (final m in await widget.markets(dir)) {
+      final r = await widget.cli.run(['plugin', 'marketplace', 'update', m]);
+      if (r == null) return (found: null, errors: [_noCli]);
+      if (r.exitCode != 0) missed.add('$m(${_why(r)})');
+    }
+    // 마켓 갱신이 실패해도 갖고 있는 복사본으로 비교는 한다.
+    return (
+      found: await widget.check(dir),
+      errors: [if (missed.isNotEmpty) '최신 정보를 받지 못했습니다: ${missed.join(', ')}'],
+    );
   }
 
   Future<void> _update(PluginUpdate p) async {
@@ -173,6 +173,32 @@ class _UpdatePageState extends State<UpdatePage> {
   static String _title(PluginUpdate p) =>
       p.kind == UpdateKind.app ? p.id.split('/').last : p.id;
 
+  /// "현재 버전 1.0 → 최신 버전 1.1". 버전이 없는 스킬은 새 내용이 있다는 것만 알린다.
+  Widget _version(PluginUpdate p) {
+    const label = TextStyle(color: _sub);
+    const value = TextStyle(fontWeight: FontWeight.w600);
+    if (p.current.isEmpty) {
+      return Text(
+        p.state == UpdateState.needed ? '버전 정보 없음 · 원본에 새 내용 있음' : '버전 정보 없음',
+        style: label,
+      );
+    }
+    return Text.rich(
+      TextSpan(
+        style: label,
+        children: [
+          const TextSpan(text: '현재 버전 '),
+          TextSpan(text: p.current, style: value),
+          if (p.latest case final latest?) ...[
+            const TextSpan(text: ' → 최신 버전 '),
+            TextSpan(text: latest, style: value.copyWith(color: const Color(0xFF0064D1))),
+          ] else
+            const TextSpan(text: ' · 최신 버전 확인 불가'),
+        ],
+      ),
+    );
+  }
+
   Widget _row(PluginUpdate p) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: Material(
@@ -192,25 +218,13 @@ class _UpdatePageState extends State<UpdatePage> {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
-                  if (p.kind != UpdateKind.plugin)
-                    Text(
-                      p.agent != null
-                          ? '${p.agent!.label} · 새 내용 있음'
-                          : p.projectPath == null
-                          ? '전역 스킬 · 새 내용 있음'
-                          : '프로젝트 스킬 · 새 내용 있음',
-                      style: const TextStyle(color: _sub),
-                    )
-                  else
-                    Text(
-                      p.latest == null ? '현재 ${p.current}' : '${p.current} → ${p.latest}',
-                      style: const TextStyle(color: _sub),
-                    ),
+                  const SizedBox(height: 4),
+                  _version(p),
                   Text(
                     switch (p.kind) {
-                      UpdateKind.skill => p.projectPath ?? 'npx skills로 설치',
-                      UpdateKind.app => '앱으로 설치 · ${p.id}',
-                      UpdateKind.plugin => '스킬 ${p.skillCount}개',
+                      UpdateKind.plugin => 'Claude Code 플러그인 · 스킬 ${p.skillCount}개',
+                      UpdateKind.skill => 'npx skills · ${p.projectPath ?? '전역'}',
+                      UpdateKind.app => '앱으로 설치 · ${p.agent?.label ?? '전역'} · ${p.id}',
                     },
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -297,7 +311,7 @@ class _UpdatePageState extends State<UpdatePage> {
           ),
         const SizedBox(height: 16),
         Expanded(
-          child: _checking
+          child: _checking && found == null
               ? const _Skeleton()
               : found == null
               ? const Center(
@@ -305,7 +319,7 @@ class _UpdatePageState extends State<UpdatePage> {
                 )
               : ListView(
                   children: [
-                    if (needed.isEmpty)
+                    if (needed.isEmpty && !_checking)
                       const Padding(
                         padding: EdgeInsets.all(8),
                         child: Text('모두 최신입니다', style: TextStyle(color: _sub)),
@@ -318,6 +332,21 @@ class _UpdatePageState extends State<UpdatePage> {
                       ),
                       for (final p in unknown) _row(p),
                     ],
+                    if (_checking)
+                      const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Row(
+                          spacing: 10,
+                          children: [
+                            SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            Text('나머지를 확인하는 중입니다', style: TextStyle(color: _sub)),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
         ),
@@ -326,7 +355,7 @@ class _UpdatePageState extends State<UpdatePage> {
   }
 }
 
-/// 확인 중 자리표시. 카드 모양 회색 칸이 천천히 깜빡인다.
+/// 확인 중 자리표시. 목록 행과 같은 모양 위로 빛이 왼쪽에서 오른쪽으로 지나간다.
 class _Skeleton extends StatefulWidget {
   const _Skeleton();
 
@@ -335,58 +364,87 @@ class _Skeleton extends StatefulWidget {
 }
 
 class _SkeletonState extends State<_Skeleton> with SingleTickerProviderStateMixin {
-  late final _pulse = AnimationController(
+  late final _sweep = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 900),
-    lowerBound: 0.4,
-  )..repeat(reverse: true);
+    duration: const Duration(milliseconds: 1400),
+  )..repeat();
+
+  static const _base = Color(0xFFE4E8EE);
+  static const _shine = Color(0xFFF7F9FC);
 
   @override
   void dispose() {
-    _pulse.dispose();
+    _sweep.dispose();
     super.dispose();
   }
 
-  Widget _bar(double width, double height) => Container(
+  static Widget _bar(double width, double height, {double radius = 6}) => Container(
     width: width,
     height: height,
+    decoration: BoxDecoration(color: _base, borderRadius: BorderRadius.circular(radius)),
+  );
+
+  // 행 안의 칸들만 빛을 받는다. 카드 배경은 그대로.
+  Widget _shimmer(Widget child) => AnimatedBuilder(
+    animation: _sweep,
+    child: child,
+    builder: (_, child) => ShaderMask(
+      blendMode: BlendMode.srcATop,
+      shaderCallback: (r) => LinearGradient(
+        colors: const [_base, _shine, _base],
+        stops: const [0.35, 0.5, 0.65],
+        transform: _Slide(_sweep.value),
+      ).createShader(r),
+      child: child,
+    ),
+  );
+
+  Widget _card() => Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: const Color(0x1F3A4658),
-      borderRadius: BorderRadius.circular(6),
+      color: const Color(0xDBFFFFFF),
+      borderRadius: BorderRadius.circular(22),
+    ),
+    child: _shimmer(
+      Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 8,
+              children: [_bar(180, 16), _bar(110, 13), _bar(70, 11)],
+            ),
+          ),
+          _bar(84, 36, radius: 18), // 업데이트 버튼 자리
+        ],
+      ),
     ),
   );
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.disableAnimationsOf(context)) _pulse.value = 1;
+    // 움직임 줄이기면 빛이 화면 밖에 멈춘 채로 둔다.
+    if (MediaQuery.disableAnimationsOf(context)) _sweep.value = 0;
     return ListView(
       children: [
         const Padding(
           padding: EdgeInsets.fromLTRB(8, 0, 8, 12),
           child: Text('최신 정보를 받는 중입니다', style: TextStyle(color: _sub)),
         ),
-        FadeTransition(
-          opacity: _pulse,
-          child: Column(
-            children: [
-              for (var i = 0; i < 3; i++)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xDBFFFFFF),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    spacing: 8,
-                    children: [_bar(200, 16), _bar(120, 12), _bar(64, 10)],
-                  ),
-                ),
-            ],
-          ),
-        ),
+        for (var i = 0; i < 3; i++) _card(),
       ],
     );
   }
+}
+
+/// 그라디언트를 가로로 한 폭씩 밀어 빛이 왼쪽 밖에서 오른쪽 밖으로 지나가게 한다.
+class _Slide extends GradientTransform {
+  final double t;
+
+  const _Slide(this.t);
+
+  @override
+  Matrix4 transform(Rect bounds, {TextDirection? textDirection}) =>
+      Matrix4.translationValues(bounds.width * (t * 2 - 1), 0, 0);
 }

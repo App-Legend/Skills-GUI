@@ -19,6 +19,17 @@ SkillDetail _detail(String body, {String? hash}) => SkillDetail(
   files: [SkillFile(path: 'SKILL.md', contents: '---\nname: fake\n---\n$body')],
 );
 
+/// 확인 결과 스트림을 한 결과로 모은다.
+Future<({List<PluginUpdate> found, List<String> errors})> _all(
+  Stream<({List<PluginUpdate> found, List<String> errors})> s,
+) async {
+  final parts = await s.toList();
+  return (
+    found: [for (final p in parts) ...p.found],
+    errors: [for (final p in parts) ...p.errors],
+  );
+}
+
 void main() {
   late Directory home;
   late SkillInstaller installer;
@@ -53,7 +64,7 @@ void main() {
       fetchDetail: (_) async => latest,
     );
 
-    final r = await updater.check();
+    final r = await _all(updater.check());
     expect(r.errors, isEmpty);
     final u = r.found.single;
     expect(
@@ -71,7 +82,7 @@ void main() {
     expect(md, endsWith('v2'));
 
     // 업데이트 뒤에는 기록 해시도 바뀌어 다시 나오지 않는다.
-    expect((await updater.check()).found, isEmpty);
+    expect((await _all(updater.check())).found, isEmpty);
   });
 
   test('해시가 없으면 파일 내용으로 비교합니다', () async {
@@ -80,12 +91,12 @@ void main() {
       installer: installer,
       fetchDetail: (_) async => _detail('v1'),
     );
-    expect((await same.check()).found, isEmpty);
+    expect((await _all(same.check())).found, isEmpty);
     final changed = AppInstallUpdater(
       installer: installer,
       fetchDetail: (_) async => _detail('v2'),
     );
-    expect((await changed.check()).found, hasLength(1));
+    expect((await _all(changed.check())).found, hasLength(1));
   });
 
   test('지운 스킬은 확인하지 않고, 받기 실패는 숨기지 않습니다', () async {
@@ -97,7 +108,7 @@ void main() {
       installer: installer,
       fetchDetail: (_) async => throw const RankingApiException(502, '서버 오류'),
     );
-    final r = await updater.check();
+    final r = await _all(updater.check());
     expect(r.found, isEmpty);
     expect(r.errors.single, allOf(contains('Claude Code'), contains('서버 오류')));
   });
