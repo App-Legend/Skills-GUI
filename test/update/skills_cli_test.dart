@@ -4,8 +4,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/features/ranking/terminal/command_runner.dart';
-import 'package:skill_gui/update/skills_cli.dart';
-import 'package:skill_gui/update/update_check.dart';
+import 'package:skill_gui/features/update/skills_cli.dart';
+import 'package:skill_gui/features/update/update_check.dart';
 
 class _Fake implements RunningCommand {
   _Fake(this.code, this.out);

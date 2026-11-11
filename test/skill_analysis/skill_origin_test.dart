@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/features/skill_analysis/skill_origin.dart';
-import 'package:skill_gui/scan/skill.dart';
+import 'package:skill_gui/features/scan/skill.dart';
 
 void main() {
   test('GitHub 저장소 주소 해석', () {

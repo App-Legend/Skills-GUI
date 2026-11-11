@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import '../../scan/skill.dart';
+import '../scan/skill.dart';
 
 /// 삭제 전에 보여주는 계획. [blockedReason]이 있으면 지울 수 없다.
 class SkillDeletePlan {

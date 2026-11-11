@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_cache.dart';
-import 'package:skill_gui/scan/skill.dart';
+import 'package:skill_gui/features/scan/skill.dart';
 
 void main() {
   const skill = Skill(

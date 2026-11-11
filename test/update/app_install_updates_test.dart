@@ -5,9 +5,9 @@ import 'package:skill_gui/features/ranking/data/ranking_api_client.dart';
 import 'package:skill_gui/features/ranking/install/app_install_records.dart';
 import 'package:skill_gui/features/ranking/install/skill_installer.dart';
 import 'package:skill_gui/features/ranking/models/ranking_models.dart';
-import 'package:skill_gui/scan/agent.dart';
-import 'package:skill_gui/update/app_install_updates.dart';
-import 'package:skill_gui/update/update_check.dart';
+import 'package:skill_gui/features/scan/agent.dart';
+import 'package:skill_gui/features/update/app_install_updates.dart';
+import 'package:skill_gui/features/update/update_check.dart';
 
 // 테스트용 가짜 스킬. 실제 skills.sh 데이터가 아니다.
 SkillDetail _detail(String body, {String? hash}) => SkillDetail(

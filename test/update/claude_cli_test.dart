@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skill_gui/update/claude_cli.dart';
+import 'package:skill_gui/features/update/claude_cli.dart';
 
 void main() {
   test('where 결과에서 실행 가능한 줄을 고른다', () {

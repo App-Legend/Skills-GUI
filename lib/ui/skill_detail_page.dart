@@ -12,7 +12,7 @@ import '../features/skill_analysis/widgets/install_commands.dart';
 import '../features/skill_delete/skill_deleter.dart';
 import '../features/skill_delete/widgets/delete_confirm_dialog.dart';
 import '../access/folder_access.dart';
-import '../scan/skill.dart';
+import '../features/scan/skill.dart';
 import 'glass.dart';
 import 'skill_badges.dart';
 

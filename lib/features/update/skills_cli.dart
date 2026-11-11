@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import '../features/ranking/terminal/command_runner.dart';
+import '../ranking/terminal/command_runner.dart';
 import '../scan/skill_scanner.dart';
 import 'update_check.dart';
 

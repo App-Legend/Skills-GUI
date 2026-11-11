@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import '../../scan/skill.dart';
+import '../scan/skill.dart';
 import 'skill_analysis.dart';
 
 /// 분석 형식이 바뀌면 올린다. 다른 버전의 캐시는 다시 분석한다.

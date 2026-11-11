@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/ui/glass.dart';
 import 'package:skill_gui/ui/update_page.dart';
-import 'package:skill_gui/update/claude_cli.dart';
-import 'package:skill_gui/update/update_check.dart';
+import 'package:skill_gui/features/update/claude_cli.dart';
+import 'package:skill_gui/features/update/update_check.dart';
 
 class _FakeCli implements ClaudeCli {
   final calls = <List<String>>[];

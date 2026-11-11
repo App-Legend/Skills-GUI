@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../scan/agent.dart';
-import '../scan/skill.dart';
+import '../features/scan/agent.dart';
+import '../features/scan/skill.dart';
 
 /// 에이전트 이름. 여럿이 함께 읽으면 개수로 줄인다.
 String agentTag(Skill s) => s.agents.length == 1

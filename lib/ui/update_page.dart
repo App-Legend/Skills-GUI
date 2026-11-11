@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../update/claude_cli.dart';
-import '../update/update_check.dart';
+import '../features/update/claude_cli.dart';
+import '../features/update/update_check.dart';
 import 'glass.dart';
 
 const _sub = Color(0xFF3A4658);

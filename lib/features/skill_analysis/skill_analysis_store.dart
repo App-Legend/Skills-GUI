@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../../scan/skill.dart';
+import '../scan/skill.dart';
 import 'skill_analysis.dart';
 import 'skill_analysis_cache.dart';
 import 'skill_analysis_client.dart';

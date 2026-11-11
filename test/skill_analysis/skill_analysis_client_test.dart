@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_client.dart';
-import 'package:skill_gui/scan/skill.dart';
+import 'package:skill_gui/features/scan/skill.dart';
 
 void main() {
   const skill = Skill(

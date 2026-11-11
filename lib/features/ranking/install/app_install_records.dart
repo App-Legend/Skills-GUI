@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import '../../../scan/agent.dart';
+import '../../scan/agent.dart';
 
 /// 앱의 설치 버튼으로 설치한 스킬 하나. 업데이트 확인에 쓴다.
 class AppInstallRecord {

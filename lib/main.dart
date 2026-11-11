@@ -8,16 +8,16 @@ import 'features/ranking/data/ranking_api_client.dart';
 import 'features/ranking/install/skill_installer.dart';
 import 'features/ranking/ranking_config.dart';
 import 'features/ranking/ranking_screen.dart';
-import 'scan/agent.dart';
-import 'scan/skill.dart';
-import 'scan/skill_scanner.dart';
+import 'features/scan/agent.dart';
+import 'features/scan/skill.dart';
+import 'features/scan/skill_scanner.dart';
 import 'ui/glass.dart';
 import 'ui/app_shell.dart';
 import 'ui/update_page.dart';
-import 'update/claude_cli.dart';
-import 'update/app_install_updates.dart';
-import 'update/skills_cli.dart';
-import 'update/update_check.dart';
+import 'features/update/claude_cli.dart';
+import 'features/update/app_install_updates.dart';
+import 'features/update/skills_cli.dart';
+import 'features/update/update_check.dart';
 
 void main() => runApp(
   SkillGuiApp(

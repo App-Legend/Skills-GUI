@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:skill_gui/features/ranking/data/ranking_api_client.dart';
 import 'package:skill_gui/features/ranking/ranking_detail_page.dart';
 import 'package:skill_gui/features/ranking/ranking_screen.dart';
-import 'package:skill_gui/scan/skill.dart';
+import 'package:skill_gui/features/scan/skill.dart';
 import 'package:skill_gui/ui/app_shell.dart';
 
 // 테스트용 가짜 데이터. 실제 skills.sh 수치가 아니다.

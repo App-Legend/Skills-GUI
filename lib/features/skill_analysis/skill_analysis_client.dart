@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import '../../scan/skill.dart';
+import '../scan/skill.dart';
 import 'file_list_summary.dart';
 import 'skill_analysis.dart';
 

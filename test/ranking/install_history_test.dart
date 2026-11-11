@@ -11,7 +11,7 @@ import 'package:skill_gui/features/ranking/models/ranking_models.dart';
 import 'package:skill_gui/features/ranking/ranking_detail_page.dart';
 import 'package:skill_gui/features/ranking/ranking_screen.dart';
 import 'package:skill_gui/features/ranking/widgets/install_history_view.dart';
-import 'package:skill_gui/scan/skill.dart';
+import 'package:skill_gui/features/scan/skill.dart';
 import 'package:skill_gui/ui/app_shell.dart';
 
 import 'terminal_panel_test.dart' show FakeRunner;

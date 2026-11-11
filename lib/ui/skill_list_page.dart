@@ -4,8 +4,8 @@ import '../features/skill_analysis/skill_analysis.dart';
 import '../features/skill_analysis/skill_analysis_store.dart';
 import '../features/skill_analysis/widgets/category_badges.dart';
 import '../features/skill_analysis/widgets/category_filter_panel.dart';
-import '../scan/agent.dart';
-import '../scan/skill.dart';
+import '../features/scan/agent.dart';
+import '../features/scan/skill.dart';
 import 'glass.dart';
 import 'skill_badges.dart';
 

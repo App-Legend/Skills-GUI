@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skill_gui/update/update_check.dart';
+import 'package:skill_gui/features/update/update_check.dart';
 
 late Directory claude;
 

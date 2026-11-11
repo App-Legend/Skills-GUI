@@ -1,9 +1,9 @@
 import 'dart:io';
 
-import '../features/ranking/data/ranking_api_client.dart';
-import '../features/ranking/install/app_install_records.dart';
-import '../features/ranking/install/skill_installer.dart';
-import '../features/ranking/models/ranking_models.dart';
+import '../ranking/data/ranking_api_client.dart';
+import '../ranking/install/app_install_records.dart';
+import '../ranking/install/skill_installer.dart';
+import '../ranking/models/ranking_models.dart';
 import 'update_check.dart';
 
 /// 앱의 설치 버튼으로 설치한 스킬의 업데이트 확인·실행.

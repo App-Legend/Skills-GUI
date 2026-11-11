@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../features/ranking/install/install_history.dart';
 import '../features/ranking/widgets/install_history_view.dart';
 import '../features/skill_analysis/skill_analysis_store.dart';
-import '../scan/skill.dart';
+import '../features/scan/skill.dart';
 import 'glass.dart';
 import 'skill_detail_page.dart';
 import 'skill_list_page.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skill_gui/scan/frontmatter.dart';
+import 'package:skill_gui/features/scan/frontmatter.dart';
 
 void main() {
   test('plain', () {

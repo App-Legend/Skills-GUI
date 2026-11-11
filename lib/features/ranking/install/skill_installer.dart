@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import '../../../scan/agent.dart';
+import '../../scan/agent.dart';
 import '../models/ranking_models.dart';
 import 'app_install_records.dart';
 

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import '../../scan/skill.dart';
+import '../scan/skill.dart';
 
 /// 스킬의 GitHub 주소와 설치 명령.
 class SkillOrigin {

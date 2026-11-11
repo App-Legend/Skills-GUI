@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skill_gui/scan/skill.dart';
+import 'package:skill_gui/features/scan/skill.dart';
 import 'package:skill_gui/ui/app_shell.dart';
 import 'package:skill_gui/ui/skill_detail_page.dart';
 

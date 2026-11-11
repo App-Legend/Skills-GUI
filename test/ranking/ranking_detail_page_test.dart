@@ -15,7 +15,7 @@ import 'package:skill_gui/features/skill_analysis/skill_analysis.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_cache.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_client.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_store.dart';
-import 'package:skill_gui/scan/skill.dart';
+import 'package:skill_gui/features/scan/skill.dart';
 
 import 'terminal_panel_test.dart' show FakeRunner;
 
