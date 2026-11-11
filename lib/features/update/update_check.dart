@@ -52,6 +52,21 @@ class PluginUpdate {
       '${kind.name}|${projectPath ?? ''}|${agent?.name ?? ''}|$id';
 }
 
+/// 같은 전역 스킬이 skills CLI와 앱 설치 기록 양쪽에서 나오면 CLI 항목만 남긴다.
+/// 둘 다 같은 폴더를 덮어쓰므로 하나만 보여야 한다.
+/// shortcut: CLI 항목에는 에이전트가 없어 이름만 비교한다. 다른 에이전트의 같은 이름 스킬도 숨겨지면 에이전트까지 비교한다.
+List<PluginUpdate> withoutDuplicateApp(List<PluginUpdate> found) {
+  final cliGlobal = {
+    for (final p in found)
+      if (p.kind == UpdateKind.skill && p.projectPath == null) p.id,
+  };
+  return [
+    for (final p in found)
+      if (p.kind != UpdateKind.app || !cliGlobal.contains(p.id.split('/').last))
+        p,
+  ];
+}
+
 String _sep(String p) => p.replaceAll('/', Platform.pathSeparator);
 
 Future<Map<String, dynamic>?> _json(String path) async {

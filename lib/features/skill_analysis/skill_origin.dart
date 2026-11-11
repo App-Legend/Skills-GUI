@@ -120,7 +120,8 @@ Future<SkillOrigin> resolveSkillOrigin(Skill s, Directory? claudeDir) async {
   if (s.source != SkillSource.plugin || s.plugin == null) {
     final folder = _baseName(s.path);
     final home = claudeDir?.parent;
-    if (home != null) {
+    // 전역 기록은 전역 스킬에만 쓴다. 이름이 같은 프로젝트 스킬에 -g 명령이 붙지 않게.
+    if (home != null && s.source != SkillSource.project) {
       final sep = Platform.pathSeparator;
       final global = '${home.path}$sep.agents$sep.skill-lock.json';
       if (await _fromLockFile(global, s, folder) case final origin?) {

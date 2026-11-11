@@ -158,7 +158,9 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
         installed: {for (final s in r.skills) s.name},
         installedClaude: {
           for (final s in r.skills)
-            if (s.agents.contains(Agent.claude)) s.name,
+            // 랭킹은 ~/.claude/skills 에 설치하므로 그 폴더의 스킬만 센다.
+            if (s.source == SkillSource.global && s.agents.contains(Agent.claude))
+              s.name,
         },
         onInstalled: _rescan,
         history: _installs,

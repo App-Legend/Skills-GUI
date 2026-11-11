@@ -77,6 +77,7 @@ class _UpdatePageState extends State<UpdatePage> {
       found = [...?found, ...s.found];
       errors.addAll(s.errors);
     }
+    if (found != null) found = withoutDuplicateApp(found);
     final error = errors.isEmpty ? null : errors.join('\n');
     if (!mounted) return;
     setState(() {
