@@ -4,7 +4,9 @@ import 'package:skill_gui/features/skill_analysis/skill_analysis.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_cache.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_client.dart';
 import 'package:skill_gui/features/skill_analysis/skill_analysis_store.dart';
+import 'package:skill_gui/features/scan/agent.dart';
 import 'package:skill_gui/features/scan/skill.dart';
+import 'package:skill_gui/features/usage/skill_usage.dart';
 import 'package:skill_gui/ui/app_checkbox.dart';
 import 'package:skill_gui/ui/glass.dart';
 import 'package:skill_gui/ui/skill_list_page.dart';
@@ -43,6 +45,7 @@ Future<void> _pump(
   Future<void> Function()? onRescan,
   bool reduce = false,
   List<Skill> skills = _skills,
+  SkillUsage? usage,
 }) async {
   t.view.physicalSize = const Size(1280, 820);
   t.view.devicePixelRatio = 1;
@@ -52,6 +55,7 @@ Future<void> _pump(
       result: ScanResult(skills: skills, notices: notices),
       onRescan: onRescan ?? () async {},
       onOpen: (_) {},
+      usage: usage,
     ),
   );
   if (reduce) page = ReduceTransparency(value: true, child: page);
@@ -84,6 +88,31 @@ void main() {
     expect(find.text('b'), findsNothing);
     expect(find.text('d'), findsOneWidget);
     expect(find.text('꺼짐'), findsNWidgets(2)); // 필터 + 배지
+  });
+
+  testWidgets('미사용 후보: 30일 안에 쓴 스킬은 빠지고 확인 기간을 알려 줍니다', (t) async {
+    await _pump(
+      t,
+      usage: SkillUsage(
+        since: {Agent.claude: DateTime(2026, 9, 30)},
+        lastUsed: {
+          Agent.claude: {'a': DateTime.now()},
+        },
+      ),
+    );
+    await t.tap(find.text('미사용 후보'));
+    await t.pump();
+    expect(find.text('a'), findsNothing);
+    expect(find.text('b'), findsOneWidget);
+    expect(find.textContaining('Claude Code 2026-09-30부터'), findsOneWidget);
+  });
+
+  testWidgets('미사용 후보: 기록을 읽는 중이면 비워 두고 알려 줍니다', (t) async {
+    await _pump(t);
+    await t.tap(find.text('미사용 후보'));
+    await t.pump();
+    expect(find.text('사용 기록을 읽는 중입니다'), findsOneWidget);
+    expect(find.text('a'), findsNothing);
   });
 
   testWidgets('다시 스캔과 notices', (t) async {

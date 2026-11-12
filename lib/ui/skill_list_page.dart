@@ -6,6 +6,7 @@ import '../features/skill_analysis/widgets/category_badges.dart';
 import '../features/skill_analysis/widgets/category_filter_panel.dart';
 import '../features/scan/agent.dart';
 import '../features/scan/skill.dart';
+import '../features/usage/skill_usage.dart';
 import 'glass.dart';
 import 'skill_badges.dart';
 
@@ -14,18 +15,32 @@ enum SourceFilter {
   global('전역'),
   project('프로젝트'),
   plugin('플러그인'),
-  disabled('꺼짐');
+  disabled('꺼짐'),
+  unused('미사용 후보');
 
   final String label;
   const SourceFilter(this.label);
 
-  bool matches(Skill s) => switch (this) {
+  bool matches(Skill s, SkillUsage? usage, DateTime now) => switch (this) {
     all => true,
     global => s.source == SkillSource.global || s.source == SkillSource.synced,
     project => s.source == SkillSource.project,
     plugin => s.source == SkillSource.plugin,
     disabled => s.pluginEnabled == false,
+    unused => usage?.isStale(s, now) == true,
   };
+}
+
+/// 미사용 후보가 무엇을 근거로 하는지. 기록이 없다고 안 쓴 것은 아니다.
+String _usageNote(SkillUsage? u) {
+  if (u == null) return '사용 기록을 읽는 중입니다';
+  if (u.since.isEmpty) return '사용 기록을 찾지 못해 판단할 수 없습니다';
+  final periods = [
+    for (final MapEntry(key: a, value: t) in u.since.entries)
+      '${a.label} ${t.toLocal().toString().substring(0, 10)}부터',
+  ].join(', ');
+  return '${SkillUsage.staleAfter.inDays}일 넘게 사용 기록이 없는 스킬입니다. '
+      '확인한 기록: $periods. 다른 에이전트 스킬은 판단할 수 없어 빠집니다.';
 }
 
 /// 에이전트 필터. null은 전체.
@@ -45,6 +60,9 @@ class SkillListPage extends StatefulWidget {
   /// 한국어 요약·카테고리. null이면 원문 설명만 보여 준다.
   final SkillAnalysisStore? analysisStore;
 
+  /// 세션 로그 사용 기록. null이면 아직 읽는 중이다.
+  final SkillUsage? usage;
+
   const SkillListPage({
     super.key,
     required this.result,
@@ -52,6 +70,7 @@ class SkillListPage extends StatefulWidget {
     required this.onOpen,
     this.scanning = false,
     this.analysisStore,
+    this.usage,
   });
 
   @override
@@ -97,6 +116,7 @@ class _SkillListPageState extends State<SkillListPage> {
   }
 
   Widget _build(SkillAnalysis? Function(Skill) analysisOf, int pending) {
+    final now = DateTime.now();
     final counts = <String, int>{};
     for (final s in widget.result.skills) {
       for (final c in analysisOf(s)?.categories ?? const <String>[]) {
@@ -105,7 +125,7 @@ class _SkillListPageState extends State<SkillListPage> {
     }
     final shown = widget.result.skills
         .where((s) => _agent == null || s.agents.contains(_agent))
-        .where(_filter.matches)
+        .where((s) => _filter.matches(s, widget.usage, now))
         .where(
           (s) =>
               _categories.isEmpty ||
@@ -276,6 +296,14 @@ class _Main extends StatelessWidget {
           ],
         ),
       ),
+      if (filter == SourceFilter.unused)
+        Padding(
+          padding: const EdgeInsets.only(top: 12, left: 8),
+          child: Text(
+            _usageNote(widget.usage),
+            style: const TextStyle(color: _sub),
+          ),
+        ),
       for (final n in widget.result.notices)
         Padding(
           padding: const EdgeInsets.only(top: 12, left: 8),
