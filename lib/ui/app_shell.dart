@@ -265,10 +265,10 @@ class _Sidebar extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Image.asset(
-                'assets/logo/skillgui-logo.png',
+                'assets/logo/mgrs-logo.png',
                 key: const Key('app-logo'),
                 height: 30,
-                semanticLabel: 'Skill-GUI',
+                semanticLabel: 'MgrS',
                 filterQuality: FilterQuality.medium,
               ),
             ),
