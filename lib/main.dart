@@ -11,6 +11,7 @@ import 'features/ranking/ranking_screen.dart';
 import 'features/scan/agent.dart';
 import 'features/scan/skill.dart';
 import 'features/scan/skill_scanner.dart';
+import 'features/usage/skill_usage.dart';
 import 'ui/glass.dart';
 import 'ui/app_shell.dart';
 import 'ui/update_page.dart';
@@ -34,6 +35,9 @@ class SkillGuiApp extends StatefulWidget {
   final ClaudeCli cli;
   final Future<List<PluginUpdate>> Function(Directory) findUpdates;
 
+  /// 홈 폴더를 받아 세션 로그 사용 기록을 읽는다.
+  final Future<SkillUsage> Function(String) readUsage;
+
   SkillGuiApp({
     super.key,
     required this.claudeDir,
@@ -41,6 +45,7 @@ class SkillGuiApp extends StatefulWidget {
     required this.reduceTransparency,
     ClaudeCli? cli,
     this.findUpdates = checkUpdates,
+    this.readUsage = readSkillUsage,
   }) : cli = cli ?? ProcessClaudeCli();
 
   @override
@@ -65,6 +70,7 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
   bool _failed = false;
   bool _reduce = false;
   int _updateCount = 0;
+  SkillUsage? _usage;
 
   static int _needed(List<PluginUpdate> l) =>
       l.where((p) => p.state == UpdateState.needed).length;
@@ -98,6 +104,12 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
       _failed = r == null;
       _loading = false;
     });
+    // 로그가 커서 스캔을 기다리게 하지 않는다.
+    if (dir != null) {
+      widget.readUsage(dir.parent.path).then((u) {
+        if (mounted) setState(() => _usage = u);
+      }).ignore();
+    }
     // 인터넷 없이 컴퓨터 안 마켓 복사본과 비교해 사이드바 개수만 먼저 채운다.
     if (dir != null) {
       final n = _needed(await widget.findUpdates(dir));
@@ -135,6 +147,7 @@ class _SkillGuiAppState extends State<SkillGuiApp> {
     }
     return AppShell(
       installHistory: _installs,
+      usage: _usage,
       onTabSelected: (t) {
         if (t == AppTab.ranking) _rankingReset.value++;
       },

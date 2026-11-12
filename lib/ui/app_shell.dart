@@ -4,6 +4,7 @@ import '../features/ranking/install/install_history.dart';
 import '../features/ranking/widgets/install_history_view.dart';
 import '../features/skill_analysis/skill_analysis_store.dart';
 import '../features/scan/skill.dart';
+import '../features/usage/skill_usage.dart';
 import 'glass.dart';
 import 'skill_detail_page.dart';
 import 'skill_list_page.dart';
@@ -45,6 +46,9 @@ class AppShell extends StatefulWidget {
   /// 랭킹에서 하는 설치 기록. 설치 중이면 사이드바 랭킹 탭에 "설치 중"을 띄운다.
   final InstallHistory? installHistory;
 
+  /// 내 스킬 "미사용 후보" 필터용 사용 기록. null이면 읽는 중.
+  final SkillUsage? usage;
+
   /// 사이드바 탭을 누를 때마다 부른다. 바깥에서 넣은 탭 화면을 처음으로 돌릴 때 쓴다.
   final ValueChanged<AppTab>? onTabSelected;
 
@@ -58,6 +62,7 @@ class AppShell extends StatefulWidget {
     this.updateCount = 0,
     this.analysisStore,
     this.installHistory,
+    this.usage,
     this.onTabSelected,
   });
 
@@ -131,6 +136,7 @@ class _AppShellState extends State<AppShell> {
                               onOpen: (s) => setState(() => _detail = s),
                               scanning: widget.scanning,
                               analysisStore: _analysis,
+                              usage: widget.usage,
                             ),
                           ),
                           if (_detail case final s?)

@@ -26,7 +26,7 @@ void main() {
     expect(find.text('alpha'), findsOneWidget);
     expect(find.text('내 스킬'), findsWidgets);
     expect(find.text('1'), findsOneWidget);
-    for (final gone in ['에이전트', '정리', '미사용 후보', '찾기·랭킹', '검색']) {
+    for (final gone in ['에이전트', '정리', '찾기·랭킹', '검색']) {
       expect(find.text(gone), findsNothing, reason: gone);
     }
   });
