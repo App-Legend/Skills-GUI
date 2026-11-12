@@ -105,6 +105,34 @@ void main() {
     expect(find.text('a'), findsNothing);
     expect(find.text('b'), findsOneWidget);
     expect(find.textContaining('Claude Code 2026-09-30부터'), findsOneWidget);
+    expect(find.text('사용 기록 없음'), findsWidgets);
+  });
+
+  testWidgets('필터 칩 옆에 개수, 미사용 후보 카드에 마지막 사용일', (t) async {
+    await _pump(
+      t,
+      usage: SkillUsage(
+        since: {Agent.claude: DateTime(2026, 9, 1)},
+        lastUsed: {
+          Agent.claude: {'b': DateTime(2026, 9, 10)},
+        },
+      ),
+    );
+    Finder chip(String label) =>
+        find.ancestor(of: find.text(label), matching: find.byType(Row)).first;
+    String countOf(String label) => t
+        .widgetList<Text>(
+          find.descendant(of: chip(label), matching: find.byType(Text)),
+        )
+        .last
+        .data!;
+    expect(countOf('전역'), '3'); // a, c, e
+    expect(countOf('플러그인'), '2');
+    expect(countOf('꺼짐'), '1');
+    expect(countOf('미사용 후보'), '5');
+    await t.tap(find.text('미사용 후보'));
+    await t.pump();
+    expect(find.text('마지막 사용 2026-09-10'), findsOneWidget);
   });
 
   testWidgets('미사용 후보: 기록을 읽는 중이면 비워 두고 알려 줍니다', (t) async {
@@ -182,14 +210,20 @@ void main() {
       hasFocusAction: true,
       isFocusable: true,
     );
-    expect(t.getSemantics(find.bySemanticsLabel('플러그인')), node('플러그인', false));
+    expect(
+      t.getSemantics(find.bySemanticsLabel('플러그인 2개')),
+      node('플러그인 2개', false),
+    );
     expect(
       t.getSemantics(find.bySemanticsLabel('Codex')),
       node('Codex', false),
     );
     await t.tap(find.text('플러그인'));
     await t.pump();
-    expect(t.getSemantics(find.bySemanticsLabel('플러그인')), node('플러그인', true));
+    expect(
+      t.getSemantics(find.bySemanticsLabel('플러그인 2개')),
+      node('플러그인 2개', true),
+    );
     h.dispose();
   });
 

@@ -18,18 +18,24 @@ class SkillUsage {
 
   const SkillUsage({this.lastUsed = const {}, this.since = const {}});
 
-  /// true 미사용 후보, false 최근에 씀, null 판단 불가(로그를 못 읽는 에이전트만 읽는 스킬).
-  bool? isStale(Skill s, DateTime now) {
-    final judged = s.agents.where(since.containsKey);
-    if (judged.isEmpty) return null;
-    for (final a in judged) {
+  /// 로그를 읽은 에이전트 중 가장 최근 사용. 없으면 null.
+  DateTime? lastUsedOf(Skill s) {
+    DateTime? last;
+    for (final a in s.agents.where(since.containsKey)) {
       final used = lastUsed[a] ?? const {};
       for (final k in _keys(s)) {
         final t = used[k];
-        if (t != null && now.difference(t) < staleAfter) return false;
+        if (t != null && (last == null || t.isAfter(last))) last = t;
       }
     }
-    return true;
+    return last;
+  }
+
+  /// true 미사용 후보, false 최근에 씀, null 판단 불가(로그를 못 읽는 에이전트만 읽는 스킬).
+  bool? isStale(Skill s, DateTime now) {
+    if (!s.agents.any(since.containsKey)) return null;
+    final last = lastUsedOf(s);
+    return last == null || now.difference(last) >= staleAfter;
   }
 
   static Iterable<String> _keys(Skill s) sync* {

@@ -37,11 +37,14 @@ String _usageNote(SkillUsage? u) {
   if (u.since.isEmpty) return '사용 기록을 찾지 못해 판단할 수 없습니다';
   final periods = [
     for (final MapEntry(key: a, value: t) in u.since.entries)
-      '${a.label} ${t.toLocal().toString().substring(0, 10)}부터',
+      '${a.label} ${_day(t)}부터',
   ].join(', ');
   return '${SkillUsage.staleAfter.inDays}일 넘게 사용 기록이 없는 스킬입니다. '
       '확인한 기록: $periods. 다른 에이전트 스킬은 판단할 수 없어 빠집니다.';
 }
+
+/// 2026-10-01 꼴 날짜.
+String _day(DateTime t) => t.toLocal().toString().substring(0, 10);
 
 /// 에이전트 필터. null은 전체.
 String _agentLabel(Agent? a) => a?.label ?? '전체';
@@ -123,17 +126,25 @@ class _SkillListPageState extends State<SkillListPage> {
         counts[c] = (counts[c] ?? 0) + 1;
       }
     }
-    final shown = widget.result.skills
+    final base = widget.result.skills
         .where((s) => _agent == null || s.agents.contains(_agent))
-        .where((s) => _filter.matches(s, widget.usage, now))
         .where(
           (s) =>
               _categories.isEmpty ||
               (analysisOf(s)?.categories.any(_categories.contains) ?? false),
         )
         .toList();
+    bool matches(SourceFilter f, Skill s) => f.matches(s, widget.usage, now);
+    final shown = base.where((s) => matches(_filter, s)).toList();
     return _Main(
       shown: shown,
+      filterCounts: {
+        for (final f in SourceFilter.values)
+          // 사용 기록을 읽는 중이면 미사용 후보 개수는 아직 모른다.
+          if (f != SourceFilter.all &&
+              (f != SourceFilter.unused || widget.usage != null))
+            f: base.where((s) => matches(f, s)).length,
+      },
       widget: widget,
       filter: _filter,
       onFilter: (f) => setState(() => _filter = f),
@@ -155,6 +166,9 @@ class _SkillListPageState extends State<SkillListPage> {
 
 class _Main extends StatelessWidget {
   final List<Skill> shown;
+
+  /// 필터 칩 옆 개수. 다른 필터(에이전트·카테고리)를 적용한 뒤 센다.
+  final Map<SourceFilter, int> filterCounts;
   final SkillListPage widget;
   final SourceFilter filter;
   final ValueChanged<SourceFilter> onFilter;
@@ -168,6 +182,7 @@ class _Main extends StatelessWidget {
 
   const _Main({
     required this.shown,
+    required this.filterCounts,
     required this.widget,
     required this.filter,
     required this.onFilter,
@@ -180,21 +195,37 @@ class _Main extends StatelessWidget {
     required this.categoryPanel,
   });
 
-  static Widget _chip(String label, bool selected, VoidCallback onTap) =>
-      Semantics(
-        selected: selected,
-        button: true,
-        child: GlassTap(
-          onTap: onTap,
-          color: selected ? const Color(0xB3FFFFFF) : null,
-          child: Text(
+  static Widget _chip(
+    String label,
+    bool selected,
+    VoidCallback onTap, [
+    int? count,
+  ]) => Semantics(
+    selected: selected,
+    button: true,
+    child: GlassTap(
+      onTap: onTap,
+      color: selected ? const Color(0xB3FFFFFF) : null,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
             label,
+            semanticsLabel: count == null ? null : '$label $count개',
             style: TextStyle(
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
-        ),
-      );
+          if (count != null) ...[
+            const SizedBox(width: 5),
+            ExcludeSemantics(
+              child: Text('$count', style: const TextStyle(color: _sub)),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => Column(
@@ -292,7 +323,7 @@ class _Main extends StatelessWidget {
           spacing: 6,
           children: [
             for (final f in SourceFilter.values)
-              _chip(f.label, f == filter, () => onFilter(f)),
+              _chip(f.label, f == filter, () => onFilter(f), filterCounts[f]),
           ],
         ),
       ),
@@ -332,6 +363,12 @@ class _Main extends StatelessWidget {
                   skill: shown[i],
                   analysis: analysisOf(shown[i]),
                   onOpen: widget.onOpen,
+                  lastUsed: filter == SourceFilter.unused
+                      ? switch (widget.usage?.lastUsedOf(shown[i])) {
+                          final t? => '마지막 사용 ${_day(t)}',
+                          null => '사용 기록 없음',
+                        }
+                      : null,
                 ),
               ),
       ),
@@ -344,10 +381,14 @@ class _SkillCard extends StatelessWidget {
   final SkillAnalysis? analysis;
   final void Function(Skill) onOpen;
 
+  /// 미사용 후보 필터에서만: 마지막 사용일 문구.
+  final String? lastUsed;
+
   const _SkillCard({
     required this.skill,
     required this.analysis,
     required this.onOpen,
+    this.lastUsed,
   });
 
   @override
@@ -397,6 +438,14 @@ class _SkillCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12, color: _sub),
+                ),
+              if (lastUsed != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    lastUsed!,
+                    style: const TextStyle(fontSize: 12, color: _sub),
+                  ),
                 ),
               if (body != null)
                 Expanded(

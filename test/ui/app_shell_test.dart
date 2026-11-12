@@ -20,12 +20,18 @@ Future<void> _pump(WidgetTester t, {Size size = const Size(1280, 820)}) async {
   );
 }
 
+/// 내 스킬 필터 칩에도 개수가 있어 사이드바 안에서만 찾는다.
+Finder _inSidebar(String text) => find.descendant(
+  of: find.byWidgetPredicate((w) => w.runtimeType.toString() == '_Sidebar'),
+  matching: find.text(text),
+);
+
 void main() {
   testWidgets('처음엔 내 스킬 목록, 탭은 세 개', (t) async {
     await _pump(t);
     expect(find.text('alpha'), findsOneWidget);
     expect(find.text('내 스킬'), findsWidgets);
-    expect(find.text('1'), findsOneWidget);
+    expect(_inSidebar('1'), findsOneWidget);
     for (final gone in ['에이전트', '정리', '찾기·랭킹', '검색']) {
       expect(find.text(gone), findsNothing, reason: gone);
     }
@@ -167,8 +173,8 @@ void main() {
       ),
     );
     await t.pumpWidget(shell(2));
-    expect(find.text('2'), findsOneWidget);
+    expect(_inSidebar('2'), findsOneWidget);
     await t.pumpWidget(shell(0));
-    expect(find.text('0'), findsNothing);
+    expect(_inSidebar('0'), findsNothing);
   });
 }
