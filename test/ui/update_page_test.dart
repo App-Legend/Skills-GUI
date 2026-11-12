@@ -135,11 +135,13 @@ void main() {
     await t.pump();
     expect(find.text('p@m'), findsOneWidget); // 플러그인 결과 먼저
     expect(find.text('나머지를 확인하는 중입니다'), findsOneWidget);
+    await t.pump(const Duration(seconds: 10)); // 오래 걸리면 문구가 바뀐다
+    expect(find.text('스킬이 많아 시간이 조금 더 걸리고 있습니다'), findsOneWidget);
     slow.add((found: const [_unknown], errors: const []));
     await slow.close();
     await t.pumpAndSettle();
     expect(find.text('q@n'), findsOneWidget);
-    expect(find.text('나머지를 확인하는 중입니다'), findsNothing);
+    expect(find.text('스킬이 많아 시간이 조금 더 걸리고 있습니다'), findsNothing);
   });
 
   testWidgets('확인 중 다시 눌러도 한 번만 실행', (t) async {
