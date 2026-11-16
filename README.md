@@ -81,7 +81,14 @@ Skill-GUI는 이 흐름을 **카드·목록·상세 화면**으로 옮겨, 스�
 
 ## 기술 스택
 
-미정.
+- **Flutter** (데스크톱: macOS / Windows)
+- **macOS 샌드박스 끔**: 앱을 켜자마자 `~/.claude` 등 여러 스킬 폴더를 읽고, 이후 배포·삭제로 파일도 다뤄야 해서 끈다(`macos/Runner/*.entitlements`). 그래서 **Mac App Store에는 올릴 수 없다.** 배포 방식은 미정.
+
+## 디자인
+
+- **리퀴드 글래스**: 반투명 유리 재질(블러)의 사이드바·툴바 위에 불투명 카드로 내용을 올린다.
+- 투명도 줄이기 설정이 켜지면 유리 대신 불투명 배경을 쓴다.
+- 시안: https://claude.ai/artifact/STvot9BocgrsUZXwDAWF9f
 
 ## 라이선스
 
